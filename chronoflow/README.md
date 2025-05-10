@@ -13,6 +13,7 @@ If you are developing a production application, we recommend using TypeScript wi
 
 
 npm create vite@latest chronoflow -- --template react
+npm install @vitejs/plugin-react
 cd chronoflow
 npm install
 npm run dev
@@ -23,3 +24,4 @@ npm install @stripe/stripe-js
 npm install date-fns
 npm install react-hook-form zod
 npm install -D eslint prettier eslint-config-prettier eslint-plugin-react
+npm install i18next react-i18next
