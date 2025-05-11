@@ -9,17 +9,17 @@ const passwordRegex =
 	/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?]).{8,}$/
 
 const loginSchema = z.object({
-	email: z.string().email('Email invalide'),
+	email: z.string().email('Invalid email'),
 	password: z
 		.string()
-		.min(8, 'Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial')
+		.min(8, 'Password must contain an uppercase, a lowercase, a number and a special character')
 		.regex(
 			passwordRegex,
-			'Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial'
+			'Password must contain an uppercase, a lowercase, a number and a special character'
 		),
 })
 
-export default function LoginPage () {
+export default function LoginPageEn () {
 	const [error, setError] = useState('')
 	const [loading, setLoading] = useState(false)
 	const navigate = useNavigate()
@@ -58,7 +58,7 @@ export default function LoginPage () {
 	return (
 		<div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-rose-100 to-blue-100 px-4">
 			<div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
-				<h1 className="text-2xl font-bold mb-6 text-center text-rose-700">Connexion</h1>
+				<h1 className="text-2xl font-bold mb-6 text-center text-rose-700">Sign in</h1>
 				{error && (
 					<div className="bg-rose-100 text-rose-700 px-3 py-2 rounded text-sm mb-4">
 						{error}
@@ -83,7 +83,7 @@ export default function LoginPage () {
 					</div>
 					<div>
 						<label className="block mb-1 font-medium text-gray-700" htmlFor="password">
-							Mot de passe
+							Password
 						</label>
 						<input
 							id="password"
@@ -102,18 +102,18 @@ export default function LoginPage () {
 						className="cursor-pointer w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 rounded-lg transition disabled:opacity-60"
 						disabled={loading}
 					>
-						{loading ? 'Connexion...' : 'Se connecter'}
+						{loading ? 'Signing in...' : 'Sign in'}
 					</button>
 				</form>
 				<div className="flex flex-col gap-4 mb-4">
 					<button
 						type="button"
 						onClick={() => handleOAuth('google')}
-						className="cursor-pointer w-full flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-700 hover:text-white text-gray-700 font-semibold py-2 rounded-lg shadow transition disabled:opacity-60"
+						className="cursor-pointer w-full flex items-center justify-center gap-2  hover:bg-gray-700 hover:text-white bg-white border border-gray-300  text-gray-700 font-semibold py-2 rounded-lg shadow transition disabled:opacity-60"
 						disabled={loading}
 					>
 						<img src="/assets/images/google.png" alt="Google" className="w-5 h-5" />
-						Se connecter avec Google
+						Sign in with Google
 					</button>
 					<button
 						type="button"
@@ -122,13 +122,13 @@ export default function LoginPage () {
 						disabled={loading}
 					>
 						<img src="/assets/images/github.png" alt="GitHub" className="w-5 h-5 bg-white rounded-full p-0.2" />
-						Se connecter avec GitHub
+						Sign in with GitHub
 					</button>
 				</div>
 				<div className="mt-6 text-center text-sm text-gray-600">
-					Pas encore de compte ?{' '}
-					<Link to="/signup" className="text-rose-600 hover:underline">
-						Créer un compte
+					Don't have an account?{' '}
+					<Link to="/en/signup" className="text-rose-600 hover:underline">
+						Create an account
 					</Link>
 				</div>
 			</div>

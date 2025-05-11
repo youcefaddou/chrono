@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom'
 import './hero-section.css'
 
 function HeroSection() {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const lang = i18n.language
 
 	return (
 		<section className="py-6 px-4 sm:py-16 sm:px-6 md:py-12 md:px-8 text-center bg-blue-100">
@@ -17,7 +18,7 @@ function HeroSection() {
 				{t('hero.subtitle')}
 			</p>
 			<Link
-				to="/signup"
+				to={lang === 'en' ? '/en/signup' : '/signup'}
 				className="inline-block bg-rose-600 hover:bg-rose-700 text-white font-semibold px-8 py-3 mt-8 rounded-lg shadow transition"
 			>
 				{t('hero.cta')}

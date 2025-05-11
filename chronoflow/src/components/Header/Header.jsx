@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "../../hooks/useTranslation";
 import { supabase } from "../../lib/supabase";
 import logo from "../../assets/logo.png";
@@ -18,6 +18,7 @@ export default function Header() {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const navRef = useRef();
 
   useEffect(() => {
@@ -48,7 +49,19 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [menuOpen]);
 
-  const handleLang = (lng) => i18n.changeLanguage(lng);
+  const handleLang = (lng) => {
+    const path = location.pathname;
+    if (lng === "en") {
+      if (!path.startsWith("/en")) {
+        navigate("/en" + (path === "/" ? "" : path));
+      }
+    } else {
+      if (path.startsWith("/en")) {
+        navigate(path.replace(/^\/en/, "") || "/");
+      }
+    }
+    i18n.changeLanguage(lng);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -112,16 +125,18 @@ export default function Header() {
                 {t("header.login")}
               </button>
               <button
-                onClick={() => handleLogin("google")}
-                className="header-btn header-btn-google"
+                onClick={() => handleLang("fr")}
+                className="header-lang-btn"
+                aria-label="Français"
               >
-                Google
+                <img src={flagFr} alt="Français" className="header-flag" />
               </button>
               <button
-                onClick={() => handleLogin("github")}
-                className="header-btn header-btn-github"
+                onClick={() => handleLang("en")}
+                className="header-lang-btn"
+                aria-label="Anglais"
               >
-                GitHub
+                <img src={flagEn} alt="English" className="header-flag" />
               </button>
             </li>
           )}
@@ -135,22 +150,6 @@ export default function Header() {
               </button>
             </li>
           )}
-          <li className="header-lang">
-            <button
-              onClick={() => handleLang("fr")}
-              className="header-lang-btn"
-              aria-label="Français"
-            >
-              <img src={flagFr} alt="Français" className="header-flag" />
-            </button>
-            <button
-              onClick={() => handleLang("en")}
-              className="header-lang-btn"
-              aria-label="Anglais"
-            >
-              <img src={flagEn} alt="English" className="header-flag" />
-            </button>
-          </li>
         </ul>
       </nav>
     </header>

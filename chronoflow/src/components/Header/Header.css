@@ -306,6 +306,7 @@
         padding-left: 0.8rem;
         padding-right: 0.8rem;
         display: inline-block;
+        
     }
 
     .header-lang {
@@ -320,8 +321,9 @@
         flex-direction: row;
         flex-wrap: wrap;
         gap: 0.5rem;
-        padding-left: 1.2rem;
+        padding-left: 1rem;
         margin-bottom: 0.5rem;
+        margin-top: 0.2rem;
     }
 
     .header-login-row>.header-btn {
@@ -351,10 +353,43 @@
     .header-login-row {
         display: flex;
         flex-direction: row;
-        gap: 0.5rem;
         align-items: center;
-        margin-bottom: 0;
+        gap: 0.5rem;
         padding-left: 0;
+        margin-bottom: 0;
+        margin-top: 0;
+    }
+
+    .header-login-row .header-btn {
+        margin: 0;
+    }
+
+    .header-login-row .header-lang-btn {
+
+        border-radius: 6px;
+        color: #ef4444;
+        border: none;
+        font-size: 0.95em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+    }
+
+    .header-login-row .header-lang-btn:hover {
+        color: brown;
+    }
+
+    .header-login-row .header-flag {
+        width: 22px;
+        height: 16px;
+        object-fit: cover;
+        border-radius: 3px;
+        margin-left: 0.2rem;
+        margin-right: 0.2rem;
     }
 }
 
