@@ -5,9 +5,18 @@ import { z } from 'zod'
 import { supabase } from '../../../lib/supabase'
 import { Link, useNavigate } from 'react-router-dom'
 
+const passwordRegex =
+	/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?]).{8,}$/
+
 const signupSchema = z.object({
 	email: z.string().email('Email invalide'),
-	password: z.string().min(8, '8 caractères minimum'),
+	password: z
+		.string()
+		.min(8, 'Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial')
+		.regex(
+			passwordRegex,
+			'Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial'
+		),
 	confirmPassword: z.string().min(8, '8 caractères minimum'),
 }).refine(data => data.password === data.confirmPassword, {
 	message: 'Les mots de passe ne correspondent pas',
@@ -24,6 +33,7 @@ export default function SignupPage () {
 		formState: { errors },
 	} = useForm({
 		resolver: zodResolver(signupSchema),
+		mode: 'onChange',
 	})
 
 	const onSubmit = async ({ email, password }) => {
