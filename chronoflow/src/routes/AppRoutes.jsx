@@ -7,6 +7,7 @@ import TermsPage from '../app/terms/page'
 import TermsPageEn from '../app/terms/page.en'
 import FaqPage from '../app/faq/page'
 import ContactPage from '../app/contact/page'
+import HomePage from '../app/home/page'
 // Ajoute d'autres pages si besoin
 
 export default function AppRoutes () {
@@ -20,6 +21,7 @@ export default function AppRoutes () {
 			<Route path="/terms/en" element={<TermsPageEn />} />
 			<Route path="/faq" element={<FaqPage />} />
 			<Route path="/contact" element={<ContactPage />} />
+			<Route path="/" element={<HomePage />} />
 			{/* Ajoute ici les routes pour product, pricing, ressources si tu crées ces pages */}
 			{/* <Route path="/product" element={<ProductPage />} /> */}
 			{/* <Route path="/pricing" element={<PricingPage />} /> */}
