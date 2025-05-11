@@ -8,7 +8,7 @@ export default function ContactPage () {
 				Pour toute question, suggestion ou demande d’assistance, contactez-nous :
 			</p>
 			<ul className="mb-4 text-gray-700">
-				<li>Email : <a href="mailto:contact@chronoflow.fr" className="text-rose-600 underline">contact@chronoflow.fr</a></li>
+				<li>Email : <a href="mailto:contact@chronoflow.fr" className="text-rose-600 underline">contact.chronoflow@gmail.com</a></li>
 				<li>Adresse : 50 rue d’Hauteville, 75010 Paris, France</li>
 			</ul>
 			<p className="text-gray-700">Nous répondons sous 48h ouvrées.</p>

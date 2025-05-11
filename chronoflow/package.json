@@ -4,6 +4,7 @@
   "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
   "main": "eslint.config.js",
   "dependencies": {
+    "@hookform/resolvers": "^5.0.1",
     "@stripe/stripe-js": "^7.3.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.49.4",

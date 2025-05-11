@@ -41,6 +41,7 @@ i18n
           // Hero
           "hero.title": "Gérez votre temps et vos tâches efficacement avec ChronoFlow",
           "hero.subtitle": "ChronoFlow est la solution moderne pour organiser vos journées, suivre vos projets et booster votre productivité. Profitez d'une interface intuitive, d'une sécurité optimale et d'une gestion du temps simplifiée, où que vous soyez.",
+          "hero.cta": "Créer un compte",
           // How it works
           "howitworks.title": "Comment ça marche ?",
           "howitworks.step1Title": "Démarrez le timer",
@@ -86,6 +87,7 @@ i18n
           // Hero
           "hero.title": "Manage your time and tasks efficiently with ChronoFlow",
           "hero.subtitle": "ChronoFlow is the modern solution to organize your days, track your projects, and boost your productivity. Enjoy an intuitive interface, optimal security, and simplified time management—anywhere, anytime.",
+          "hero.cta": "Create an account",
           // How it works
           "howitworks.title": "How does it work?",
           "howitworks.step1Title": "Start the timer",
