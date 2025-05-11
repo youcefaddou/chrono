@@ -1,0 +1,27 @@
+/* Animation moderne et fluide pour le titre Hero */
+.hero-title {
+	animation: hero-fade-in-smooth-bounce 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+	display: inline-block;
+	will-change: opacity, transform;
+}
+
+@keyframes hero-fade-in-smooth-bounce {
+	0% {
+		opacity: 0;
+		transform: translateY(48px) scale(0.98);
+	}
+	60% {
+		opacity: 1;
+		transform: translateY(-6px) scale(1.03);
+	}
+	80% {
+		transform: translateY(2px) scale(0.99);
+	}
+	90% {
+		transform: translateY(-1px) scale(1.01);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
