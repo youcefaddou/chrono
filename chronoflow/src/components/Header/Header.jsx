@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useTranslation } from "../hooks/useTranslation";
-import { supabase } from "../lib/supabase";
-import logo from "../assets/logo.png";
-import flagFr from "../assets/france.png";
-import flagEn from "../assets/eng.png";
+import { useTranslation } from "../../hooks/useTranslation";
+import { supabase } from "../../lib/supabase";
+import logo from "../../assets/logo.png";
+import flagFr from "../../assets/france.png";
+import flagEn from "../../assets/eng.png";
 import "./Header.css";
 
 const navLinks = [

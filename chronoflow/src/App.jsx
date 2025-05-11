@@ -1,16 +1,15 @@
+import Header from './components/Header/Header'
+import Footer from './components/Footer/Footer'
+import AppRoutes from './routes/AppRoutes'
 
-import './App.css'
-import Header from './components/Header'
-
-function App() {
-
-
-  return (
-    <>
-      <Header />
-      
-    </>
-  )
+function App () {
+	return (
+		<>
+			<Header />
+			<AppRoutes />
+			<Footer />
+		</>
+	)
 }
 
 export default App
