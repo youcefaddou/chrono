@@ -50,6 +50,26 @@ i18n
           "howitworks.step2Desc": "Notez et organisez vos tâches à accomplir.",
           "howitworks.step3Title": "Analysez vos progrès",
           "howitworks.step3Desc": "Consultez vos statistiques et améliorez-vous.",
+          // Dashboard
+          dashboard: {
+            welcome: "Bienvenue",
+            subtitle: "Voici votre espace personnel.",
+            newTask: "Nouvelle tâche",
+            viewTasks: "Voir les tâches",
+            analytics: "Statistiques",
+            settings: "Paramètres",
+            tasks: {
+              todo: "À faire",
+              inProgress: "En cours",
+              done: "Terminées",
+            },
+            activity: {
+              title: "Activité récente",
+              createdTask: "Nouvelle tâche créée",
+              completedTask: "Tâche terminée",
+              updatedProfile: "Profil mis à jour",
+            },
+          },
         },
       },
       en: {
@@ -96,6 +116,26 @@ i18n
           "howitworks.step2Desc": "Write down and organize your tasks to accomplish.",
           "howitworks.step3Title": "Analyze your progress",
           "howitworks.step3Desc": "Check your stats and improve yourself.",
+          // Dashboard
+          dashboard: {
+            welcome: "Welcome",
+            subtitle: "Here is your personal dashboard.",
+            newTask: "New Task",
+            viewTasks: "View Tasks",
+            analytics: "Analytics",
+            settings: "Settings",
+            tasks: {
+              todo: "To do",
+              inProgress: "In progress",
+              done: "Completed",
+            },
+            activity: {
+              title: "Recent Activity",
+              createdTask: "Created a new task",
+              completedTask: "Completed a task",
+              updatedProfile: "Updated profile",
+            },
+          },
         },
       },
     },
