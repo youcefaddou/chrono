@@ -8,6 +8,7 @@ import TermsPageEn from '../app/terms/page.en'
 import FaqPage from '../app/faq/page'
 import ContactPage from '../app/contact/page'
 import HomePage from '../app/home/page'
+import SignupPage from '../app/(auth)/signup/page'
 // Ajoute d'autres pages si besoin
 
 export default function AppRoutes () {
@@ -22,6 +23,7 @@ export default function AppRoutes () {
 			<Route path="/faq" element={<FaqPage />} />
 			<Route path="/contact" element={<ContactPage />} />
 			<Route path="/" element={<HomePage />} />
+			<Route path="/signup" element={<SignupPage />} />
 			{/* Ajoute ici les routes pour product, pricing, ressources si tu crées ces pages */}
 			{/* <Route path="/product" element={<ProductPage />} /> */}
 			{/* <Route path="/pricing" element={<PricingPage />} /> */}
