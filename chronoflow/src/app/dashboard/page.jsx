@@ -8,10 +8,12 @@ import Sidebar from '../../components/dashboard/Sidebar'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
 import CalendarGrid from '../../components/dashboard/CalendarGrid'
 import RightPanel from '../../components/dashboard/RightPanel'
+import { GlobalTimerProvider } from '../../components/Timer/GlobalTimerProvider'
 
 export default function DashboardPage () {
 	const [user, setUser] = useState(null)
 	const [loading, setLoading] = useState(true)
+	const [showCalendar, setShowCalendar] = useState(true)
 	const navigate = useNavigate()
 	const { t } = useTranslation()
 
@@ -37,17 +39,25 @@ export default function DashboardPage () {
 	}
 
 	return (
-		<div className='flex min-h-screen bg-white'>
-			<Sidebar user={user} />
-			<main className='flex-1 flex flex-col'>
-				<DashboardHeader />
-				<div className='flex flex-1'>
-					<div className='flex-1 overflow-auto'>
-						<CalendarGrid />
-					</div>
-					<RightPanel />
-				</div>
-			</main>
-		</div>
+		<GlobalTimerProvider>
+			<div className='flex min-h-screen bg-white'>
+				<Sidebar
+					user={user}
+					onSmartTimerClick={() => setShowCalendar(true)}
+				/>
+				<main className='flex-1 flex flex-col'>
+					<DashboardHeader />
+					{/* SUPPRIME ce bloc pour ne plus afficher CalendarGrid ici */}
+					{/* 
+					<div className='flex flex-1'>
+						<div className='flex-1 overflow-auto'>
+							{showCalendar && <CalendarGrid />}
+						</div>
+						{/* <RightPanel /> */}
+					
+					
+				</main>
+			</div>
+		</GlobalTimerProvider>
 	)
 }

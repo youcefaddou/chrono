@@ -1,52 +1,89 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useGlobalTimer } from '../Timer/GlobalTimerProvider'
 import FocusZoneModal from './FocusZoneModal'
+import CalendarSelectorModal from './CalendarSelectorModal'
+import CalendarGrid from './CalendarGrid'
+import RightPanel from './RightPanel'
+
+function getWeekNumber (date) {
+	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+	const dayNum = d.getUTCDay() || 7
+	d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+	const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+	return Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
+}
+
+function getMondayOfWeek (date) {
+	const d = new Date(date)
+	const day = d.getDay() || 7
+	d.setDate(d.getDate() - day + 1)
+	d.setHours(0, 0, 0, 0)
+	return d
+}
 
 function DashboardHeader () {
 	const { t } = useTranslation()
-	const [running, setRunning] = useState(false)
-	const [paused, setPaused] = useState(false)
-	const [seconds, setSeconds] = useState(0)
+	const { seconds, running, paused, start, pause, resume, stop } = useGlobalTimer()
 	const [showZone, setShowZone] = useState(false)
-	const intervalRef = useRef(null)
+	const [showCalendar, setShowCalendar] = useState(false)
+	const [selectedDate, setSelectedDate] = useState(getMondayOfWeek(new Date()))
+	const [selectedRange, setSelectedRange] = useState('this-week')
+	const [externalDate, setExternalDate] = useState(null) // Pour synchronisation externe
 
-	// Timer effect
-	useEffect(() => {
-		if (running && !paused) {
-			intervalRef.current = setInterval(() => setSeconds(s => s + 1), 1000)
-		} else {
-			clearInterval(intervalRef.current)
-		}
-		return () => clearInterval(intervalRef.current)
-	}, [running, paused])
+	const weekNumber = getWeekNumber(selectedDate)
+	const year = selectedDate.getFullYear()
 
 	const handleStartPause = () => {
-		if (!running) {
-			setRunning(true)
-			setPaused(false)
-		} else {
-			setPaused(p => !p)
-		}
+		if (!running) start()
+		else if (paused) resume()
+		else pause()
 	}
-	const handleStop = () => {
-		setRunning(false)
-		setPaused(false)
-		setSeconds(0)
-	}
+	const handleStop = () => stop()
 	const handleZone = () => setShowZone(true)
 	const handleAdd = () => alert('Add task/project')
 	const handleCloseZone = () => setShowZone(false)
+	const handleOpenCalendar = () => setShowCalendar(true)
+	const handleCloseCalendar = () => setShowCalendar(false)
+
+	const handleSelectCalendar = (range, date) => {
+		setSelectedRange(range)
+		setSelectedDate(getMondayOfWeek(date))
+		setShowCalendar(false)
+	}
+
+	const handlePrevWeek = () => {
+		const prev = new Date(selectedDate)
+		prev.setDate(prev.getDate() - 7)
+		setSelectedDate(getMondayOfWeek(prev))
+		setSelectedRange('this-week')
+	}
+	const handleNextWeek = () => {
+		const next = new Date(selectedDate)
+		next.setDate(next.getDate() + 7)
+		const maxWeek = getWeekNumber(new Date(selectedDate.getFullYear(), 11, 28))
+		const nextWeek = getWeekNumber(next)
+		if (nextWeek <= maxWeek) {
+			setSelectedDate(getMondayOfWeek(next))
+			setSelectedRange('this-week')
+		}
+	}
+
+	// Permet à CalendarGrid de changer la semaine affichée depuis l'extérieur
+	const handleExternalDateChange = date => {
+		setSelectedRange('this-week')
+		setSelectedDate(getMondayOfWeek(date))
+		setExternalDate(date)
+	}
 
 	return (
 		<>
 			<header className='flex flex-col md:flex-row md:items-center md:justify-between px-6 py-4 border-b border-gray-200 bg-white'>
 				<div className='flex items-center gap-4 mb-2 md:mb-0'>
-					{/* Timer numérique */}
 					<span className='font-mono text-lg text-blue-700 w-20 text-center'>
 						{String(Math.floor(seconds / 60)).padStart(2, '0')}:
 						{String(seconds % 60).padStart(2, '0')}
 					</span>
-					{/* Start/Pause bouton SVG */}
 					<button
 						onClick={handleStartPause}
 						className={`p-2 rounded-full border flex items-center ${
@@ -59,19 +96,16 @@ function DashboardHeader () {
 						aria-label={!running ? 'Start timer' : paused ? 'Resume timer' : 'Pause timer'}
 					>
 						{!running || paused ? (
-							// Play icon
 							<svg width='20' height='20' fill='none' viewBox='0 0 20 20'>
 								<polygon points='6,4 16,10 6,16' fill='#2563eb'/>
 							</svg>
 						) : (
-							// Pause icon
 							<svg width='20' height='20' fill='none' viewBox='0 0 20 20'>
 								<rect x='5' y='4' width='3' height='12' rx='1' fill='#eab308'/>
 								<rect x='12' y='4' width='3' height='12' rx='1' fill='#eab308'/>
 							</svg>
 						)}
 					</button>
-					{/* Stop bouton SVG */}
 					<button
 						onClick={handleStop}
 						disabled={!running && seconds === 0}
@@ -82,7 +116,6 @@ function DashboardHeader () {
 							<rect x='5' y='5' width='10' height='10' rx='2' fill='#e11d48'/>
 						</svg>
 					</button>
-					{/* Get in the zone bouton SVG */}
 					<button
 						onClick={handleZone}
 						className='p-2 rounded-full bg-rose-100 hover:bg-rose-200 border border-rose-200 flex items-center'
@@ -93,7 +126,6 @@ function DashboardHeader () {
 							<circle cx='10' cy='10' r='3' fill='#e11d48'/>
 						</svg>
 					</button>
-					{/* Add task/project bouton SVG */}
 					<button
 						onClick={handleAdd}
 						className='p-2 rounded-full bg-blue-100 hover:bg-blue-200 border border-blue-200 flex items-center'
@@ -106,9 +138,30 @@ function DashboardHeader () {
 					</button>
 					<span className='mx-4 hidden md:inline-block border-l h-6 border-gray-200' />
 					<div className='flex items-center gap-2'>
-						<button className='px-2 py-1 rounded hover:bg-gray-100'>&lt;</button>
-						<span className='font-medium'>This week - W19</span>
-						<button className='px-2 py-1 rounded hover:bg-gray-100'>&gt;</button>
+						<button
+							className='px-2 py-1 rounded hover:bg-gray-100'
+							onClick={handlePrevWeek}
+							aria-label='Previous week'
+						>
+							&lt;
+						</button>
+						<button
+							className='font-medium px-2 py-1 rounded hover:bg-blue-50 border border-blue-100'
+							onClick={handleOpenCalendar}
+						>
+							{selectedRange === 'today' && 'Today'}
+							{selectedRange === 'yesterday' && 'Yesterday'}
+							{selectedRange === 'this-week' && `This week - W${weekNumber}`}
+							{selectedRange === 'last-week' && `Last week - W${weekNumber}`}
+							{selectedRange === 'custom' && selectedDate.toLocaleDateString()}
+						</button>
+						<button
+							className='px-2 py-1 rounded hover:bg-gray-100'
+							onClick={handleNextWeek}
+							aria-label='Next week'
+						>
+							&gt;
+						</button>
 					</div>
 				</div>
 				<div className='flex items-center gap-2'>
@@ -127,6 +180,24 @@ function DashboardHeader () {
 					onClose={handleCloseZone}
 				/>
 			)}
+			{showCalendar && (
+				<CalendarSelectorModal
+					onClose={handleCloseCalendar}
+					onSelect={handleSelectCalendar}
+					selectedRange={selectedRange}
+					selectedDate={selectedDate}
+				/>
+			)}
+			<div className='flex flex-1'>
+				<div className='flex-1 overflow-auto'>
+					<CalendarGrid
+						selectedRange={selectedRange}
+						selectedDate={selectedDate}
+						onExternalDateChange={handleExternalDateChange}
+					/>
+				</div>
+				<RightPanel />
+			</div>
 		</>
 	)
 }

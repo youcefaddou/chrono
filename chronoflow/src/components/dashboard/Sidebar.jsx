@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-function Sidebar ({ user }) {
+function Sidebar ({ user, onSmartTimerClick }) {
 	const { t } = useTranslation()
 	return (
 		<aside className='w-56 bg-gray-900 text-white flex flex-col min-h-screen px-4 py-6'>
@@ -10,7 +10,12 @@ function Sidebar ({ user }) {
 			<nav className='flex-1'>
 				<ul className='space-y-2'>
 					<li className='font-semibold text-blue-400'>TRACK</li>
-					<li className='pl-2 py-1 hover:bg-gray-800 rounded cursor-pointer'>⏱ {t('features.timerTitle')}</li>
+					<li
+						className='pl-2 py-1 hover:bg-gray-800 rounded cursor-pointer'
+						onClick={onSmartTimerClick}
+					>
+						 Smart Timer
+					</li>
 					<li className='font-semibold text-blue-400 mt-4'>ANALYZE</li>
 					<li className='pl-2 py-1 hover:bg-gray-800 rounded cursor-pointer'>📊 Reports</li>
 					<li className='font-semibold text-blue-400 mt-4'>MANAGE</li>
