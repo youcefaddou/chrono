@@ -13,6 +13,7 @@ If you are developing a production application, we recommend using TypeScript wi
 
 
 npm create vite@latest chronoflow -- --template react
+npm install @vitejs/plugin-react
 cd chronoflow
 npm install
 npm run dev
@@ -23,3 +24,53 @@ npm install @stripe/stripe-js
 npm install date-fns
 npm install react-hook-form zod
 npm install -D eslint prettier eslint-config-prettier eslint-plugin-react
+npm install i18next react-i18next
+npm install @hookform/resolvers zod
+
+
+docker build -t chronoflow .
+
+## Déploiement et utilisation avec Docker
+
+### 1. Cloner le projet sur un autre PC
+
+```sh
+git clone <url-du-repo>
+cd chronoflow
+```
+
+### 2. Construire l'image Docker
+
+```sh
+docker build -t chronoflow .
+```
+
+### 3. Lancer le conteneur
+
+```sh
+docker run -p 3000:80 chronoflow
+```
+
+- Accède à l'application sur http://localhost:3000
+
+### 4. (Optionnel) Arrêter et supprimer le conteneur
+
+Pour voir les conteneurs en cours :
+```sh
+docker ps
+```
+Pour arrêter un conteneur :
+```sh
+docker stop <container_id>
+```
+Pour supprimer un conteneur :
+```sh
+docker rm <container_id>
+```
+
+### Remarques
+
+- Tu dois avoir Docker Desktop installé et lancé.
+- Si tu modifies le code, rebuild l'image (`docker build ...`) pour voir les changements.
+- Les dépendances sont installées automatiquement lors du build Docker.
+- Pour le développement local, utilise `npm run dev` sans Docker.
