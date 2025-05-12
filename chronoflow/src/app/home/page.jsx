@@ -10,9 +10,9 @@ export default function HomePage () {
 	return (
 		<div>
 			<HeroSection />
+			<VisualPreviewSection />
 			<FeaturesSection />
 			<HowItWorksSection />
-			<VisualPreviewSection />
 			<TestimonialsSection />
 			<CTASection />
 			<FAQSection />

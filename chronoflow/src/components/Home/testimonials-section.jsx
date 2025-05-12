@@ -2,7 +2,7 @@ import React from 'react'
 
 function TestimonialsSection () {
 	return (
-		<section className="py-12">
+		<section className="py-12 bg-blue-100">
 			<h2 className="text-2xl font-bold text-center mb-8">Ils utilisent ChronoFlow</h2>
 			<div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
 				<div className="bg-white rounded-lg shadow p-6 flex flex-col items-center">

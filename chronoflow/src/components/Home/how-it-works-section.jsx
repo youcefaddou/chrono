@@ -27,7 +27,7 @@ function HowItWorksSection () {
 	const content = steps(t)
 
 	return (
-		<section className="py-12">
+		<section className="py-12 bg-gray-300">
 			<h2 className="text-2xl font-bold text-center mb-8">
 				{t('howitworks.title')}
 			</h2>
