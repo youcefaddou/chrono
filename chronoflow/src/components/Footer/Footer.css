@@ -1,0 +1,34 @@
+.footer-link {
+    @apply text-neutral-600 hover:text-rose-600 transition-colors duration-150 text-sm no-underline;
+}
+
+.footer-list {
+	@apply list-none p-0 m-0;
+}
+
+
+.footer-main nav {
+	display: flex;
+	flex-direction: column;
+	gap: 2rem;
+}
+
+@media (min-width: 340px) {
+	.footer-main nav {
+		flex-direction: column;
+		justify-content: space-around;
+		align-items: flex-start;
+	}
+	.footer-list {
+		min-width: 120px;
+	}
+}
+
+@media (min-width: 900px) {
+	.footer-main nav {
+		gap: 4rem;
+	}
+	.footer-list {
+		min-width: 160px;
+	}
+}
