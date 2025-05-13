@@ -5,6 +5,8 @@ import FocusZoneModal from './FocusZoneModal'
 import CalendarSelectorModal from './CalendarSelectorModal'
 import CalendarGrid from './CalendarGrid'
 import RightPanel from './RightPanel'
+import flagFr from '../../assets/france.png'
+import flagEn from '../../assets/eng.png'
 
 function getWeekNumber (date) {
 	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -23,7 +25,7 @@ function getMondayOfWeek (date) {
 }
 
 function DashboardHeader () {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
 	const { seconds, running, paused, start, pause, resume, stop } = useGlobalTimer()
 	const [showZone, setShowZone] = useState(false)
 	const [showCalendar, setShowCalendar] = useState(false)
@@ -33,6 +35,10 @@ function DashboardHeader () {
 
 	const weekNumber = getWeekNumber(selectedDate)
 	const year = selectedDate.getFullYear()
+
+	const currentFlag = i18n.language.startsWith("en") ? flagEn : flagFr
+	const nextLang = i18n.language.startsWith("en") ? "fr" : "en"
+	const handleLangSwitch = () => i18n.changeLanguage(nextLang)
 
 	const handleStartPause = () => {
 		if (!running) start()
@@ -149,11 +155,15 @@ function DashboardHeader () {
 							className='font-medium px-2 py-1 rounded hover:bg-blue-50 border border-blue-100'
 							onClick={handleOpenCalendar}
 						>
-							{selectedRange === 'today' && 'Today'}
-							{selectedRange === 'yesterday' && 'Yesterday'}
-							{selectedRange === 'this-week' && `This week - W${weekNumber}`}
-							{selectedRange === 'last-week' && `Last week - W${weekNumber}`}
-							{selectedRange === 'custom' && selectedDate.toLocaleDateString()}
+							{selectedRange === 'today' && t('calendar.today')}
+							{selectedRange === 'yesterday' && t('calendar.yesterday')}
+							{selectedRange === 'this-week' && t('calendar.thisWeek', { week: weekNumber })}
+							{selectedRange === 'last-week' && t('calendar.lastWeek', { week: weekNumber })}
+							{selectedRange === 'custom' &&
+								selectedDate.toLocaleDateString(
+									i18n.language.startsWith('fr') ? 'fr-FR' : 'en-US'
+								)
+							}
 						</button>
 						<button
 							className='px-2 py-1 rounded hover:bg-gray-100'
@@ -165,9 +175,15 @@ function DashboardHeader () {
 					</div>
 				</div>
 				<div className='flex items-center gap-2'>
-					<button className='px-3 py-1 rounded bg-blue-100 text-blue-700 font-medium'>Calendar</button>
-					<button className='px-3 py-1 rounded hover:bg-gray-100'>List view</button>
-					<button className='px-3 py-1 rounded hover:bg-gray-100'>Timesheet</button>
+					<button className='px-3 py-1 rounded bg-blue-100 text-blue-700 font-medium'>
+						{t('calendar.calendar')}
+					</button>
+					<button className='px-3 py-1 rounded hover:bg-gray-100'>
+						{t('calendar.listView')}
+					</button>
+					<button className='px-3 py-1 rounded hover:bg-gray-100'>
+						{t('calendar.timesheet')}
+					</button>
 				</div>
 			</header>
 			{showZone && (

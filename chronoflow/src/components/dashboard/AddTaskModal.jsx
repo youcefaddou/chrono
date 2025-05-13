@@ -1,5 +1,13 @@
 import React, { useState } from 'react'
 
+function getWeekNumber(date) {
+	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+	const dayNum = d.getUTCDay() || 7
+	d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+	const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+	return Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
+}
+
 function MiniCalendar ({ value, onChange }) {
 	const [month, setMonth] = useState(value.getMonth())
 	const [year, setYear] = useState(value.getFullYear())
@@ -26,6 +34,10 @@ function MiniCalendar ({ value, onChange }) {
 
 	return (
 		<div className='bg-white rounded-lg shadow p-3 mt-2'>
+			{/* Affiche la semaine sélectionnée avec le numéro réel */}
+			<div className="mb-2 text-center font-semibold text-blue-700">
+				Cette semaine - S{getWeekNumber(value)}
+			</div>
 			<div className='flex justify-between items-center mb-2'>
 				<button
 					onClick={() => {
@@ -54,7 +66,7 @@ function MiniCalendar ({ value, onChange }) {
 				</button>
 			</div>
 			<div className='grid grid-cols-7 gap-1 text-xs text-center'>
-				{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+				{['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => (
 					<span key={d} className='font-bold text-gray-400'>{d}</span>
 				))}
 				{weeks.flat().map((d, i) =>

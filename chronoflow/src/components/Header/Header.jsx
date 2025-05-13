@@ -21,6 +21,14 @@ export default function Header() {
   const navigate = useNavigate();
   const navRef = useRef();
 
+  // Affiche le drapeau de la langue OPPOSÉE à la langue courante
+  const showFlag = i18n.language.startsWith("fr") ? flagEn : flagFr;
+  const nextLang = i18n.language.startsWith("fr") ? "en" : "fr";
+
+  const handleLangSwitch = () => {
+    handleLang(nextLang);
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setUser(data?.session?.user ?? null);
@@ -65,6 +73,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    navigate("/");
   };
 
   const handleLogin = async (provider) => {
@@ -92,65 +101,61 @@ export default function Header() {
           <span className="header-burger-bar"></span>
           <span className="header-burger-bar"></span>
         </button>
-        <ul
-          className={`header-links ${menuOpen ? "header-links-open" : ""}`}
-          aria-label="Liens de navigation"
-        >
-          {navLinks.map((link) => (
-            <li key={link.to}>
-              <Link
-                to={link.to}
-                className={`header-link${location.pathname === link.to ? " header-link-active" : ""}`}
-              >
-                {t(link.label)}
-              </Link>
-            </li>
-          ))}
-          {user && (
-            <li>
-              <Link
-                to="/dashboard"
-                className={`header-link${location.pathname === "/dashboard" ? " header-link-active" : ""}`}
-              >
-                {t("header.dashboard")}
-              </Link>
-            </li>
-          )}
-          {!user && (
-            <li className="header-login-row">
-              <button
-                onClick={() => handleLogin("email")}
-                className="header-btn header-btn-main"
-              >
-                {t("header.login")}
-              </button>
-              <button
-                onClick={() => handleLang("fr")}
-                className="header-lang-btn"
-                aria-label="Français"
-              >
-                <img src={flagFr} alt="Français" className="header-flag" />
-              </button>
-              <button
-                onClick={() => handleLang("en")}
-                className="header-lang-btn"
-                aria-label="Anglais"
-              >
-                <img src={flagEn} alt="English" className="header-flag" />
-              </button>
-            </li>
-          )}
-          {user && (
-            <li>
-              <button
-                onClick={handleLogout}
-                className="header-btn header-btn-logout"
-              >
-                {t("header.logout")}
-              </button>
-            </li>
-          )}
-        </ul>
+        <div className="flex items-center gap-2 ml-auto">
+          <ul
+            className={`header-links ${menuOpen ? "header-links-open" : ""}`}
+            aria-label="Liens de navigation"
+          >
+            {navLinks.map((link) => (
+              <li key={link.to}>
+                <Link
+                  to={link.to}
+                  className={`header-link${location.pathname === link.to ? " header-link-active" : ""}`}
+                >
+                  {t(link.label)}
+                </Link>
+              </li>
+            ))}
+            {user && (
+              <li>
+                <Link
+                  to="/dashboard"
+                  className={`header-link${location.pathname === "/dashboard" ? " header-link-active" : ""}`}
+                >
+                  {t("header.dashboard")}
+                </Link>
+              </li>
+            )}
+            {!user && (
+              <li className="header-login-row">
+                <button
+                  onClick={() => handleLogin("email")}
+                  className="header-btn header-btn-main"
+                >
+                  {t("header.login")}
+                </button>
+              </li>
+            )}
+            {user && (
+              <li>
+                <button
+                  onClick={handleLogout}
+                  className="header-btn header-btn-logout"
+                >
+                  {t("header.logout")}
+                </button>
+              </li>
+            )}
+          </ul>
+          {/* Bouton flag TOUJOURS à droite */}
+          <button
+            onClick={handleLangSwitch}
+            className="header-lang-btn"
+            aria-label={nextLang === "fr" ? "Français" : "English"}
+          >
+            <img src={showFlag} alt={nextLang} className="header-flag" />
+          </button>
+        </div>
       </nav>
     </header>
   );

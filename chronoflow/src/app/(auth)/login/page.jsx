@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { supabase } from '../../../lib/supabase'
 import { useNavigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 const passwordRegex =
 	/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=[\]{};':"\\|,.<>/?]).{8,}$/
@@ -23,6 +24,7 @@ export default function LoginPage () {
 	const [error, setError] = useState('')
 	const [loading, setLoading] = useState(false)
 	const navigate = useNavigate()
+	const { t, i18n } = useTranslation()
 	const {
 		register,
 		handleSubmit,
@@ -50,7 +52,12 @@ export default function LoginPage () {
 	const handleOAuth = async provider => {
 		setError('')
 		setLoading(true)
-		const { error } = await supabase.auth.signInWithOAuth({ provider })
+		const { error } = await supabase.auth.signInWithOAuth({
+			provider,
+			options: {
+				redirectTo: window.location.origin + '/dashboard'
+			}
+		})
 		setLoading(false)
 		if (error) setError(error.message)
 	}

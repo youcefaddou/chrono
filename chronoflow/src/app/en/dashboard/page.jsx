@@ -54,12 +54,6 @@ export default function DashboardPage () {
 						</h1>
 						<p className='text-gray-500'>{t('dashboard.subtitle')}</p>
 					</div>
-					<button
-						onClick={() => i18n.changeLanguage(i18n.language === 'en' ? 'fr' : 'en')}
-						className='mt-4 md:mt-0 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-600'
-					>
-						{i18n.language === 'en' ? 'Français' : 'English'}
-					</button>
 				</div>
 				<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
 					<FeatureCard

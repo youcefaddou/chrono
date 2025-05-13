@@ -147,6 +147,7 @@
     "range-parser": "^1.2.1",
     "raw-body": "^3.0.0",
     "react": "^19.1.0",
+    "react-big-calendar": "^1.18.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.56.3",
     "react-i18next": "^15.5.1",

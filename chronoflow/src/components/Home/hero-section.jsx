@@ -8,7 +8,7 @@ function HeroSection() {
 	const lang = i18n.language
 
 	return (
-		<section className="py-6 px-4 sm:py-16 sm:px-6 md:py-12 md:px-8 text-center bg-blue-100">
+		<section className="py-6 px-4 sm:py-16 sm:px-6 md:py-12 md:px-8 text-center bg-gradient-to-b from-blue-50 via-white to-blue-200">
 			<h1
 				className="hero-title text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-800 mb-12 leading-tight"
 			>

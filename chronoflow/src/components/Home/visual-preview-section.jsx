@@ -107,7 +107,7 @@ function VisualPreviewSection () {
 	const displayIndex = ((virtualIndex % n) + n) % n
 
 	return (
-		<section className="py-12 bg-gray-300">
+		<section className="py-12 bg-gradient-to-b from-rose-50 via-white to-rose-100">
 			
 			<div className="w-full max-w-3xl mx-auto relative flex flex-col items-center">
 				{isMobile ? (

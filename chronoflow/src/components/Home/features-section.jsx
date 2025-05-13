@@ -5,7 +5,7 @@ function FeaturesSection () {
 	const { t } = useTranslation()
 
 	return (
-		<section className="py-12 bg-blue-100">
+		<section className="py-12 bg-gradient-to-b from-blue-50 via-white to-blue-200">
 			<h2 className="text-2xl font-bold text-center mb-8">{t('features.title')}</h2>
 			<div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
 				<div className="flex flex-col items-center">
