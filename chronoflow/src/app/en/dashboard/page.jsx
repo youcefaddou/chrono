@@ -1,10 +1,8 @@
-'use client'
-
 import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../../lib/supabase'
-import i18n from '@/lib/i18n'
+import i18n from '../../../lib/i18n'
 
 function FeatureCard ({ icon, title, desc, children }) {
 	return (
@@ -20,21 +18,21 @@ function FeatureCard ({ icon, title, desc, children }) {
 export default function DashboardPage () {
 	const [user, setUser] = useState(null)
 	const [loading, setLoading] = useState(true)
-	const router = useRouter()
+	const navigate = useNavigate()
 	const { t } = useTranslation()
 
 	useEffect(() => {
 		const getUser = async () => {
 			const { data } = await supabase.auth.getUser()
 			if (!data?.user) {
-				router.push('/en/login')
+				navigate('/en/login')
 			} else {
 				setUser(data.user)
 			}
 			setLoading(false)
 		}
 		getUser()
-	}, [router])
+	}, [navigate])
 
 	if (loading) {
 		return (

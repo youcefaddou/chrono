@@ -1,406 +1,386 @@
-import React, { useState } from 'react'
-import styled from '@emotion/styled'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
+import { fr, enUS } from 'date-fns/locale'
+import { format, parse, startOfWeek, getDay, getISOWeek, endOfWeek } from 'date-fns'
+import { useTranslation } from '../../hooks/useTranslation'
+import { supabase } from '../../lib/supabase'
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
+import CalendarSelectorModal from './CalendarSelectorModal'
 import AddTaskModal from './AddTaskModal'
-import TaskPopover from './TaskPopover'
-import TimerStartedModal from './TimerStartedModal'
 import { useGlobalTimer } from '../Timer/GlobalTimerProvider'
+import CalendarEventWithPlay from './CalendarEventWithPlay'
+import 'react-big-calendar/lib/css/react-big-calendar.css'
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 
-// Utilitaire pour obtenir la date du jour de la semaine courante (lundi = 0)
-function getDateOfWeek(dayIdx) {
-	const now = new Date()
-	const first = now.getDate() - now.getDay() + 1 + dayIdx
-	const d = new Date(now.setDate(first))
-	d.setHours(0, 0, 0, 0)
-	return d
-}
+const DnDCalendar = withDragAndDrop(Calendar)
+const locales = { fr, en: enUS }
 
-function getWeekDates (date) {
-	const d = new Date(date)
-	const day = d.getDay() || 7
-	const monday = new Date(d)
-	monday.setDate(d.getDate() - day + 1)
-	return Array.from({ length: 7 }, (_, i) => {
-		const dt = new Date(monday)
-		dt.setDate(monday.getDate() + i)
-		return dt
-	})
-}
+function CalendarGrid ({ user }) {
+	const { t, i18n } = useTranslation()
+	const lang = i18n.language.startsWith('en') ? 'en' : 'fr'
+	const [events, setEvents] = useState([])
+	const [view, setView] = useState('week')
+	const [date, setDate] = useState(new Date())
+	const [loading, setLoading] = useState(false)
+	const [showCalendarModal, setShowCalendarModal] = useState(false)
+	const [showAddTaskModal, setShowAddTaskModal] = useState(false)
+	const [draftTask, setDraftTask] = useState(null)
+	const [editTask, setEditTask] = useState(null)
+	const [errorMessage, setErrorMessage] = useState('')
+	const timer = useGlobalTimer()
 
-const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const hours = Array.from({ length: 24 }, (_, i) =>
-	String(i).padStart(2, '0') + ':00'
-)
-const QUARTERS = [0, 15, 30, 45]
+	const localizer = useMemo(() =>
+		dateFnsLocalizer({
+			format: (date, _formatStr, _options) => {
+				return format(date, _formatStr, { locale: locales[lang] })
+			},
+			parse,
+			startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 1, locale: locales[lang] }),
+			getDay,
+			locales,
+		}), [lang]
+	)
 
-function CalendarGrid ({
-	selectedRange = 'this-week',
-	selectedDate = new Date(),
-	onExternalDateChange,
-}) {
-	const [modalOpen, setModalOpen] = useState(false)
-	const [selected, setSelected] = useState(null) // { dayIdx, hourIdx, quarterIdx, endHourIdx, endQuarterIdx }
-	const [dragStart, setDragStart] = useState(null)
-	const [tasks, setTasks] = useState([])
-	const [popoverTask, setPopoverTask] = useState(null)
-	const [popoverAnchor, setPopoverAnchor] = useState(null)
-	const [favorites, setFavorites] = useState([])
-	const [shouldOpenModal, setShouldOpenModal] = useState(false)
-	const [timerModalOpen, setTimerModalOpen] = useState(false)
-	const { start } = useGlobalTimer()
-	const [internalSelectedDate, setInternalSelectedDate] = useState(selectedDate)
-	const [internalSelectedRange, setInternalSelectedRange] = useState(selectedRange)
+	// Fetch tasks from Supabase
+	const fetchTasks = useCallback(async () => {
+		if (!user) return
+		setLoading(true)
+		const { data, error } = await supabase
+			.from('tasks')
+			.select('*')
+			.eq('user_id', user.id)
+		if (!error) {
+			setEvents(data.map(task => ({
+				id: task.id,
+				title: task.title,
+				desc: task.description,
+				start: new Date(task.start),
+				end: new Date(task.end),
+				color: task.color || 'blue',
+				is_finished: !!task.is_finished,
+				duration_seconds: task.duration_seconds || 0,
+			})))
+		}
+		setLoading(false)
+	}, [user])
 
-	// Synchronise avec le parent si la date change de l'extérieur
-	React.useEffect(() => {
-		setInternalSelectedDate(selectedDate)
-		setInternalSelectedRange(selectedRange)
-	}, [selectedDate, selectedRange])
+	useEffect(() => { fetchTasks() }, [fetchTasks])
 
-	// Calcule la date de chaque colonne affichée
-	let daysToShow = days
-	let dayIndices = [0,1,2,3,4,5,6]
-	let highlightDayIdx = null
-	let daysDates = []
+	useEffect(() => {
+		function handleTaskFinished () {
+			fetchTasks()
+		}
+		window.addEventListener('task-finished', handleTaskFinished)
+		return () => {
+			window.removeEventListener('task-finished', handleTaskFinished)
+		}
+	}, [fetchTasks])
 
-	if (internalSelectedRange === 'today' || internalSelectedRange === 'yesterday' || internalSelectedRange === 'custom') {
-		const d = internalSelectedDate
-		const idx = d.getDay() === 0 ? 6 : d.getDay() - 1
-		daysToShow = [days[idx]]
-		dayIndices = [idx]
-		highlightDayIdx = idx
-		daysDates = [d]
-	} else if (internalSelectedRange === 'this-week' || internalSelectedRange === 'last-week') {
-		const refDate = new Date(internalSelectedDate)
-		if (internalSelectedRange === 'last-week') refDate.setDate(refDate.getDate() - 7)
-		const weekDates = getWeekDates(refDate)
-		dayIndices = weekDates.map(d => d.getDay() === 0 ? 6 : d.getDay() - 1)
-		daysToShow = dayIndices.map(i => days[i])
-		daysDates = weekDates
+	const handleEventSave = async event => {
+		if (!user) return
+		const task = {
+			title: event.title,
+			description: event.desc || '',
+			start: event.start,
+			end: event.end,
+			color: event.color || 'blue',
+			user_id: user.id,
+			is_finished: !!event.is_finished,
+			duration_seconds: event.duration_seconds || 0,
+		}
+		if (event.id) {
+			await supabase.from('tasks').update(task).eq('id', event.id)
+		} else {
+			const { data } = await supabase.from('tasks').insert([task]).select()
+			if (data && data[0]) event.id = data[0].id
+		}
+		fetchTasks()
 	}
 
-	const handleDateChange = date => {
-		setInternalSelectedDate(date)
-		setInternalSelectedRange('custom')
-		if (onExternalDateChange) {
-			onExternalDateChange(date)
+	const handleEventDelete = async event => {
+		if (!user || !event.id) return
+		await supabase.from('tasks').delete().eq('id', event.id)
+		fetchTasks()
+	}
+
+	const handleEventDrop = async ({ event, start, end }) => {
+		await handleEventSave({ ...event, start, end })
+	}
+
+	const handleEventResize = async ({ event, start, end }) => {
+		await handleEventSave({ ...event, start, end })
+	}
+
+	const handleSelectSlot = useCallback(({ start, end }) => {
+		setDraftTask({ start, end })
+		setShowAddTaskModal(true)
+	}, [])
+
+	const handleSaveTask = async (task, startTimer) => {
+		if (!user || !user.id) {
+			setErrorMessage('Utilisateur non authentifié. Veuillez vous reconnecter.')
+			return
+		}
+		try {
+			const { data, error } = await supabase
+				.from('tasks')
+				.insert([
+					{
+						title: task.title,
+						description: task.desc || '',
+						start: task.start,
+						end: task.end,
+						color: task.color || 'blue',
+						user_id: user.id,
+					},
+				])
+				.select()
+			if (error) {
+				setErrorMessage('Erreur lors de la création de la tâche : ' + error.message)
+				return
+			}
+			await fetchTasks()
+			setShowAddTaskModal(false)
+			setDraftTask(null)
+			setErrorMessage('')
+			if (startTimer && timer && timer.start && data && data[0]) {
+				timer.start({
+					id: data[0].id,
+					title: data[0].title,
+					desc: data[0].description,
+					start: new Date(data[0].start),
+					end: new Date(data[0].end),
+					color: data[0].color,
+				})
+			}
+		} catch (err) {
+			setErrorMessage('Erreur lors de la création de la tâche (exception JS) : ' + err.message)
 		}
 	}
 
-	const handleCellMouseDown = (dayIdx, hourIdx, quarterIdx) => {
-		setDragStart({ dayIdx, hourIdx, quarterIdx })
-		setSelected({ dayIdx, hourIdx, quarterIdx, endHourIdx: hourIdx, endQuarterIdx: quarterIdx })
+	const handleSelectEvent = event => {
+		setEditTask(event)
 	}
 
-	const handleCellMouseEnter = (dayIdx, hourIdx, quarterIdx) => {
-		if (dragStart && dragStart.dayIdx === dayIdx) {
-			const startIndex = dragStart.hourIdx * 4 + dragStart.quarterIdx
-			const endIndex = hourIdx * 4 + quarterIdx
-			const min = Math.min(startIndex, endIndex)
-			const max = Math.max(startIndex, endIndex)
-			setSelected({
-				dayIdx,
-				hourIdx: Math.floor(min / 4),
-				quarterIdx: min % 4,
-				endHourIdx: Math.floor(max / 4),
-				endQuarterIdx: max % 4,
-			})
+	const handleUpdateTask = async (task) => {
+		if (!user || !user.id) return
+		try {
+			const { error } = await supabase
+				.from('tasks')
+				.update({
+					title: task.title,
+					description: task.desc || '',
+					start: task.start,
+					end: task.end,
+					color: task.color || 'blue',
+					is_finished: !!task.is_finished,
+					duration_seconds: task.duration_seconds || 0,
+				})
+				.eq('id', task.id)
+			if (error) {
+				setErrorMessage('Erreur lors de la modification : ' + error.message)
+				return
+			}
+			await fetchTasks()
+			setEditTask(null)
+			setErrorMessage('')
+		} catch (err) {
+			setErrorMessage('Erreur lors de la modification (exception JS) : ' + err.message)
 		}
 	}
 
-	const handleCellMouseUp = () => {
-		// Ouvre la modale d'ajout seulement si aucune popover n'est ouverte
-		if (selected && !popoverTask) setModalOpen(true)
-		setDragStart(null)
-	}
-
-	const handleCellClick = (dayIdx, hourIdx, quarterIdx) => {
-		// Si une popover est ouverte, ne rien faire
-		if (popoverTask) return
-		const today = getDateOfWeek(dayIdx)
-		setSelected({ dayIdx, hourIdx, quarterIdx, endHourIdx: hourIdx, endQuarterIdx: quarterIdx })
-		setModalOpen(true)
-	}
-
-	const handleTaskClick = (task, event) => {
-		event.stopPropagation()
-		setPopoverTask(task)
-		setPopoverAnchor(event.currentTarget)
-		setModalOpen(false) // Ferme la modale d'ajout si elle était ouverte
-	}
-
-	const handleCloseModal = () => {
-		setModalOpen(false)
-		setSelected(null)
-	}
-
-	const handleClosePopover = () => {
-		setPopoverTask(null)
-		setPopoverAnchor(null)
-	}
-
-	const handleAddTask = task => {
-		setTasks([...tasks, task])
-		setModalOpen(false)
-		setSelected(null)
-	}
-
-	const handleDeleteTask = taskId => {
-		setTasks(tasks.filter(t => t.id !== taskId))
-		handleClosePopover()
-	}
-
-	const handleDuplicateTask = task => {
-		const newTask = { ...task, id: Date.now() }
-		setTasks([...tasks, newTask])
-		handleClosePopover()
-	}
-
-	const handlePinFavorite = task => {
-		if (!favorites.find(f => f.id === task.id)) {
-			setFavorites([...favorites, task])
+	const handleDeleteTask = async (task) => {
+		if (!user || !user.id) return
+		try {
+			const { error } = await supabase
+				.from('tasks')
+				.delete()
+				.eq('id', task.id)
+			if (error) {
+				setErrorMessage('Erreur lors de la suppression : ' + error.message)
+				return
+			}
+			await fetchTasks()
+			setEditTask(null)
+			setErrorMessage('')
+		} catch (err) {
+			setErrorMessage('Erreur lors de la suppression (exception JS) : ' + err.message)
 		}
-		handleClosePopover()
 	}
 
-	const handleStartTimer = task => {
-		start(task)
-		setTimerModalOpen(true)
-		handleClosePopover()
+	const weekNumber = useMemo(() => getISOWeek(date), [date])
+
+	// Format la plage de dates affichée (ex : "19 mai – 25 mai" ou "May 19 – 25")
+	const weekRangeLabel = useMemo(() => {
+		const start = startOfWeek(date, { weekStartsOn: 1, locale: locales[lang] })
+		const end = endOfWeek(date, { weekStartsOn: 1, locale: locales[lang] })
+		const formatDay = d =>
+			lang === 'fr'
+				? `${d.getDate()} ${d.toLocaleString('fr-FR', { month: 'long' })}`
+				: `${d.toLocaleString('en-US', { month: 'short' })} ${d.getDate()}`
+		return `${formatDay(start)} – ${formatDay(end)}`
+	}, [date, lang])
+
+	const messages = useMemo(() => ({
+		today: t('calendar.today'),
+		previous: t('calendar.prev'),
+		next: t('calendar.next'),
+		month: t('calendar.calendar'),
+		week:
+			lang === 'fr'
+				? `Cette semaine - S${weekNumber}`
+				: `This week - W${weekNumber}`,
+		day: lang === 'fr' ? 'Jour' : 'Day',
+		agenda: t('calendar.listView'),
+		date: t('calendar.custom'),
+		time: t('calendar.timesheet'),
+		event: t('features.tasksTitle'),
+		noEventsInRange: lang === 'fr'
+			? 'Aucune tâche sur cette période'
+			: 'No tasks in this range',
+	}), [t, lang, weekNumber])
+
+	// Navigation handlers
+	const handlePrev = () => {
+		const newDate =
+			view === 'week'
+				? new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7)
+				: view === 'day'
+					? new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1)
+					: new Date(date.getFullYear(), date.getMonth() - 1, 1)
+		setDate(newDate)
+	}
+	const handleNext = () => {
+		const newDate =
+			view === 'week'
+				? new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7)
+				: view === 'day'
+					? new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
+					: new Date(date.getFullYear(), date.getMonth() + 1, 1)
+		setDate(newDate)
 	}
 
-	const handleCloseTimerModal = () => {
-		setTimerModalOpen(false)
-	}
-
-	const handleSplitTask = (task, splitMinute) => {
-		const startTotal = task.startHour * 60 + (task.startMinute || 0)
-		const endTotal = task.endHour * 60 + (task.endMinute || 0)
-		const splitTotal = splitMinute
-
-		if (splitTotal <= startTotal || splitTotal >= endTotal) return
-
-		const first = {
-			...task,
-			id: Date.now(),
-			endHour: Math.floor(splitTotal / 60),
-			endMinute: splitTotal % 60,
-		}
-		const second = {
-			...task,
-			id: Date.now() + 1,
-			startHour: Math.floor(splitTotal / 60),
-			startMinute: splitTotal % 60,
-		}
-		setTasks(tasks =>
-			tasks
-				.filter(t => t.id !== task.id)
-				.concat([first, second])
-		)
-		handleClosePopover()
-	}
-
-	const isCellSelected = (dayIdx, hourIdx, quarterIdx) => {
-		if (!selected || selected.dayIdx !== dayIdx) return false
-		const start = selected.hourIdx * 4 + selected.quarterIdx
-		const end = selected.endHourIdx * 4 + selected.endQuarterIdx
-		const idx = hourIdx * 4 + quarterIdx
-		return idx >= Math.min(start, end) && idx <= Math.max(start, end)
-	}
-
-	const getTaskForCell = (dayIdx, hourIdx, quarterIdx) => {
-		return tasks.find(t => {
-			const start = t.startHour * 4 + Math.floor((t.startMinute || 0) / 15)
-			const end = t.endHour * 4 + Math.floor((t.endMinute || 0) / 15)
-			const idx = hourIdx * 4 + quarterIdx
-			return (
-				t.dayIdx === dayIdx &&
-				idx >= Math.min(start, end) &&
-				idx <= Math.max(start, end)
-				)
-		})
+	const handleDateLabelClick = () => setShowCalendarModal(true)
+	const handleCalendarModalClose = () => setShowCalendarModal(false)
+	const handleCalendarModalSelect = (_range, selectedDate) => {
+		setDate(selectedDate)
+		setShowCalendarModal(false)
 	}
 
 	return (
-		<CalendarWrapper>
-			<CalendarTable>
-				<thead>
-					<tr>
-						<CalendarTh style={{ width: 60 }} />
-						{daysToShow.map((day, i) => (
-							<CalendarTh key={day}>
-								<div className='flex flex-col items-center'>
-									<span className='text-base font-semibold text-gray-500'>{day}</span>
-									{daysDates[i] && (
-											<span
-												className='text-2xl font-bold text-blue-700 leading-none'
-												style={{ minWidth: 28, textAlign: 'center', display: 'inline-block' }}
-											>
-												{String(daysDates[i].getDate()).padStart(2, '0')}
-											</span>
-									)}
-								</div>
-							</CalendarTh>
-						))}
-					</tr>
-				</thead>
-				<tbody>
-					{hours.map((hour, hourIdx) => (
-						hourIdx === 0 ? null : (
-						<tr key={hour}>
-							<HourCell>{hour}</HourCell>
-							{dayIndices.map((dayIdx, colIdx) => (
-								<CalendarTd key={days[dayIdx]}>
-									<div className='flex flex-col h-full'>
-										{QUARTERS.map((q, quarterIdx) => {
-											const isSelected = isCellSelected(dayIdx, hourIdx, quarterIdx)
-											const task = getTaskForCell(dayIdx, hourIdx, quarterIdx)
-											return (
-												<div
-													key={q}
-													style={{
-														flex: 1,
-														borderBottom: quarterIdx < 3 ? '1px solid #e5e7eb' : 'none',
-														background: isSelected
-															? '#dbeafe'
-															: task
-																? '#f0f9ff'
-																: highlightDayIdx === dayIdx
-																	? '#f1f5f9'
-																	: 'transparent',
-														cursor: 'pointer',
-														display: 'flex',
-														alignItems: 'center',
-														justifyContent: 'flex-start',
-														paddingLeft: 4,
-														position: 'relative',
-													}}
-													onMouseDown={e => {
-														if (e.button === 0) handleCellMouseDown(dayIdx, hourIdx, quarterIdx)
-													}}
-													onMouseEnter={() => handleCellMouseEnter(dayIdx, hourIdx, quarterIdx)}
-													onMouseUp={handleCellMouseUp}
-													onClick={e => {
-														if (task) {
-															handleTaskClick(task, e)
-														} else if (!popoverTask) {
-															handleCellClick(dayIdx, hourIdx, quarterIdx)
-														}
-													}}
-												>
-													{task && quarterIdx === Math.floor((task.startMinute || 0) / 15) && (
-														<div className='truncate text-xs font-semibold text-blue-700 bg-blue-100 rounded px-1 py-0.5'>
-															{task.desc || 'Task'}
-															{task.project && (
-																<span className='ml-1 text-gray-400'>[{task.project}]</span>
-															)}
-														</div>
-													)}
-												</div>
-											)
-										})}
-									</div>
-								</CalendarTd>
-							))}
-						</tr>
-						)
-					))}
-				</tbody>
-			</CalendarTable>
-			{modalOpen && selected && !popoverTask && (
+		<div className='bg-white rounded-xl shadow p-2 md:p-4'>
+			<style>{`
+				.rbc-time-slot {
+					height: 28px !important;
+				}
+				.rbc-current-time-indicator {
+					height: 6px !important;
+					background: #22c55e !important;
+					border-radius: 3px;
+				}
+			`}</style>
+			{loading && <div className='text-center text-blue-600'>{lang === 'fr' ? 'Chargement...' : 'Loading...'}</div>}
+			{errorMessage && (
+				<div className='mb-2 p-2 bg-red-100 text-red-700 rounded text-center text-sm font-semibold'>
+					{errorMessage}
+				</div>
+			)}
+			{/* Barre de navigation calendrier */}
+			<div className='flex items-center justify-center gap-2 mb-2'>
+				<button
+					onClick={handlePrev}
+					className='px-2 py-1 rounded hover:bg-blue-50 border border-blue-100 text-blue-700 font-semibold'
+					aria-label={messages.previous}
+				>
+					{'<'}
+				</button>
+				<button
+					onClick={handleDateLabelClick}
+					className='font-semibold px-3 py-1 rounded hover:bg-blue-50 border border-blue-100 text-blue-700'
+					aria-label={lang === 'fr' ? 'Changer la date' : 'Change date'}
+				>
+					{weekRangeLabel}
+				</button>
+				<button
+					onClick={handleNext}
+					className='px-2 py-1 rounded hover:bg-blue-50 border border-blue-100 text-blue-700 font-semibold'
+					aria-label={messages.next}
+				>
+					{'>'}
+				</button>
+			</div>
+			<DnDCalendar
+				localizer={localizer}
+				events={events}
+				startAccessor='start'
+				endAccessor='end'
+				defaultView='week'
+				view={view}
+				onView={setView}
+				date={date}
+				onNavigate={setDate}
+				selectable
+				resizable
+				onEventDrop={handleEventDrop}
+				onEventResize={handleEventResize}
+				onSelectSlot={handleSelectSlot}
+				onSelectEvent={handleSelectEvent}
+				messages={messages}
+				style={{ minHeight: 600, background: '#fff' }}
+				eventPropGetter={event => ({
+					style: {
+						backgroundColor: event.color || '#2563eb',
+						color: '#fff',
+						borderRadius: 8,
+						border: 'none',
+						paddingLeft: 8,
+						paddingRight: 8,
+						minHeight: 56, // Even more visible
+						display: 'flex',
+						alignItems: 'center',
+						fontWeight: 600,
+						fontSize: 16,
+					},
+				})}
+				step={60} // 1 hour per row
+				timeslots={1} 
+				components={{ event: CalendarEventWithPlay }}
+			/>
+			{showCalendarModal && (
+				<CalendarSelectorModal
+					onClose={handleCalendarModalClose}
+					onSelect={handleCalendarModalSelect}
+					selectedRange='custom'
+					selectedDate={date}
+				/>
+			)}
+			<AddTaskModal
+				open={showAddTaskModal}
+				initialStart={draftTask?.start}
+				initialEnd={draftTask?.end}
+				onClose={() => {
+					setShowAddTaskModal(false)
+					setDraftTask(null)
+					setErrorMessage('')
+				}}
+				onSave={handleSaveTask}
+			/>
+			{editTask && (
 				<AddTaskModal
-					dayIdx={selected.dayIdx}
-					startHour={selected.hourIdx}
-					startQuarter={selected.quarterIdx}
-					endHour={selected.endHourIdx}
-					endQuarter={selected.endQuarterIdx}
-					selectedDate={internalSelectedDate}
-					onDateChange={handleDateChange}
-					onClose={handleCloseModal}
-					onAddTask={task => {
-						task.id = Date.now()
-						handleAddTask(task)
-					}}
+					open={!!editTask}
+					initialStart={editTask.start}
+					initialEnd={editTask.end}
+					initialTitle={editTask.title}
+					initialDesc={editTask.desc}
+					initialColor={editTask.color}
+					onClose={() => setEditTask(null)}
+					onSave={task => handleUpdateTask({ ...editTask, ...task })}
+					showDelete
+					onDelete={() => handleDeleteTask(editTask)}
 				/>
 			)}
-			{popoverTask && (
-				<TaskPopover
-					task={popoverTask}
-					anchor={popoverAnchor}
-					onClose={handleClosePopover}
-					onDelete={handleDeleteTask}
-					onDuplicate={handleDuplicateTask}
-					onPin={handlePinFavorite}
-					onStartTimer={handleStartTimer}
-					onSplit={handleSplitTask}
-				/>
-			)}
-			{timerModalOpen && (
-				<TimerStartedModal
-					onClose={handleCloseTimerModal}
-					task={null}
-					seconds={0}
-					running={false}
-					paused={false}
-					onStartPause={() => {}}
-					onStop={() => {}}
-				/>
-			)}
-		</CalendarWrapper>
+		</div>
 	)
 }
-
-// Ajoute une bordure externe grise à la grille
-const CalendarWrapper = styled.div`
-	overflow-x: auto;
-	position: relative;
-	background: #f8fafc;
-	border-radius: 1rem;
-	box-shadow: 0 2px 8px rgba(59,130,246,0.08);
-	border: 2px solid #e5e7eb;
-`
-
-const CalendarTable = styled.table`
-	min-width: 100%;
-	border-collapse: collapse;
-	user-select: none;
-`
-
-const CalendarTh = styled.th`
-	padding: 0.5rem 0.25rem;
-	font-size: 0.75rem;
-	font-weight: 600;
-	color: #64748b;
-	border-bottom: 1px solid #e5e7eb;
-	background: #f1f5f9;
-`
-
-const CalendarTd = styled.td`
-	height: 3.5rem;
-	min-height: 3.5rem;
-	border: 1px solid #475569; // gray-600
-	cursor: pointer;
-	transition: background 0.15s;
-	background: ${({ selected, hasTask }) =>
-		selected ? '#dbeafe'
-			: hasTask ? '#f0f9ff'
-				: 'transparent'};
-	vertical-align: middle;
-	padding: 0;
-	&:hover {
-		background: #e0e7ef;
-	}
-`
-
-const HourCell = styled.td`
-	font-size: 1rem;
-	color: #64748b;
-	padding-right: 0.5rem;
-	padding-top: 0.5rem;
-	padding-bottom: 0.5rem;
-	border: 1px solid #475569; // gray-600
-	background: #f8fafc;
-	text-align: right;
-	min-width: 3.5rem;
-`
 
 export default CalendarGrid

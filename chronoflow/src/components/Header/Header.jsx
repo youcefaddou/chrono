@@ -61,11 +61,21 @@ export default function Header() {
     const path = location.pathname;
     if (lng === "en") {
       if (!path.startsWith("/en")) {
-        navigate("/en" + (path === "/" ? "" : path));
+        // Redirige dashboard vers /en/dashboard
+        if (path === "/dashboard") {
+          navigate("/en/dashboard");
+        } else {
+          navigate("/en" + (path === "/" ? "" : path));
+        }
       }
     } else {
       if (path.startsWith("/en")) {
-        navigate(path.replace(/^\/en/, "") || "/");
+        // Redirige /en/dashboard vers /dashboard
+        if (path === "/en/dashboard") {
+          navigate("/dashboard");
+        } else {
+          navigate(path.replace(/^\/en/, "") || "/");
+        }
       }
     }
     i18n.changeLanguage(lng);

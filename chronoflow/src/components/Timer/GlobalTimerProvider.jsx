@@ -60,6 +60,7 @@ export function GlobalTimerProvider ({ children }) {
 				stop,
 				setTime,
 				setTask,
+				getElapsedSeconds: () => seconds,
 			}}
 		>
 			{children}

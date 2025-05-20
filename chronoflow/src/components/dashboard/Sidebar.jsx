@@ -1,12 +1,10 @@
 import { useTranslation } from 'react-i18next'
-import flagFr from '../../assets/france.png'
-import flagEn from '../../assets/eng.png'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 function Sidebar ({ user, onSmartTimerClick }) {
-	const { t, i18n } = useTranslation()
-	const currentFlag = i18n.language.startsWith("en") ? flagEn : flagFr
-	const nextLang = i18n.language.startsWith("en") ? "fr" : "en"
-	const handleLangSwitch = () => i18n.changeLanguage(nextLang)
+	const { t } = useTranslation()
+	const navigate = useNavigate()
+	const location = useLocation()
 	return (
 		<aside className='w-56 bg-gray-900 text-white flex flex-col min-h-screen px-4 py-6'>
 			<div className='mb-8 flex items-center gap-2'>
