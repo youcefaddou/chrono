@@ -1,6 +1,17 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
+// Détection de la langue à partir de l'URL
+function detectLanguageFromPath() {
+  if (typeof window !== "undefined") {
+    if (window.location.pathname.startsWith("/en")) return "en";
+    return "fr";
+  }
+  return "fr";
+}
+
+const initialLang = detectLanguageFromPath();
+
 i18n
   .use(initReactI18next)
   .init({
@@ -96,6 +107,21 @@ i18n
               updatedProfile: "Profil mis à jour",
             },
           },
+          // RightPanel
+          "rightPanel.objectives": "Objectifs",
+          "rightPanel.addObjective": "Ajouter un objectif",
+          "rightPanel.noObjectives": "Aucun objectif ajouté.",
+          "rightPanel.favorites": "Favoris",
+          "rightPanel.addFavorite": "Ajouter un favori",
+          "rightPanel.noFavorites": "Aucun favori ajouté.",
+          // Task actions
+          "task.complete": "Terminer la tâche",
+          "task.completed": "Terminée",
+          // Timer actions
+          "timer.start": "Démarrer le timer",
+          "timer.pause": "Pause",
+          "timer.resume": "Reprendre",
+          "timer.stop": "Stopper le timer",
         },
       },
       en: {
@@ -188,12 +214,35 @@ i18n
               updatedProfile: "Updated profile",
             },
           },
+          // RightPanel
+          "rightPanel.objectives": "Objectives",
+          "rightPanel.addObjective": "Add objective",
+          "rightPanel.noObjectives": "No objectives added.",
+          "rightPanel.favorites": "Favorites",
+          "rightPanel.addFavorite": "Add favorite",
+          "rightPanel.noFavorites": "No favorites added.",
+          // Task actions
+          "task.complete": "Complete task",
+          "task.completed": "Completed",
+          // Timer actions
+          "timer.start": "Start timer",
+          "timer.pause": "Pause",
+          "timer.resume": "Resume",
+          "timer.stop": "Stop timer",
         },
       },
     },
-    lng: "fr",
+    lng: initialLang,
     fallbackLng: "fr",
     interpolation: { escapeValue: false },
   });
+
+// Synchronise la langue i18n avec la route à chaque navigation
+if (typeof window !== "undefined") {
+  window.addEventListener("popstate", () => {
+    const lang = detectLanguageFromPath();
+    if (i18n.language !== lang) i18n.changeLanguage(lang);
+  });
+}
 
 export default i18n;

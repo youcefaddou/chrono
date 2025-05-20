@@ -36,6 +36,7 @@ export default function AppRoutes () {
 			<Route path="/en/privacy-policy" element={<PrivacyPolicyPageEn />} />
 			<Route path="/en/legal-notice" element={<LegalNoticePageEn />} />
 			<Route path="/en/terms" element={<TermsPageEn />} />
+			<Route path="/en/dashboard" element={<DashboardPage />} />
 			{/* Optionally add FAQ/contact in English if you have those pages */}
 			{/* <Route path="/en/faq" element={<FaqPageEn />} /> */}
 			{/* <Route path="/en/contact" element={<ContactPageEn />} /> */}
