@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useGlobalTimer } from '../Timer/GlobalTimerProvider'
+import { useTranslation } from '../../hooks/useTranslation'
 
 function TaskPopover ({
 	task,
@@ -24,6 +25,7 @@ function TaskPopover ({
 		pause,
 		resume,
 	} = useGlobalTimer()
+	const { t } = useTranslation()
 
 	const isTaskRunning = running && timerTask?.id === task.id
 	const isTaskPaused = isTaskRunning && paused
@@ -84,7 +86,7 @@ function TaskPopover ({
 								? 'bg-blue-100 hover:bg-blue-200 border-blue-200'
 								: 'bg-yellow-100 hover:bg-yellow-200 border-yellow-200'
 						}`}
-					aria-label={!isTaskRunning ? 'Start timer' : isTaskPaused ? 'Resume timer' : 'Pause timer'}
+					aria-label={!isTaskRunning ? t('timer.start') : isTaskPaused ? t('timer.resume') : t('timer.pause')}
 					style={{ width: 32, height: 32 }}
 				>
 					{!isTaskRunning || isTaskPaused ? (

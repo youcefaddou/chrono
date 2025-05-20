@@ -1,6 +1,7 @@
 import React from 'react'
 import { useGlobalTimer } from '../Timer/GlobalTimerProvider'
 import { supabase } from '../../lib/supabase'
+import { useTranslation } from '../../hooks/useTranslation'
 
 function formatDuration (seconds) {
 	if (!seconds || seconds < 1) return ''
@@ -12,6 +13,7 @@ function formatDuration (seconds) {
 
 function CalendarEventWithPlay({ event }) {
 	const timer = useGlobalTimer()
+	const { t } = useTranslation()
 	const isRunning = timer.running && timer.task?.id === event.id
 	const isPaused = isRunning && timer.paused
 	const [localDuration, setLocalDuration] = React.useState(event.duration_seconds || 0)
@@ -108,7 +110,7 @@ function CalendarEventWithPlay({ event }) {
 		<div className={`flex flex-col w-full h-full relative${isDone ? ' task-done-zebra' : ''}`}> 
 			{isDone && (
 				<span className='absolute inset-0 flex items-center justify-center z-10 text-xs font-bold text-green-700 pointer-events-none' style={{background: 'rgba(255,255,255,0.7)'}}>
-					Terminée
+					{t('task.completed')}
 				</span>
 			)}
 			<div className='flex items-center justify-between w-full'>
@@ -117,8 +119,8 @@ function CalendarEventWithPlay({ event }) {
 					<button
 						onClick={handlePlayPause}
 						className={`p-1 rounded-full${isRunning ? ' bg-yellow-200' : ' bg-blue-100 hover:bg-blue-200'} flex items-center justify-center`}
-						title={isRunning ? (isPaused ? 'Reprendre' : 'Pause') : 'Démarrer le timer'}
-						aria-label={isRunning ? (isPaused ? 'Reprendre' : 'Pause') : 'Démarrer le timer'}
+						title={isRunning ? (isPaused ? t('timer.resume') : t('timer.pause')) : t('timer.start')}
+						aria-label={isRunning ? (isPaused ? t('timer.resume') : t('timer.pause')) : t('timer.start')}
 						disabled={isDone || saving}
 					>
 						{!isRunning ? (
@@ -139,8 +141,8 @@ function CalendarEventWithPlay({ event }) {
 					<button
 						onClick={handleStop}
 						className='p-1 rounded-full bg-rose-100 hover:bg-rose-200 flex items-center justify-center'
-						title='Stopper le timer'
-						aria-label='Stopper le timer'
+						title={t('timer.stop')}
+						aria-label={t('timer.stop')}
 						disabled={isDone || saving}
 					>
 						<svg width='16' height='16' fill='none' viewBox='0 0 20 20'>
@@ -154,11 +156,11 @@ function CalendarEventWithPlay({ event }) {
 				<button
 					onClick={handleFinish}
 					className='px-2 py-1 rounded bg-green-100 hover:bg-green-200 text-xs font-semibold text-green-700 w-fit ml-auto'
-					title='Terminer la tâche'
-					aria-label='Terminer la tâche'
+					title={t('task.complete')}
+					aria-label={t('task.complete')}
 					disabled={isDone || saving}
 				>
-					{saving ? '...' : 'Terminer la tâche'}
+					{saving ? '...' : t('task.complete')}
 				</button>
 			</div>
 			{isDone && (
