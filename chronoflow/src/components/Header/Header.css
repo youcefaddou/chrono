@@ -41,8 +41,6 @@
     background: transparent;
 }
 
-
-
 .header-burger {
     display: none;
     background: none;
@@ -90,11 +88,65 @@
     max-width: 140px;
 }
 
+/* Ensure header link hover/active is black with white text in all languages */
+.header-nav .header-link:hover,
+.header-nav .header-link-active {
+    background: #000 !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08) !important;
+}
+
 .header-link:hover,
-.header-link-active {
-    background: #ef4444;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08);
+.header-link-active,
+.dashboard-header .header-link:hover,
+.dashboard-header .header-link-active {
+    background: #000 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08) !important;
+}
+
+/* Uniformisation du header : liens inactifs gris foncé, lien actif blanc sur fond noir */
+.dashboard-header .header-link,
+.pricing-header .header-link,
+.resources-header .header-link {
+    background: transparent !important;
+    color: #222 !important;
+    font-weight: 500 !important;
+}
+
+.dashboard-header .header-link-active,
+.pricing-header .header-link-active,
+.resources-header .header-link-active {
+    background: #000 !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08) !important;
+    z-index: 2;
+}
+
+/* Désactive le hover noir sur tous les liens sauf l'actif dans le header principal */
+.dashboard-header .header-link:hover:not(.header-link-active),
+.pricing-header .header-link:hover:not(.header-link-active),
+.resources-header .header-link:hover:not(.header-link-active) {
+    background: transparent !important;
+    color: #222 !important;
+}
+
+/* Header nav: fond noir uniquement sur le lien actif, selon la page (dashboard, pricing, resources, etc.) */
+.dashboard-header .header-link,
+.pricing-header .header-link,
+.resources-header .header-link {
+    background: transparent !important;
+    color: #222 !important;
+}
+
+.dashboard-header .header-link-active,
+.pricing-header .header-link-active,
+.resources-header .header-link-active {
+    background: #000 !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08) !important;
+    z-index: 2;
 }
 
 .header-btn {
@@ -121,6 +173,17 @@
 
 .header-btn-main:hover {
     background: linear-gradient(90deg, #dc2626 60%, #ea580c 100%);
+}
+
+.dashboard-header .header-btn-main {
+    background: #000;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08);
+}
+
+.dashboard-header .header-btn-main:hover {
+    background: #222;
+    color: #fff;
 }
 
 .header-btn-google {
