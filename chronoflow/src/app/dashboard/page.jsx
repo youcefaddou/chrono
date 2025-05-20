@@ -46,16 +46,7 @@ export default function DashboardPage () {
 					onSmartTimerClick={() => setShowCalendar(true)}
 				/>
 				<main className='flex-1 flex flex-col'>
-					<DashboardHeader />
-					{/* SUPPRIME ce bloc pour ne plus afficher CalendarGrid ici */}
-					{/* 
-					<div className='flex flex-1'>
-						<div className='flex-1 overflow-auto'>
-							{showCalendar && <CalendarGrid />}
-						</div>
-						{/* <RightPanel /> */}
-					
-					
+					<DashboardHeader user={user} />
 				</main>
 			</div>
 		</GlobalTimerProvider>
