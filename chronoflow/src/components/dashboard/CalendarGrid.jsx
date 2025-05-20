@@ -318,7 +318,7 @@ function CalendarGrid ({ user }) {
 					max-width: 80px !important;
 					width: 80px !important;
 					text-align: right !important;
-					padding-right: 8px !important;
+					padding-right: 9px !important;
 					font-variant-numeric: tabular-nums;
 				}
 				.rbc-label {
@@ -334,10 +334,10 @@ function CalendarGrid ({ user }) {
 					border-right: none !important;
 				}
 				.rbc-row-bg {
-					border-right: 1px solid #e5e7eb !important;
+					border-right: 2px solid #e5e7eb !important;
 				}
 				.rbc-day-bg {
-					border-right: 1px solid #e5e7eb !important;
+					border-right: 2px solid #e5e7eb !important;
 				}
 				.rbc-day-bg:last-child {
 					border-right: none !important;
