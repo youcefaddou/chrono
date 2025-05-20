@@ -15,6 +15,11 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 const DnDCalendar = withDragAndDrop(Calendar)
 const locales = { fr, en: enUS }
 
+// Custom day names for French (no dot, capitalized)
+const daysShortFr = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+// Custom day names for English (no dot, capitalized, Monday first)
+const daysShortEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
 function CalendarGrid ({ user }) {
 	const { t, i18n } = useTranslation()
 	const lang = i18n.language.startsWith('en') ? 'en' : 'fr'
@@ -40,6 +45,38 @@ function CalendarGrid ({ user }) {
 			locales,
 		}), [lang]
 	)
+
+	// Custom formats for react-big-calendar
+	const formats = useMemo(() => ({
+		weekdayFormat: (date) => {
+			const day = date.getDay()
+			// Map Sunday (0) to last index for both languages
+			const idx = day === 0 ? 6 : day - 1
+			if (lang === 'fr') {
+				return `${daysShortFr[idx]} ${date.getDate()}`
+			} else {
+				return `${daysShortEn[idx]} ${date.getDate()}`
+			}
+		},
+		dayFormat: (date) => {
+			const day = date.getDay()
+			const idx = day === 0 ? 6 : day - 1
+			if (lang === 'fr') {
+				return `${daysShortFr[idx]} ${date.getDate()}`
+			} else {
+				return `${daysShortEn[idx]} ${date.getDate()}`
+			}
+		},
+		dayHeaderFormat: (date) => {
+			const day = date.getDay()
+			const idx = day === 0 ? 6 : day - 1
+			if (lang === 'fr') {
+				return `${daysShortFr[idx]} ${date.getDate()}`
+			} else {
+				return `${daysShortEn[idx]} ${date.getDate()}`
+			}
+		},
+	}), [lang])
 
 	// Fetch tasks from Supabase
 	const fetchTasks = useCallback(async () => {
@@ -273,10 +310,45 @@ function CalendarGrid ({ user }) {
 				.rbc-time-slot {
 					height: 28px !important;
 				}
-				.rbc-current-time-indicator {
-					height: 6px !important;
-					background: #22c55e !important;
-					border-radius: 3px;
+				.rbc-timeslot-group {
+					border-bottom: 1px solid #e5e7eb !important;
+				}
+				.rbc-time-header-gutter, .rbc-time-gutter, .rbc-timeslot-group .rbc-label {
+					min-width: 80px !important;
+					max-width: 80px !important;
+					width: 80px !important;
+					text-align: right !important;
+					padding-right: 8px !important;
+					font-variant-numeric: tabular-nums;
+				}
+				.rbc-label {
+					font-size: 14px !important;
+					font-family: 'Inter', 'Roboto', 'Arial', sans-serif !important;
+					letter-spacing: 0.01em;
+				}
+				.rbc-header {
+					padding: 4px 0 !important;
+					border-right: 1px solid #e5e7eb !important;
+				}
+				.rbc-header:last-child {
+					border-right: none !important;
+				}
+				.rbc-row-bg {
+					border-right: 1px solid #e5e7eb !important;
+				}
+				.rbc-day-bg {
+					border-right: 1px solid #e5e7eb !important;
+				}
+				.rbc-day-bg:last-child {
+					border-right: none !important;
+				}
+				.rbc-row-segment {
+					margin-right: 0 !important;
+					border-right: 1px solid #e5e7eb !important;
+				}
+				.rbc-row-segment:last-child {
+					border-right: none !important;
+					border-right: none !important;
 				}
 			`}</style>
 			{loading && <div className='text-center text-blue-600'>{lang === 'fr' ? 'Chargement...' : 'Loading...'}</div>}
@@ -326,6 +398,7 @@ function CalendarGrid ({ user }) {
 				onSelectSlot={handleSelectSlot}
 				onSelectEvent={handleSelectEvent}
 				messages={messages}
+				formats={formats}
 				style={{ minHeight: 600, background: '#fff' }}
 				eventPropGetter={event => ({
 					style: {
