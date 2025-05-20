@@ -20,6 +20,7 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const navRef = useRef();
+  const isDashboard = location.pathname === "/dashboard" || location.pathname === "/en/dashboard";
 
   // Affiche le drapeau de la langue OPPOSÉE à la langue courante
   const showFlag = i18n.language.startsWith("fr") ? flagEn : flagFr;
@@ -95,7 +96,7 @@ export default function Header() {
   };
 
   return (
-    <header className="header-sticky" aria-label="Barre de navigation principale">
+    <header className={`header-sticky${isDashboard ? " dashboard-header" : ""}`} aria-label="Barre de navigation principale">
       <nav className="header-nav" ref={navRef}>
         <div className="header-logo-title">
           <Link to="/">

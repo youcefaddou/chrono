@@ -327,18 +327,13 @@ function CalendarGrid ({ user }) {
 					letter-spacing: 0.01em;
 				}
 				.rbc-header {
-					padding: 4px 0 !important;
+					padding: 8px 0 !important;
 					border-right: 1px solid #e5e7eb !important;
 				}
 				.rbc-header:last-child {
 					border-right: none !important;
 				}
-				.rbc-row-bg {
-					border-right: 2px solid #e5e7eb !important;
-				}
-				.rbc-day-bg {
-					border-right: 2px solid #e5e7eb !important;
-				}
+				
 				.rbc-day-bg:last-child {
 					border-right: none !important;
 				}
