@@ -30,9 +30,10 @@ export function GlobalTimerProvider ({ children }) {
 		}
 	}, [running, paused])
 
-	const start = (newTask = null) => {
+	const start = (newTask = null, reset = true) => {
 		setRunning(true)
 		setPaused(false)
+		if (reset) setSeconds(0)
 		if (newTask) setTask(newTask)
 	}
 
@@ -68,6 +69,4 @@ export function GlobalTimerProvider ({ children }) {
 	)
 }
 
-export function useGlobalTimer () {
-	return useContext(GlobalTimerContext)
-}
+export { GlobalTimerContext }
