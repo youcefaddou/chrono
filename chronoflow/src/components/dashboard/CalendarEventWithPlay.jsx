@@ -1,5 +1,5 @@
 import React from 'react'
-import { useGlobalTimer } from '../Timer/GlobalTimerProvider'
+import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import { supabase } from '../../lib/supabase'
 import { useTranslation } from '../../hooks/useTranslation'
 

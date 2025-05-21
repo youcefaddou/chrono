@@ -1,0 +1,113 @@
+/* GoalModal styles: centering modal, overlay, and form layout */
+.goal-modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	background: rgba(0,0,0,0.45);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 9999;
+}
+
+.goal-modal {
+	background: #18181b;
+	color: #fff;
+	border-radius: 14px;
+	box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+	padding: 32px 28px 24px 28px;
+	min-width: 340px;
+	max-width: 95vw;
+	width: 400px;
+	position: relative;
+}
+
+.goal-modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 1.25rem;
+	font-weight: 600;
+	margin-bottom: 18px;
+}
+
+.goal-modal-close {
+	background: none;
+	border: none;
+	color: #fff;
+	font-size: 1.5rem;
+	cursor: pointer;
+	margin-left: 8px;
+}
+
+.goal-modal-form label {
+	display: block;
+	margin-top: 12px;
+	margin-bottom: 4px;
+	font-size: 0.98rem;
+	font-weight: 500;
+}
+
+.goal-modal-form input[type='text'],
+.goal-modal-form input[type='number'],
+.goal-modal-form input[type='date'],
+.goal-modal-form select {
+	width: 100%;
+	padding: 8px 10px;
+	border-radius: 7px;
+	border: 1px solid #333;
+	background: #232326;
+	color: #fff;
+	font-size: 1rem;
+	margin-bottom: 6px;
+}
+
+.goal-modal-for-row {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 6px;
+}
+
+.goal-modal-until-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 10px;
+}
+
+.goal-modal-checkbox {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.97rem;
+}
+
+.goal-modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-top: 18px;
+}
+
+.goal-modal-actions button {
+	padding: 7px 18px;
+	border-radius: 7px;
+	border: none;
+	font-weight: 600;
+	font-size: 1rem;
+	cursor: pointer;
+	transition: background 0.15s;
+}
+
+.goal-modal-actions .goal-modal-create {
+	background: #ef4444;
+	color: #fff;
+}
+
+.goal-modal-actions button[type='button'] {
+	background: #232326;
+	color: #fff;
+}
