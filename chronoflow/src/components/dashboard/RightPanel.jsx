@@ -36,7 +36,6 @@ function RightPanel() {
 	React.useEffect(() => {
 		if (!globalTimer) return
 		const interval = setInterval(() => {
-			console.log('[RightPanel] globalTimer.seconds:', globalTimer.seconds)
 		}, 1000)
 		return () => clearInterval(interval)
 	}, [globalTimer])
@@ -114,13 +113,11 @@ function RightPanel() {
 		const fav = favorites[index]
 		const updateObj = { description: updatedFavorite.description || updatedFavorite.desc || updatedFavorite }
 		if (typeof elapsedSeconds === 'number') updateObj.elapsed_seconds = elapsedSeconds
-		console.log('[handleUpdateFavorite] index:', index, 'elapsedSeconds:', elapsedSeconds, 'updateObj:', updateObj)
 		const { data, error } = await supabase
 			.from('favorites')
 			.update(updateObj)
 			.eq('id', fav.id)
 			.select()
-		console.log('[handleUpdateFavorite] supabase response:', { data, error })
 		if (!error && data && data[0]) setFavorites(favs => favs.map((f, i) => i === index ? data[0] : f))
 	}, [user, favorites])
 
@@ -145,8 +142,8 @@ function RightPanel() {
 				return {
 					running: true,
 					paused: false,
-					startSeconds: globalTimer.seconds, // Correction: start from current globalTimer
-					elapsedSeconds: t.elapsedSeconds // Keep previous elapsed if resuming
+					startSeconds: globalTimer.seconds,
+					elapsedSeconds: t.elapsedSeconds
 				}
 			} else {
 				if (!t.paused) {
@@ -187,20 +184,16 @@ function RightPanel() {
 		if (!favorites.length || !favoriteTimers.length) return
 		favoriteTimers.forEach((timer, i) => {
 			const prev = prevFavoriteTimersRef.current[i] || {}
-			// Detect transition from running (not paused) to paused
 			if (prev.running && !prev.paused && timer.running && timer.paused) {
-				// Timer was running, now paused: update Supabase with latest elapsedSeconds
 				handleUpdateFavorite(i, favorites[i], timer.elapsedSeconds)
 			}
 		})
-		// Update ref for next render
 		prevFavoriteTimersRef.current = favoriteTimers.map(t => ({ ...t }))
 	}, [favoriteTimers, favorites, handleUpdateFavorite])
 
 	function handleStopFavorite(index) {
 		setFavoriteTimers(timers => timers.map((t, i) => {
 			if (i === index) {
-				// Calculer le temps total écoulé avant reset
 				const elapsed = t.running && !t.paused && t.startSeconds != null
 					? t.elapsedSeconds + (globalTimer.seconds - t.startSeconds)
 					: t.elapsedSeconds
