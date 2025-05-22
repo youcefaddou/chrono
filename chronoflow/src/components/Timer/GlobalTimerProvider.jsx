@@ -7,6 +7,7 @@ export function GlobalTimerProvider ({ children }) {
 	const [running, setRunning] = useState(false)
 	const [paused, setPaused] = useState(false)
 	const [task, setTask] = useState(null)
+	const [projectId, setProjectId] = useState(null)
 	const intervalRef = useRef(null)
 
 	useEffect(() => {
@@ -34,7 +35,16 @@ export function GlobalTimerProvider ({ children }) {
 		setRunning(true)
 		setPaused(false)
 		if (reset) setSeconds(0)
-		if (newTask) setTask(newTask)
+		if (newTask && newTask.projectId) {
+			setProjectId(newTask.projectId)
+			setTask({ projectId: newTask.projectId, name: newTask.name })
+		} else if (newTask) {
+			setTask(newTask)
+			setProjectId(null)
+		} else {
+			setTask(null)
+			setProjectId(null)
+		}
 	}
 
 	const pause = () => setPaused(true)
@@ -44,6 +54,7 @@ export function GlobalTimerProvider ({ children }) {
 		setPaused(false)
 		setSeconds(0)
 		setTask(null)
+		setProjectId(null)
 	}
 
 	const setTime = s => setSeconds(s)
@@ -55,6 +66,7 @@ export function GlobalTimerProvider ({ children }) {
 				running,
 				paused,
 				task,
+				projectId,
 				start,
 				pause,
 				resume,

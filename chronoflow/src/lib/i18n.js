@@ -118,10 +118,11 @@ i18n
           "task.complete": "Terminer la tâche",
           "task.completed": "Terminée",
           // Timer actions
-          "timer.start": "Démarrer le timer",
+          "timer.start": "Démarrer",
           "timer.pause": "Pause",
           "timer.resume": "Reprendre",
-          "timer.stop": "Stopper le timer",
+          "timer.stop": "Arrêter",
+          "project.time": "Temps",
         },
       },
       en: {
@@ -225,10 +226,11 @@ i18n
           "task.complete": "Complete task",
           "task.completed": "Completed",
           // Timer actions
-          "timer.start": "Start timer",
+          "timer.start": "Start",
           "timer.pause": "Pause",
           "timer.resume": "Resume",
-          "timer.stop": "Stop timer",
+          "timer.stop": "Stop",
+          "project.time": "Time",
         },
       },
     },
