@@ -6,14 +6,13 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import Sidebar from '../../components/dashboard/Sidebar'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
-import CalendarGrid from '../../components/dashboard/CalendarGrid'
-import RightPanel from '../../components/dashboard/RightPanel'
 import { GlobalTimerProvider } from '../../components/Timer/GlobalTimerProvider'
 
 export default function DashboardPage () {
 	const [user, setUser] = useState(null)
 	const [loading, setLoading] = useState(true)
 	const [showCalendar, setShowCalendar] = useState(true)
+	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 	const navigate = useNavigate()
 	const { t } = useTranslation()
 
@@ -44,9 +43,17 @@ export default function DashboardPage () {
 				<Sidebar
 					user={user}
 					onSmartTimerClick={() => setShowCalendar(true)}
+					collapsed={sidebarCollapsed}
+					onToggle={() => setSidebarCollapsed(v => !v)}
 				/>
-				<main className='flex-1 flex flex-col'>
-					<DashboardHeader user={user} />
+				<main
+					className={
+						'flex-1 flex flex-col transition-all duration-200 min-w-0 ' +
+						(sidebarCollapsed ? 'ml-16' : 'ml-5')
+					}
+				>
+					<DashboardHeader user={user} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} />
+					{/* La grille et la rightbar sont désormais gérées uniquement dans DashboardHeader */}
 				</main>
 			</div>
 		</GlobalTimerProvider>
