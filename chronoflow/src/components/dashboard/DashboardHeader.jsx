@@ -24,7 +24,7 @@ function getMondayOfWeek (date) {
 	return d
 }
 
-function DashboardHeader ({ user }) {
+function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 	const { t, i18n } = useTranslation()
 	const { seconds, running, paused, start, pause, resume, stop } = useGlobalTimer()
 	const [showZone, setShowZone] = useState(false)
@@ -86,6 +86,17 @@ function DashboardHeader ({ user }) {
 		<>
 			<header className='flex flex-col md:flex-row md:items-center md:justify-between px-6 py-4 border-b border-gray-200 bg-white'>
 				<div className='flex items-center gap-4 mb-2 md:mb-0'>
+					<button
+						onClick={() => setSidebarCollapsed(v => !v)}
+						className='p-2 rounded-full hover:bg-gray-200 focus:outline-none md:hidden'
+						aria-label={sidebarCollapsed ? 'Open menu' : 'Close menu'}
+					>
+						<svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
+							<rect y='4' width='24' height='2' rx='1' fill='currentColor'/>
+							<rect y='11' width='24' height='2' rx='1' fill='currentColor'/>
+							<rect y='18' width='24' height='2' rx='1' fill='currentColor'/>
+						</svg>
+					</button>
 					<span className='font-mono text-lg text-blue-700 w-20 text-center'>
 						{String(Math.floor(seconds / 60)).padStart(2, '0')}:
 						{String(seconds % 60).padStart(2, '0')}
