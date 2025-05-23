@@ -7,6 +7,7 @@ import CalendarGrid from './CalendarGrid'
 import RightPanel from './RightPanel'
 import flagFr from '../../assets/france.png'
 import flagEn from '../../assets/eng.png'
+import styles from './DashboardHeader.module.css'
 
 function getWeekNumber (date) {
 	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -178,8 +179,8 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 					selectedDate={selectedDate}
 				/>
 			)}
-			<div className='flex flex-1'>
-				<div className='flex-1 overflow-auto'>
+			<div className={styles.dashboardMain}>
+				<div className={styles.calendarPanel}>
 					<CalendarGrid
 						user={user}
 						selectedRange={selectedRange}

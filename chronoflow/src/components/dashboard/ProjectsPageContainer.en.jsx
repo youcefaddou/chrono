@@ -6,9 +6,10 @@ import { supabase } from '../../lib/supabase'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import ProjectsTableEn from './ProjectsTable.en'
 import { PlusIcon } from '@radix-ui/react-icons'
+import { useProjectTimer } from '../../hooks/useProjectTimer'
 
 function formatTimer (seconds) {
-	if (!seconds || isNaN(seconds)) return '00:00:00'
+	if (!Number.isFinite(seconds) || seconds < 0) return '00:00:00'
 	const h = Math.floor(seconds / 3600)
 	const m = Math.floor((seconds % 3600) / 60)
 	const s = seconds % 60
@@ -39,6 +40,7 @@ function ProjectsPageContainerEn () {
 	const globalTimer = useGlobalTimer()
 	const timer = useMemo(() => globalTimer || { running: false, task: null, start: () => {}, stop: () => {}, getElapsedSeconds: () => 0 }, [globalTimer])
 	const menuBtnRefs = useRef([])
+	const projectTimer = useProjectTimer()
 
 	useEffect(() => {
 		if (projects.length !== menuBtnRefs.current.length) {
@@ -77,14 +79,8 @@ function ProjectsPageContainerEn () {
 	}, [fetchProjects])
 
 	useEffect(() => {
-		console.log('[TIMER DEBUG][EN] timer state changed', {
-			running: timer.running,
-			seconds: timer.getElapsedSeconds ? timer.getElapsedSeconds() : 0,
-			task: timer.task,
-		})
+		
 	}, [timer, timer.running, timer.task])
-
-	console.log('[TIMER DEBUG][EN] render', { running: timer.running, seconds: timer.getElapsedSeconds ? timer.getElapsedSeconds() : 0, task: timer.task })
 
 	async function handleCreateProject (project, isEdit, initialProject) {
 		if (!userId) {
@@ -134,24 +130,31 @@ function ProjectsPageContainerEn () {
 		setCreateError('')
 	}
 
-	async function handlePlay(project) {
-		console.log('[TIMER DEBUG][EN] handlePlay', { project, timer })
-		if (!timer) return
-		if (timer.running && timer.task?.id !== project.id) {
-			await handleStop(timer.task)
+	async function handlePlay (project) {
+		if (projectTimer.isRunning && projectTimer.activeProjectId !== project.id) {
+			const prevProject = projects.find(p => p.id === projectTimer.activeProjectId)
+			if (prevProject) {
+				await handleStop(prevProject)
+			} else {
+				projectTimer.stop()
+			}
 		}
-		timer.start({ id: project.id, name: project.name, client: project.client }, true)
+		projectTimer.start(project.id)
 	}
 
-	async function handleStop(project) {
-		console.log('[TIMER DEBUG][EN] handleStop', { project, timer })
-		if (!timer || !timer.running || timer.task?.id !== project.id) return
-		const elapsed = timer.getElapsedSeconds ? timer.getElapsedSeconds() : 0
-		timer.stop()
+	async function handleStop (project) {
+		if (!projectTimer.isRunning || projectTimer.activeProjectId !== project.id) return
+		const elapsed = projectTimer.getElapsed()
+		projectTimer.stop()
 		const current = typeof project.total_seconds === 'number' ? project.total_seconds : 0
 		const newTotal = current + elapsed
 		await supabase.from('projects').update({ total_seconds: newTotal }).eq('id', project.id)
 		setProjects(ps => ps.map(p => p.id === project.id ? { ...p, total_seconds: newTotal } : p))
+	}
+
+	async function handleFinish (project) {
+		await supabase.from('projects').update({ is_finished: true }).eq('id', project.id)
+		setProjects(ps => ps.map(p => p.id === project.id ? { ...p, is_finished: true } : p))
 	}
 
 	function handleEditProject (project) {
@@ -214,38 +217,67 @@ function ProjectsPageContainerEn () {
 				collapsed={sidebarCollapsed}
 				onToggle={() => setSidebarCollapsed(v => !v)}
 			/>
-			<div className={'flex-1 flex flex-col w-full pt-2 pb-4 px-0 sm:pt-4 sm:pb-8 sm:px-0 transition-all duration-200 ' + (sidebarCollapsed ? 'ml-16' : 'ml-56')}>
-				<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between px-2 sm:px-6 py-2 sm:py-4 border-b border-neutral-800 gap-2 sm:gap-6'>
-					<div className='flex items-center gap-4'>
-						<h1 className='text-2xl font-bold'>Projects</h1>
-						<span className={'ml-2 px-3 py-1 rounded-full font-mono text-base flex items-center gap-2 ' + (timer.running ? 'bg-green-700 text-white' : 'bg-rose-900 text-neutral-300')}>
-							<svg width='18' height='18' fill='currentColor' viewBox='0 0 20 20' className='inline-block mr-1'>
-								<rect x='6' y='5' width='2.5' height='10' rx='1'/>
-								<rect x='11.5' y='5' width='2.5' height='10' rx='1'/>
-							</svg>
-							{formatTimer(timer.getElapsedSeconds ? timer.getElapsedSeconds() : 0)}
-							{timer.task?.name && (
-								<span className='ml-2 font-semibold'>{timer.task.name}</span>
-							)}
-						</span>
+			<div className={
+					'flex-1 flex flex-col w-full pt-4 pb-4' +
+					(sidebarCollapsed ? 'ml-10' : 'ml-30') +
+					' max-w-full sm:max-w-6xl md:max-w-7xl lg:max-w-[96vw] xl:max-w-[90vw] 2xl:max-w-[1500px] mx-auto'
+				}>
+					<div
+						className='flex flex-wrap items-center gap-x-4 gap-y-2
+							justify-between xl:justify-between
+							lg:justify-start
+							px-2 sm:px-6 py-2 sm:py-4 border-b border-neutral-800'
+					>
+						<div className='flex items-center gap-4 flex-shrink-0 min-w-0'>
+							<h1 className='text-2xl font-bold truncate'>Projects</h1>
+							<span className={'ml-2 px-3 py-1 rounded-full font-mono text-base flex items-center gap-2 ' + (projectTimer.isRunning ? 'bg-green-700 text-white' : 'bg-rose-900 text-neutral-300')}>
+								<svg width='18' height='18' fill='currentColor' viewBox='0 0 20 20' className='inline-block mr-1'>
+									<rect x='6' y='5' width='2.5' height='10' rx='1'/>
+									<rect x='11.5' y='5' width='2.5' height='10' rx='1'/>
+								</svg>
+								{formatTimer(projectTimer.getElapsed())}
+								{projectTimer.activeProjectId && (
+									<span className='ml-2 font-semibold truncate'>
+											{(() => {
+												const current = projects.find(p => p.id === projectTimer.activeProjectId)
+												return current ? current.name : ''
+											})()}
+									</span>
+								)}
+							</span>
+						</div>
+						<div className='flex-shrink-0'>
+							<button
+								className='flex items-center gap-2 px-4 py-2 bg-rose-800 hover:bg-rose-500 rounded text-white font-medium transition-colors w-full sm:w-auto justify-center'
+								onClick={() => { setModalOpen(true); setNewProjectLang('en') }}
+							>
+								<PlusIcon />
+								New project
+							</button>
+						</div>
 					</div>
-					<button className='flex items-center gap-2 px-4 py-2 bg-rose-800 hover:bg-rose-500 rounded text-white font-medium transition-colors w-full sm:w-auto justify-center' onClick={() => { setModalOpen(true); setNewProjectLang('en') }}>
-						<PlusIcon />
-						New project
-					</button>
-				</div>
 				<div className='flex flex-col gap-4 px-2 sm:px-6 py-2 sm:py-4'>
 					{/* Filtres et table/carte */}
 					<ProjectsTableEn
 						projects={filteredProjects}
-						timer={timer}
+						projectTimer={projectTimer}
 						onPlay={handlePlay}
 						onStop={handleStop}
+						onFinish={handleFinish}
+						handleAskDelete={handleDeleteProject}
 						onMenuClick={i => setShowMenuIndex(i === showMenuIndex ? null : i)}
 						showMenuIndex={showMenuIndex}
 						onCloseMenu={() => setShowMenuIndex(null)}
 						isMobile={isMobile}
 						menuBtnRefs={menuBtnRefs.current}
+						lang={newProjectLang}
+						handleEdit={handleEditProject}
+						handleAddMember={handleAddMember}
+						handleViewReports={handleViewReports}
+						handleArchiveProject={handleArchiveProject}
+						confirmDelete={confirmDelete}
+						cancelDelete={cancelDeleteProject}
+						onConfirmDelete={confirmDeleteProject}
 					/>
 					<NewProjectModal
 						open={modalOpen}

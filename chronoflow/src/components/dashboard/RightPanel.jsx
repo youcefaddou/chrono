@@ -1,15 +1,19 @@
-import React, { useState, useContext, useRef } from 'react'
+import React, { useState, useContext, useRef, useCallback, useEffect } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { GlobalTimerContext } from '../Timer/GlobalTimerProvider'
 import GoalModal from './GoalModal'
 import FavoriteModal from './FavoriteModal'
+import GoalEditModal from './GoalEditModal'
 import './RightPanel.css'
 import { supabase } from '../../lib/supabase'
 
-function RightPanel() {
+function RightPanel () {
 	const { t } = useTranslation()
 	const [showGoalModal, setShowGoalModal] = useState(false)
+	const [goalModalKey, setGoalModalKey] = useState(0) // Ajout d'une clé pour reset
 	const [showFavoriteModal, setShowFavoriteModal] = useState(false)
+	const [showEditGoalModal, setShowEditGoalModal] = useState(false)
+	const [editGoalIndex, setEditGoalIndex] = useState(null)
 	const [goals, setGoals] = useState([])
 	const [favorites, setFavorites] = useState([])
 	const [favoriteTimers, setFavoriteTimers] = useState([])
@@ -23,7 +27,7 @@ function RightPanel() {
 	const [pendingGlobalTimerAction, setPendingGlobalTimerAction] = useState(null)
 	const prevFavoriteTimersRef = useRef([])
 
-	React.useEffect(() => {
+	useEffect(() => {
 		supabase.auth.getUser().then(({ data }) => {
 			if (data?.user) {
 				setUser(data.user)
@@ -33,14 +37,13 @@ function RightPanel() {
 		})
 	}, [])
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!globalTimer) return
-		const interval = setInterval(() => {
-		}, 1000)
+		const interval = setInterval(() => {}, 1000)
 		return () => clearInterval(interval)
 	}, [globalTimer])
 
-	async function fetchGoals(userId) {
+	async function fetchGoals (userId) {
 		const { data, error } = await supabase
 			.from('goals')
 			.select('*')
@@ -49,7 +52,7 @@ function RightPanel() {
 		if (!error && data) setGoals(data)
 	}
 
-	async function fetchFavorites(userId) {
+	async function fetchFavorites (userId) {
 		const { data, error } = await supabase
 			.from('favorites')
 			.select('*')
@@ -61,21 +64,33 @@ function RightPanel() {
 				running: false,
 				paused: false,
 				startSeconds: null,
-				elapsedSeconds: f.elapsed_seconds || 0
+				elapsedSeconds: f.elapsed_seconds || 0,
 			})))
 		}
 	}
 
-	async function handleCreateGoal(goal) {
+	async function handleCreateGoal (goal) {
 		if (!user) return
+		const payload = {
+			goal: goal.goal,
+			track: goal.track,
+			for_type: goal.forType, // adapte ici si ta colonne est snake_case
+			hours: goal.hours ? Number(goal.hours) : null,
+			per: goal.per,
+			until: goal.until || null,
+			user_id: user.id,
+		}
 		const { data, error } = await supabase
 			.from('goals')
-			.insert([{ ...goal, user_id: user.id }])
+			.insert([payload])
 			.select()
+		if (error) {
+			console.error('[SUPABASE ERROR]', error)
+		}
 		if (!error && data && data[0]) setGoals(goals => [...goals, data[0]])
 	}
 
-	async function handleUpdateGoal(index, updatedGoal) {
+	async function handleUpdateGoal (index, updatedGoal) {
 		if (!user) return
 		const goal = goals[index]
 		const { data, error } = await supabase
@@ -86,7 +101,27 @@ function RightPanel() {
 		if (!error && data && data[0]) setGoals(goals => goals.map((g, i) => i === index ? data[0] : g))
 	}
 
-	async function handleDeleteGoal(index) {
+	async function handleEditGoal (index, updatedGoal) {
+		if (!user) return
+		const goal = goals[index]
+		const payload = {
+			goal: updatedGoal.goal,
+			track: updatedGoal.track,
+			for_type: updatedGoal.forType,
+			hours: updatedGoal.hours ? Number(updatedGoal.hours) : null,
+			per: updatedGoal.per,
+			until: updatedGoal.until || null,
+			user_id: user.id,
+		}
+		const { data, error } = await supabase
+			.from('goals')
+			.update(payload)
+			.eq('id', goal.id)
+			.select()
+		if (!error && data && data[0]) setGoals(goals => goals.map((g, i) => i === index ? data[0] : g))
+	}
+
+	async function handleDeleteGoal (index) {
 		if (!user) return
 		const goal = goals[index]
 		const { error } = await supabase
@@ -96,7 +131,7 @@ function RightPanel() {
 		if (!error) setGoals(goals => goals.filter((_, i) => i !== index))
 	}
 
-	async function handleCreateFavorite(fav) {
+	async function handleCreateFavorite (fav) {
 		if (!user) return
 		const { data, error } = await supabase
 			.from('favorites')
@@ -108,7 +143,7 @@ function RightPanel() {
 		}
 	}
 
-	const handleUpdateFavorite = React.useCallback(async (index, updatedFavorite, elapsedSeconds) => {
+	const handleUpdateFavorite = useCallback(async (index, updatedFavorite, elapsedSeconds) => {
 		if (!user) return
 		const fav = favorites[index]
 		const updateObj = { description: updatedFavorite.description || updatedFavorite.desc || updatedFavorite }
@@ -121,7 +156,7 @@ function RightPanel() {
 		if (!error && data && data[0]) setFavorites(favs => favs.map((f, i) => i === index ? data[0] : f))
 	}, [user, favorites])
 
-	async function handleDeleteFavorite(index) {
+	async function handleDeleteFavorite (index) {
 		if (!user) return
 		const fav = favorites[index]
 		const { error } = await supabase
@@ -134,16 +169,24 @@ function RightPanel() {
 		}
 	}
 
-	function handlePlayPauseFavorite(index) {
+	function handlePlayPauseFavorite (index) {
 		setFavoriteTimers(timers => timers.map((t, i) => {
 			if (i !== index) return t
 			if (!t.running) {
+				if (t.paused) {
+					setPendingGlobalTimerAction({ action: 'resume', index })
+					return {
+						...t,
+						paused: false,
+						startSeconds: globalTimer.seconds,
+					}
+				}
 				setPendingGlobalTimerAction({ action: 'start', index, reset: true })
 				return {
 					running: true,
 					paused: false,
 					startSeconds: globalTimer.seconds,
-					elapsedSeconds: t.elapsedSeconds
+					elapsedSeconds: t.elapsedSeconds,
 				}
 			} else {
 				if (!t.paused) {
@@ -152,21 +195,21 @@ function RightPanel() {
 					return {
 						...t,
 						paused: true,
-						elapsedSeconds: elapsed
+						elapsedSeconds: elapsed,
 					}
 				} else {
 					setPendingGlobalTimerAction({ action: 'resume', index })
 					return {
 						...t,
 						paused: false,
-						startSeconds: globalTimer.seconds
+						startSeconds: globalTimer.seconds,
 					}
 				}
 			}
 		}))
 	}
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!pendingGlobalTimerAction || !globalTimer) return
 		if (pendingGlobalTimerAction.action === 'start' && !globalTimer.running) {
 			globalTimer.start(null, true)
@@ -174,13 +217,15 @@ function RightPanel() {
 		if (pendingGlobalTimerAction.action === 'pause' && globalTimer.running) {
 			globalTimer.pause()
 		}
-		if (pendingGlobalTimerAction.action === 'resume' && !globalTimer.running) {
-			globalTimer.resume()
+		if (pendingGlobalTimerAction.action === 'resume') {
+			if (!globalTimer.running) {
+				globalTimer.start(null, false)
+			}
 		}
 		setPendingGlobalTimerAction(null)
 	}, [pendingGlobalTimerAction, globalTimer])
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!favorites.length || !favoriteTimers.length) return
 		favoriteTimers.forEach((timer, i) => {
 			const prev = prevFavoriteTimersRef.current[i] || {}
@@ -191,7 +236,7 @@ function RightPanel() {
 		prevFavoriteTimersRef.current = favoriteTimers.map(t => ({ ...t }))
 	}, [favoriteTimers, favorites, handleUpdateFavorite])
 
-	function handleStopFavorite(index) {
+	function handleStopFavorite (index) {
 		setFavoriteTimers(timers => timers.map((t, i) => {
 			if (i === index) {
 				const elapsed = t.running && !t.paused && t.startSeconds != null
@@ -207,7 +252,7 @@ function RightPanel() {
 		}
 	}
 
-	function getFavoriteDisplaySeconds(i) {
+	function getFavoriteDisplaySeconds (i) {
 		const t = favoriteTimers[i]
 		if (!t) return favorites[i]?.elapsed_seconds || 0
 		if (!t.running) return t.elapsedSeconds ?? favorites[i]?.elapsed_seconds ?? 0
@@ -221,45 +266,40 @@ function RightPanel() {
 			<div className='right-panel-section'>
 				<div className='right-panel-section-header'>
 					<span className='right-panel-section-title'>{lang === 'fr' ? 'Objectifs' : 'Goals'}</span>
-					<button className='right-panel-add-btn' onClick={() => setShowGoalModal(true)}>
-						+ {lang === 'fr' ? 'Créer un objectif' : 'Create a goal'}
-					</button>
+						<button
+							className='right-panel-add-btn'
+							onClick={() => {
+								setGoalModalKey(k => k + 1) // Change la clé pour reset
+								setShowGoalModal(true)
+							}}
+						>
+							+ {lang === 'fr' ? 'Créer un objectif' : 'Create a goal'}
+						</button>
 				</div>
 				<ul className='right-panel-goals-list'>
 					{goals.length === 0 && <li className='right-panel-empty'>{lang === 'fr' ? 'Aucun objectif' : 'No goals yet'}</li>}
 					{goals.map((g, i) => (
 						<li key={i} className='right-panel-goal-item'>
-							{editingGoalIndex === i ? (
-								<form className='right-panel-edit-form' onSubmit={e => {
-									e.preventDefault()
-									handleUpdateGoal(i, { ...g, goal: editingGoalValue })
-									setEditingGoalIndex(null)
-									setEditingGoalValue('')
-								}}>
-									<input
-										type='text'
-										value={editingGoalValue}
-										onChange={e => setEditingGoalValue(e.target.value)}
-										autoFocus
-										className='right-panel-edit-input'
-									/>
-									<button type='submit' className='right-panel-edit-btn'>{lang === 'fr' ? 'Valider' : 'Save'}</button>
-									<button type='button' className='right-panel-delete-btn' onClick={() => { setEditingGoalIndex(null); setEditingGoalValue('') }}>{lang === 'fr' ? 'Annuler' : 'Cancel'}</button>
-								</form>
-							) : (
-								<>
-									<strong>{g.goal}</strong><br />
-									<span className='right-panel-goal-meta'>
-										{lang === 'fr' ? 'Projet/Tâche' : 'Track'}: {g.track || <span className='right-panel-goal-track-empty'>-</span>}<br />
-										{lang === 'fr' ? 'Pour' : 'For'}: {g.forType === 'atLeast' ? (lang === 'fr' ? 'au moins' : 'at least') : (lang === 'fr' ? 'exactement' : 'exactly')} {g.hours} {lang === 'fr' ? 'heures' : 'hours'} / {g.per === 'day' ? (lang === 'fr' ? 'jour' : 'day') : (lang === 'fr' ? 'semaine' : 'week')}<br />
-										{lang === 'fr' ? 'Jusqu\'au' : 'Until'}: {g.until ? g.until : (lang === 'fr' ? 'Pas de date de fin' : 'No end date')}
-									</span>
-									<div className='right-panel-goal-actions'>
-										<button className='right-panel-edit-btn' onClick={() => { setEditingGoalIndex(i); setEditingGoalValue(g.goal) }}>{lang === 'fr' ? 'Modifier' : 'Edit'}</button>
-										<button className='right-panel-delete-btn' onClick={() => handleDeleteGoal(i)}>{lang === 'fr' ? 'Supprimer' : 'Delete'}</button>
-									</div>
-								</>
-							)}
+							<>
+								<strong>{g.goal}</strong><br />
+								<span className='right-panel-goal-meta'>
+									{lang === 'fr' ? 'Projet/Tâche' : 'Track'}: {g.track || <span className='right-panel-goal-track-empty'>-</span>}<br />
+									{lang === 'fr' ? 'Pour' : 'For'}: {g.forType === 'atLeast' ? (lang === 'fr' ? 'au moins' : 'at least') : (lang === 'fr' ? 'exactement' : 'exactly')} {g.hours} {lang === 'fr' ? 'heures' : 'hours'} / {g.per === 'day' ? (lang === 'fr' ? 'jour' : 'day') : (lang === 'fr' ? 'semaine' : 'week')}<br />
+									{lang === 'fr' ? 'Jusqu\'au' : 'Until'}: {g.until ? g.until : (lang === 'fr' ? 'Pas de date de fin' : 'No end date')}
+								</span>
+								<div className='right-panel-goal-actions'>
+									<button
+										className='right-panel-edit-btn'
+										onClick={() => {
+											setEditGoalIndex(i)
+											setShowEditGoalModal(true)
+										}}
+									>
+										{lang === 'fr' ? 'Modifier' : 'Edit'}
+									</button>
+									<button className='right-panel-delete-btn' onClick={() => handleDeleteGoal(i)}>{lang === 'fr' ? 'Supprimer' : 'Delete'}</button>
+								</div>
+							</>
 						</li>
 					))}
 				</ul>
@@ -309,12 +349,28 @@ function RightPanel() {
 				</ul>
 				<FavoriteModal open={showFavoriteModal} onClose={() => setShowFavoriteModal(false)} onSave={fav => { handleCreateFavorite(fav); setShowFavoriteModal(false) }} lang={lang} />
 			</div>
-			<GoalModal open={showGoalModal} onClose={() => setShowGoalModal(false)} onCreate={handleCreateGoal} lang={lang} />
+			<GoalModal
+				key={goalModalKey}
+				open={showGoalModal}
+				onClose={() => setShowGoalModal(false)}
+				onCreate={handleCreateGoal}
+				lang={lang}
+			/>
+			<GoalEditModal
+				open={showEditGoalModal}
+				onClose={() => setShowEditGoalModal(false)}
+				onEdit={updatedGoal => {
+					handleEditGoal(editGoalIndex, updatedGoal)
+					setShowEditGoalModal(false)
+				}}
+				initialGoal={goals[editGoalIndex]}
+				lang={lang}
+			/>
 		</aside>
 	)
 }
 
-function formatSeconds(s) {
+function formatSeconds (s) {
 	const m = Math.floor(s / 60)
 	const sec = s % 60
 	return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`

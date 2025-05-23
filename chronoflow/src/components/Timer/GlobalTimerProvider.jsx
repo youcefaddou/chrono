@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useRef, useState, useEffect } from 'react'
 
-const GlobalTimerContext = createContext()
+export const GlobalTimerContext = createContext()
 
 export function GlobalTimerProvider ({ children }) {
 	const [seconds, setSeconds] = useState(0)
@@ -30,6 +30,8 @@ export function GlobalTimerProvider ({ children }) {
 			}
 		}
 	}, [running, paused])
+
+	useEffect(() => {}, [running, task])
 
 	const start = (newTask = null, reset = true) => {
 		setRunning(true)
@@ -81,4 +83,9 @@ export function GlobalTimerProvider ({ children }) {
 	)
 }
 
-export { GlobalTimerContext }
+export function useGlobalTimer () {
+	const ctx = useContext(GlobalTimerContext)
+	return ctx
+}
+
+export default GlobalTimerProvider

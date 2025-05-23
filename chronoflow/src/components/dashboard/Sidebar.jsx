@@ -16,36 +16,37 @@ function Sidebar ({ user, onSmartTimerClick, collapsed, onToggle }) {
 	return (
 		<aside
 			className={
-				`transition-all duration-200 bg-gray-900 text-white flex flex-col min-h-screen px-2 py-4 z-40
-				${isCollapsed ? 'w-16' : 'w-56 px-4'} fixed md:static left-0 top-0 h-full shadow-lg md:z-30`
+				`transition-all duration-200 bg-gray-900 text-white flex flex-col h-full px-2 py-4 z-40
+				${isCollapsed ? 'w-16' : 'w-56 px-4'} fixed md:static left-0 top-0 shadow-lg md:z-30`
 			}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
 		>
-			{/* Mobile chevron toggle (always visible on mobile, centered vertically) */}
-			<button
-				className='md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-gray-900 border border-gray-800 shadow-lg transition hover:bg-gray-800 focus:outline-none'
-				onClick={onToggle}
-				aria-label={isCollapsed ? t('sidebar.open') || 'Ouvrir le menu' : t('sidebar.close') || 'Fermer le menu'}
-				style={{ transform: 'translateY(-50%)', left: isCollapsed ? '0.5rem' : '13.5rem', transition: 'left 0.3s' }}
-			>
-				<svg
-					width='28'
-					height='28'
-					fill='none'
-					viewBox='0 0 24 24'
-					className={'transition-transform duration-300 ease-in-out transform ' + (isCollapsed ? 'rotate-180' : 'rotate-0')}
-					aria-hidden='true'
+			{/* Chevron always at the very top in mobile */}
+			<div className='flex items-center justify-center h-12 w-full mb-2 md:mb-6'>
+				<button
+					className='flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-800 focus:outline-none transition md:hidden'
+					onClick={onToggle}
+					aria-label={isCollapsed ? t('sidebar.open') || 'Ouvrir le menu' : t('sidebar.close') || 'Fermer le menu'}
 				>
-					<path d='M9 6l6 6-6 6' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'/>
-				</svg>
-			</button>
+					<svg
+						width='22'
+						height='22'
+						fill='none'
+						viewBox='0 0 24 24'
+						className={'transition-transform duration-300 ease-in-out transform ' + (isCollapsed ? 'rotate-180' : 'rotate-0')}
+						aria-hidden='true'
+					>
+						<path d='M9 6l6 6-6 6' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'/>
+					</svg>
+				</button>
+			</div>
+			{/* Chevron for desktop (hidden on mobile) */}
 			<button
-				className='mb-6 flex items-center justify-center w-10 h-10 rounded hover:bg-gray-800 focus:outline-none self-end md:self-start transition-transform duration-300 ease-in-out'
+				className='mb-6 flex items-center justify-center w-10 h-10 rounded hover:bg-gray-800 focus:outline-none self-end md:self-start transition-transform duration-300 ease-in-out md:flex'
 				onClick={onToggle}
 				aria-label={isCollapsed ? t('sidebar.open') || 'Ouvrir le menu' : t('sidebar.close') || 'Fermer le menu'}
 			>
-				{/* Chevron icon for toggle, rotates left/right with smooth animation */}
 				<svg
 					width='24'
 					height='24'
@@ -62,30 +63,30 @@ function Sidebar ({ user, onSmartTimerClick, collapsed, onToggle }) {
 			>
 				<span className={'text-2xl font-bold whitespace-nowrap transition-all duration-300 ease-in-out ' + (isCollapsed ? 'sr-only' : '')}>{t('sidebar.workspace')}</span>
 			</div>
-			<nav className='flex-1'>
-				<ul className='space-y-2'>
+			<nav className='flex-1 flex flex-col items-center md:items-stretch'>
+				<ul className='space-y-2 w-full'>
 					<li className={'font-semibold text-blue-400 ' + (isCollapsed ? 'sr-only' : '')}>{t('sidebar.track')}</li>
 					<li
-						className='pl-2 py-1 hover:bg-gray-800 rounded cursor-pointer flex items-center gap-2'
+						className='pl-2 py-1 hover:bg-gray-800 rounded cursor-pointer flex flex-col items-center md:flex-row md:items-center gap-1 md:gap-2'
 						onClick={() => {
 							onSmartTimerClick && onSmartTimerClick()
 							navigate(dashPrefix)
 						}}
 					>
-						<span role='img' aria-label='Timer'>⏱️</span>
-						{!isCollapsed && t('sidebar.smartTimer')}
+						<span role='img' aria-label='Timer' className='text-lg md:text-xl' style={{ fontSize: '1.1rem' }}> ⏱️</span>
+						{!isCollapsed && <span className='text-xs md:text-base'>{t('sidebar.smartTimer')}</span>}
 					</li>
 					<li className={'font-semibold text-blue-400 mt-4 ' + (isCollapsed ? 'sr-only' : '')}>{t('sidebar.analyze')}</li>
 					<li>
 						<NavLink
 							to={dashPrefix + '/reports'}
 							className={({ isActive }) =>
-								'flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
+								'flex flex-col items-center md:flex-row md:items-center gap-1 md:gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
 								(isActive ? ' bg-gray-800 font-bold text-yellow-400' : ' text-white')
 							}
 						>
-							<span role='img' aria-label='Reports'>📊</span>
-							{!isCollapsed && t('sidebar.reports')}
+							<span role='img' aria-label='Reports' className='text-lg md:text-xl' style={{ fontSize: '1.1rem' }}>📊</span>
+							{!isCollapsed && <span className='text-xs md:text-base'>{t('sidebar.reports')}</span>}
 						</NavLink>
 					</li>
 					<li className={'font-semibold text-blue-400 mt-4 ' + (isCollapsed ? 'sr-only' : '')}>{t('sidebar.manage')}</li>
@@ -93,62 +94,62 @@ function Sidebar ({ user, onSmartTimerClick, collapsed, onToggle }) {
 						<NavLink
 							to={dashPrefix + '/projects'}
 							className={({ isActive }) =>
-								'flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
+								'flex flex-col items-center md:flex-row md:items-center gap-1 md:gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
 								(isActive ? ' bg-gray-800 font-bold text-yellow-400' : ' text-white')
 							}
 						>
 							<span className='text-yellow-400'>
-								<svg width='18' height='18' fill='currentColor' viewBox='0 0 20 20'><path d='M4 4h12v2H4V4zm0 4h12v10H4V8zm2 2v6h8v-6H6z'/></svg>
+								<svg width='13' height='13' fill='currentColor' viewBox='0 0 20 20'><path d='M4 4h12v2H4V4zm0 4h12v10H4V8zm2 2v6h8v-6H6z'/></svg>
 							</span>
-							{!isCollapsed && t('sidebar.projects')}
+							{!isCollapsed && <span className='text-xs md:text-base'>{t('sidebar.projects')}</span>}
 						</NavLink>
 					</li>
 					<li>
 						<NavLink
 							to={dashPrefix + '/clients'}
 							className={({ isActive }) =>
-								'flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
+								'flex flex-col items-center md:flex-row md:items-center gap-1 md:gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
 								(isActive ? ' bg-gray-800 font-bold text-yellow-400' : ' text-white')
 							}
 						>
-							<span role='img' aria-label='Clients'>👥</span>
-							{!isCollapsed && t('sidebar.clients')}
+							<span role='img' aria-label='Clients' className='text-lg md:text-xl' style={{ fontSize: '1.1rem' }}>👥</span>
+							{!isCollapsed && <span className='text-xs md:text-base'>{t('sidebar.clients')}</span>}
 						</NavLink>
 					</li>
 					<li>
 						<NavLink
 							to={dashPrefix + '/members'}
 							className={({ isActive }) =>
-								'flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
+								'flex flex-col items-center md:flex-row md:items-center gap-1 md:gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
 								(isActive ? ' bg-gray-800 font-bold text-yellow-400' : ' text-white')
 							}
 						>
-							<span role='img' aria-label='Members'>💼</span>
-							{!isCollapsed && t('sidebar.members')}
+							<span role='img' aria-label='Members' className='text-lg md:text-xl' style={{ fontSize: '1.1rem' }}>💼</span>
+							{!isCollapsed && <span className='text-xs md:text-base'>{t('sidebar.members')}</span>}
 						</NavLink>
 					</li>
 					<li>
 						<NavLink
 							to={dashPrefix + '/invoices'}
 							className={({ isActive }) =>
-								'flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
+								'flex flex-col items-center md:flex-row md:items-center gap-1 md:gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
 								(isActive ? ' bg-gray-800 font-bold text-yellow-400' : ' text-white')
 							}
 						>
-							<span role='img' aria-label='Invoices'>🧾</span>
-							{!isCollapsed && t('sidebar.invoices')}
+							<span role='img' aria-label='Invoices' className='text-lg md:text-xl' style={{ fontSize: '1.1rem' }}>🧾</span>
+							{!isCollapsed && <span className='text-xs md:text-base'>{t('sidebar.invoices')}</span>}
 						</NavLink>
 					</li>
 					<li>
 						<NavLink
 							to={dashPrefix + '/integrations'}
 							className={({ isActive }) =>
-								'flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
+								'flex flex-col items-center md:flex-row md:items-center gap-1 md:gap-2 px-3 py-2 rounded hover:bg-gray-800 transition-colors' +
 								(isActive ? ' bg-gray-800 font-bold text-yellow-400' : ' text-white')
 							}
 						>
-							<span role='img' aria-label='Integrations'>🔌</span>
-							{!isCollapsed && t('sidebar.integrations')}
+							<span role='img' aria-label='Integrations' className='text-lg md:text-xl' style={{ fontSize: '1.1rem' }}>🔌</span>
+							{!isCollapsed && <span className='text-xs md:text-base'>{t('sidebar.integrations')}</span>}
 						</NavLink>
 					</li>
 				</ul>

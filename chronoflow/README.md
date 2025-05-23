@@ -27,6 +27,7 @@ npm install -D eslint prettier eslint-config-prettier eslint-plugin-react
 npm install i18next react-i18next
 npm install @hookform/resolvers zod
 
+supabase functions deploy update-task-durations  
 
 docker build -t chronoflow .
 
