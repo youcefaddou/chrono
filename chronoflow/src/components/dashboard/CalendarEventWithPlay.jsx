@@ -18,6 +18,28 @@ function CalendarEventWithPlay({ event }) {
 	const isPaused = isRunning && timer.paused
 	const [localDuration, setLocalDuration] = React.useState(event.duration_seconds || 0)
 	const [saving, setSaving] = React.useState(false)
+	const [pollingInterval, setPollingInterval] = React.useState(null)
+
+	// Poll la DB pour avoir le temps réel (toutes les 30s)
+	React.useEffect(() => {
+		if (!event.id) return
+		function fetchDuration () {
+			supabase
+				.from('tasks')
+				.select('duration_seconds')
+				.eq('id', event.id)
+				.single()
+				.then(({ data }) => {
+					if (data && typeof data.duration_seconds === 'number') {
+						setLocalDuration(data.duration_seconds)
+					}
+				})
+		}
+		fetchDuration()
+		const interval = setInterval(fetchDuration, 30000)
+		setPollingInterval(interval)
+		return () => clearInterval(interval)
+	}, [event.id])
 
 	// Update local duration when event changes
 	React.useEffect(() => {

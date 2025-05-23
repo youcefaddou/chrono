@@ -24,8 +24,7 @@ function ProjectMenu ({ anchorRef, open, onClose, children }) {
 			return
 		}
 		const rect = anchorRef.current.getBoundingClientRect()
-		console.log('ProjectMenu anchorRef.current:', anchorRef.current)
-		console.log('ProjectMenu rect:', rect)
+		
 		// Si le bouton n'est pas dans le DOM (rect tout à 0), retry après 50ms
 		if (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0) {
 			setReady(false)

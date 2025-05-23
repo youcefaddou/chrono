@@ -4,11 +4,19 @@
 	background: #18181b;
 	color: #fff;
 	padding: 24px;
-	min-height: 100vh;
+	min-height: 90vh;
 	border-left: 1px solid #222;
 	display: flex;
 	flex-direction: column;
-	gap: 32px;
+	gap: 50px;
+	justify-content: flex-start;
+}
+
+.calendar-panel,
+.calendar-container {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
 }
 
 .right-panel-section {

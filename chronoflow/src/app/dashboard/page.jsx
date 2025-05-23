@@ -39,7 +39,7 @@ export default function DashboardPage () {
 
 	return (
 		<GlobalTimerProvider>
-			<div className='flex min-h-screen bg-white'>
+			<div className='flex min-h-screen h-screen bg-white'>
 				<Sidebar
 					user={user}
 					onSmartTimerClick={() => setShowCalendar(true)}
@@ -48,7 +48,7 @@ export default function DashboardPage () {
 				/>
 				<main
 					className={
-						'flex-1 flex flex-col transition-all duration-200 min-w-0 ' +
+						'flex-1 flex flex-col transition-all duration-200 min-w-0 h-full ' +
 						(sidebarCollapsed ? 'ml-16' : 'ml-5')
 					}
 				>

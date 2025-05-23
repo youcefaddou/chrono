@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import './GoalModal.css'
 import { supabase } from '../../lib/supabase'
 
-function GoalModal({ open, onClose, onCreate, lang = 'fr' }) {
+function GoalEditModal({ open, onClose, onEdit, initialGoal, lang = 'fr' }) {
 	const [goal, setGoal] = useState('')
 	const [track, setTrack] = useState('')
 	const [forType, setForType] = useState('atLeast')
@@ -24,11 +24,23 @@ function GoalModal({ open, onClose, onCreate, lang = 'fr' }) {
 		if (open) fetchProjects()
 	}, [open])
 
+	useEffect(() => {
+		if (initialGoal) {
+			setGoal(initialGoal.goal || '')
+			setTrack(initialGoal.track || '')
+			setForType(initialGoal.forType || initialGoal.for_type || 'atLeast')
+			setHours(initialGoal.hours !== undefined ? initialGoal.hours : '')
+			setPer(initialGoal.per || 'day')
+			setUntil(initialGoal.until || '')
+			setNoEnd(!initialGoal.until)
+		}
+	}, [initialGoal, open])
+
 	if (!open) return null
 
 	const labels = {
 		fr: {
-			title: 'Créer un objectif',
+			title: 'Modifier l\'objectif',
 			goal: 'Objectif',
 			goalPlaceholder: 'Nom de l\'objectif',
 			member: 'Membre',
@@ -44,11 +56,11 @@ function GoalModal({ open, onClose, onCreate, lang = 'fr' }) {
 			until: 'Jusqu\'au',
 			noEnd: 'Pas de date de fin',
 			cancel: 'Annuler',
-			create: 'Créer l\'objectif',
+			save: 'Enregistrer',
 			memberYou: '(Vous)',
 		},
 		en: {
-			title: 'Create a goal',
+			title: 'Edit goal',
 			goal: 'Goal',
 			goalPlaceholder: 'Goal name',
 			member: 'Member',
@@ -64,7 +76,7 @@ function GoalModal({ open, onClose, onCreate, lang = 'fr' }) {
 			until: 'Until',
 			noEnd: 'No end date',
 			cancel: 'Cancel',
-			create: 'Create goal',
+			save: 'Save',
 			memberYou: '(You)',
 		},
 	}
@@ -73,7 +85,14 @@ function GoalModal({ open, onClose, onCreate, lang = 'fr' }) {
 
 	function handleSubmit(e) {
 		e.preventDefault()
-		onCreate({ goal, track, forType, hours, per, until: noEnd ? null : until })
+		onEdit({
+			goal,
+			track,
+			forType,
+			hours,
+			per,
+			until: noEnd ? null : until,
+		})
 		onClose()
 	}
 
@@ -150,7 +169,7 @@ function GoalModal({ open, onClose, onCreate, lang = 'fr' }) {
 					</div>
 					<div className='goal-modal-actions'>
 						<button type='button' onClick={onClose}>{t.cancel}</button>
-						<button type='submit' className='goal-modal-create'>{t.create}</button>
+						<button type='submit' className='goal-modal-create'>{t.save}</button>
 					</div>
 				</form>
 			</div>
@@ -158,4 +177,4 @@ function GoalModal({ open, onClose, onCreate, lang = 'fr' }) {
 	)
 }
 
-export default GoalModal
+export default GoalEditModal
