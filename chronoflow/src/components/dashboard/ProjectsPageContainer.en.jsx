@@ -18,7 +18,7 @@ function formatTimer (seconds) {
 
 function ProjectsPageContainerEn () {
 	const [filter, setFilter] = useState('all')
-	const [filters, setFilters] = useState({ client: '', member: '', billable: '', name: '', template: '' })
+	const [filters, setFilters] = useState({ name: '', template: '' })
 	const [showMenuIndex, setShowMenuIndex] = useState(null)
 	const [filtersOpen, setFiltersOpen] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -96,13 +96,11 @@ function ProjectsPageContainerEn () {
 		}
 		const payload = {
 			name: project.name,
-			client: project.client,
 			timeframe: project.timeframe,
 			recurring: project.recurring,
 			estimate: parseNumber(project.estimate),
 			fixed_fee: parseNumber(project.fixedFee),
 			privacy: project.privacy,
-			members: project.members,
 			user_id: userId,
 		}
 		if (isEdit && initialProject && initialProject.id) {
@@ -163,11 +161,6 @@ function ProjectsPageContainerEn () {
 		setShowMenuIndex(null)
 	}
 
-	function handleAddMember (project) {
-		alert('Feature coming soon: Add member to project "' + project.name + '"')
-		setShowMenuIndex(null)
-	}
-
 	function handleViewReports (project) {
 		navigate(`/en/dashboard/reports?project=${project.id}`)
 		setShowMenuIndex(null)
@@ -199,12 +192,6 @@ function ProjectsPageContainerEn () {
 	const filteredProjects = projects.filter(project => {
 		if (filter === 'archived' && !project.archived) return false
 		if (filter === 'active' && project.archived) return false
-		if (filters.client && project.client && !project.client.toLowerCase().includes(filters.client.toLowerCase())) return false
-		if (filters.member && project.members && !project.members.some(m => m.toLowerCase().includes(filters.member.toLowerCase()))) return false
-		if (filters.billable) {
-			const billableStr = project.billable === true ? 'yes' : project.billable === false ? 'no' : ''
-			if (!billableStr.includes(filters.billable.toLowerCase())) return false
-		}
 		if (filters.name && project.name && !project.name.toLowerCase().includes(filters.name.toLowerCase())) return false
 		if (filters.template && project.template && !project.template.toLowerCase().includes(filters.template.toLowerCase())) return false
 		return true
@@ -272,7 +259,6 @@ function ProjectsPageContainerEn () {
 						menuBtnRefs={menuBtnRefs.current}
 						lang={newProjectLang}
 						handleEdit={handleEditProject}
-						handleAddMember={handleAddMember}
 						handleViewReports={handleViewReports}
 						handleArchiveProject={handleArchiveProject}
 						confirmDelete={confirmDelete}

@@ -32,10 +32,11 @@ export function GlobalTimerProvider ({ children }) {
 	}, [running, paused])
 
 	useEffect(() => {}, [running, task])
-
 	const start = (newTask = null, reset = true) => {
 		setRunning(true)
 		setPaused(false)
+		// Ne pas réinitialiser automatiquement le timer pour les tâches
+		// L'utilisateur peut toujours relancer manuellement si nécessaire
 		if (reset) setSeconds(0)
 		if (newTask && newTask.projectId) {
 			setProjectId(newTask.projectId)

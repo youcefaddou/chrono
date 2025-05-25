@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { fr, enUS } from 'date-fns/locale'
-import { format, parse, startOfWeek, getDay, getISOWeek, endOfWeek } from 'date-fns'
+import { format, parse, startOfWeek, getDay, getISOWeek, endOfWeek, isSameDay } from 'date-fns'
 import { useTranslation } from '../../hooks/useTranslation'
 import { supabase } from '../../lib/supabase'
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
@@ -9,8 +9,11 @@ import CalendarSelectorModal from './CalendarSelectorModal'
 import AddTaskModal from './AddTaskModal'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import CalendarEventWithPlay from './CalendarEventWithPlay'
+import CalendarEventWithPlayPositioned from './CalendarEventWithPlayPositioned'
+import { calculateAllEventPositions } from './utils/collision-detection'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
+import './CalendarGrid.css'
 
 const DnDCalendar = withDragAndDrop(Calendar)
 const locales = { fr, en: enUS }
@@ -45,7 +48,6 @@ function CalendarGrid ({ user }) {
 			locales,
 		}), [lang]
 	)
-
 	// Custom formats for react-big-calendar
 	const formats = useMemo(() => ({
 		weekdayFormat: (date) => {
@@ -58,6 +60,7 @@ function CalendarGrid ({ user }) {
 				return `${daysShortEn[idx]} ${date.getDate()}`
 			}
 		},
+		// Ensure all header formats are unified to prevent sub-headers
 		dayFormat: (date) => {
 			const day = date.getDay()
 			const idx = day === 0 ? 6 : day - 1
@@ -76,8 +79,10 @@ function CalendarGrid ({ user }) {
 				return `${daysShortEn[idx]} ${date.getDate()}`
 			}
 		},
+		timeGutterFormat: (date, culture, localizer) => {
+			return localizer.format(date, 'HH:mm', culture)
+		},
 	}), [lang])
-
 	// Fetch tasks from Supabase
 	const fetchTasks = useCallback(async () => {
 		if (!user) return
@@ -87,7 +92,7 @@ function CalendarGrid ({ user }) {
 			.select('*')
 			.eq('user_id', user.id)
 		if (!error) {
-			setEvents(data.map(task => ({
+			const mappedEvents = data.map(task => ({
 				id: task.id,
 				title: task.title,
 				desc: task.description,
@@ -96,11 +101,21 @@ function CalendarGrid ({ user }) {
 				color: task.color || 'blue',
 				is_finished: !!task.is_finished,
 				duration_seconds: task.duration_seconds || 0,
-			})))
+			}))
+			
+			// Calculer les positions de collision pour tous les événements
+			const positions = calculateAllEventPositions(mappedEvents)
+			
+			// Ajouter les données de collision à chaque événement
+			const eventsWithCollisionData = mappedEvents.map(event => ({
+				...event,
+				collisionData: positions[event.id] || { width: 100, left: 0 }
+			}))
+			
+			setEvents(eventsWithCollisionData)
 		}
 		setLoading(false)
 	}, [user])
-
 	useEffect(() => { fetchTasks() }, [fetchTasks])
 
 	useEffect(() => {
@@ -112,6 +127,40 @@ function CalendarGrid ({ user }) {
 			window.removeEventListener('task-finished', handleTaskFinished)
 		}
 	}, [fetchTasks])
+
+	// Ajouter les labels de jours dans les colonnes
+	useEffect(() => {
+		const addDayLabelsToColumns = () => {
+			const dayColumns = document.querySelectorAll('.rbc-day-bg')
+			const currentWeekStart = startOfWeek(date, { weekStartsOn: 1, locale: locales[lang] })
+			const today = new Date()
+
+			dayColumns.forEach((column, index) => {
+				const currentDay = new Date(currentWeekStart)
+				currentDay.setDate(currentDay.getDate() + index)
+				
+				const dayIndex = currentDay.getDay() === 0 ? 6 : currentDay.getDay() - 1
+				const dayName = lang === 'fr' ? daysShortFr[dayIndex] : daysShortEn[dayIndex]
+				const dayNumber = currentDay.getDate()
+				const dayLabel = `${dayName} ${dayNumber}`
+				
+				// Ajouter l'attribut data pour le CSS
+				column.setAttribute('data-day-label', dayLabel)
+				
+				// Ajouter la classe "today" si c'est aujourd'hui
+				if (isSameDay(currentDay, today)) {
+					column.classList.add('today')
+				} else {
+					column.classList.remove('today')
+				}
+			})
+		}
+
+		// Délai pour s'assurer que le calendrier est rendu
+		const timer = setTimeout(addDayLabelsToColumns, 100)
+		
+		return () => clearTimeout(timer)
+	}, [date, lang, view]) // Re-exécuter quand la date, langue ou vue change
 
 	const handleEventSave = async event => {
 		if (!user) return
@@ -303,49 +352,8 @@ function CalendarGrid ({ user }) {
 		setDate(selectedDate)
 		setShowCalendarModal(false)
 	}
-
 	return (
 		<div className='bg-white rounded-xl shadow p-2 md:p-4'>
-			<style>{`
-				.rbc-time-slot {
-					height: 28px !important;
-				}
-				.rbc-timeslot-group {
-					border-bottom: 1px solid #e5e7eb !important;
-				}
-				.rbc-time-header-gutter, .rbc-time-gutter, .rbc-timeslot-group .rbc-label {
-					min-width: 80px !important;
-					max-width: 80px !important;
-					width: 80px !important;
-					text-align: right !important;
-					padding-right: 9px !important;
-					font-variant-numeric: tabular-nums;
-				}
-				.rbc-label {
-					font-size: 14px !important;
-					font-family: 'Inter', 'Roboto', 'Arial', sans-serif !important;
-					letter-spacing: 0.01em;
-				}
-				.rbc-header {
-					padding: 8px 0 !important;
-					border-right: 1px solid #e5e7eb !important;
-				}
-				.rbc-header:last-child {
-					border-right: none !important;
-				}
-				
-				.rbc-day-bg:last-child {
-					border-right: none !important;
-				}
-				.rbc-row-segment {
-					margin-right: 0 !important;
-					border-right: 1px solid #e5e7eb !important;
-				}
-				.rbc-row-segment:last-child {
-					border-right: none !important;
-					border-right: none !important;
-				}
-			`}</style>
 			{loading && <div className='text-center text-blue-600'>{lang === 'fr' ? 'Chargement...' : 'Loading...'}</div>}
 			{errorMessage && (
 				<div className='mb-2 p-2 bg-red-100 text-red-700 rounded text-center text-sm font-semibold'>
@@ -375,8 +383,7 @@ function CalendarGrid ({ user }) {
 				>
 					{'>'}
 				</button>
-			</div>
-			<DnDCalendar
+			</div>			<DnDCalendar
 				localizer={localizer}
 				events={events}
 				startAccessor='start'
@@ -394,25 +401,28 @@ function CalendarGrid ({ user }) {
 				onSelectEvent={handleSelectEvent}
 				messages={messages}
 				formats={formats}
-				style={{ minHeight: 600, background: '#fff' }}
+				style={{ minHeight: '100%', height: 'calc(100vh - 250px)', background: '#fff' }}
 				eventPropGetter={event => ({
 					style: {
 						backgroundColor: event.color || '#2563eb',
 						color: '#fff',
-						borderRadius: 8,
+						borderRadius: 6,
 						border: 'none',
-						paddingLeft: 8,
-						paddingRight: 8,
-						minHeight: 56, // Even more visible
+						padding: 0,
 						display: 'flex',
-						alignItems: 'center',
-						fontWeight: 600,
-						fontSize: 16,
+						alignItems: 'stretch',
+						fontWeight: 500,
+						fontSize: 13,
+						lineHeight: '1.2',
+						boxSizing: 'border-box',
+						width: '100%',
+						margin: 0,
 					},
-				})}
-				step={60} // 1 hour per row
-				timeslots={1} 
-				components={{ event: CalendarEventWithPlay }}
+				})}				step={60}
+				timeslots={1}
+				min={new Date(2024, 0, 1, 0, 0, 0)}
+				max={new Date(2024, 0, 1, 23, 59, 59)}
+				components={{ event: CalendarEventWithPlayPositioned }}
 			/>
 			{showCalendarModal && (
 				<CalendarSelectorModal

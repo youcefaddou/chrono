@@ -39,10 +39,8 @@ export default function DashboardPage () {
 
 	return (
 		<GlobalTimerProvider>
-			<div className='flex min-h-screen h-screen bg-white'>
-				<Sidebar
+			<div className='flex min-h-screen h-screen bg-white'>				<Sidebar
 					user={user}
-					onSmartTimerClick={() => setShowCalendar(true)}
 					collapsed={sidebarCollapsed}
 					onToggle={() => setSidebarCollapsed(v => !v)}
 				/>
@@ -53,7 +51,7 @@ export default function DashboardPage () {
 					}
 				>
 					<DashboardHeader user={user} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} />
-					{/* La grille et la rightbar sont désormais gérées uniquement dans DashboardHeader */}
+					{/* La grille est désormais gérée uniquement dans DashboardHeader */}
 				</main>
 			</div>
 		</GlobalTimerProvider>

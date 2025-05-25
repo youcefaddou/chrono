@@ -60,22 +60,11 @@ i18n
           "howitworks.step2Title": "Ajoutez vos tâches",
           "howitworks.step2Desc": "Notez et organisez vos tâches à accomplir.",
           "howitworks.step3Title": "Analysez vos progrès",
-          "howitworks.step3Desc": "Consultez vos statistiques et améliorez-vous.",
-          // Sidebar & Dashboard navigation
+          "howitworks.step3Desc": "Consultez vos statistiques et améliorez-vous.",          // Sidebar & Dashboard navigation
           "sidebar.workspace": "Espace de travail",
-          "sidebar.track": "SUIVI",
-          "sidebar.smartTimer": "Smart Timer",
-          "sidebar.analyze": "ANALYSER",
-          "sidebar.reports": "Rapports",
-          "sidebar.manage": "GÉRER",
-          "sidebar.projects": "Projets",
-          "sidebar.clients": "Clients",
-          "sidebar.members": "Membres",
-          "sidebar.invoices": "Factures",
-          "sidebar.integrations": "Intégrations",
-          "sidebar.subscription": "Abonnement",
           "sidebar.organization": "Organisation",
           "sidebar.settings": "Paramètres",
+          "sidebar.subscription": "Abonnement",
           // Calendar
           "calendar.today": "Aujourd'hui",
           "calendar.yesterday": "Hier",
@@ -108,12 +97,12 @@ i18n
             },
           },
           // RightPanel
-          "rightPanel.objectives": "Objectifs",
-          "rightPanel.addObjective": "Ajouter un objectif",
-          "rightPanel.noObjectives": "Aucun objectif ajouté.",
-          "rightPanel.favorites": "Favoris",
-          "rightPanel.addFavorite": "Ajouter un favori",
-          "rightPanel.noFavorites": "Aucun favori ajouté.",
+          // "rightPanel.objectives": "Objectifs",
+          // "rightPanel.addObjective": "Ajouter un objectif",
+          // "rightPanel.noObjectives": "Aucun objectif ajouté.",
+          // "rightPanel.favorites": "Favoris", // Favoris désactivés
+          // "rightPanel.addFavorite": "Ajouter un favori", // Favoris désactivés
+          // "rightPanel.noFavorites": "Aucun favori ajouté.", // Favoris désactivés
           // Task actions
           "task.complete": "Terminer la tâche",
           "task.completed": "Terminée",
@@ -168,22 +157,11 @@ i18n
           "howitworks.step2Title": "Add your tasks",
           "howitworks.step2Desc": "Write down and organize your tasks to accomplish.",
           "howitworks.step3Title": "Analyze your progress",
-          "howitworks.step3Desc": "Check your stats and improve yourself.",
-          // Sidebar & Dashboard navigation
+          "howitworks.step3Desc": "Check your stats and improve yourself.",          // Sidebar & Dashboard navigation
           "sidebar.workspace": "Workspace",
-          "sidebar.track": "TRACK",
-          "sidebar.smartTimer": "Smart Timer",
-          "sidebar.analyze": "ANALYZE",
-          "sidebar.reports": "Reports",
-          "sidebar.manage": "MANAGE",
-          "sidebar.projects": "Projects",
-          "sidebar.clients": "Clients",
-          "sidebar.members": "Members",
-          "sidebar.invoices": "Invoices",
-          "sidebar.integrations": "Integrations",
-          "sidebar.subscription": "Subscription",
           "sidebar.organization": "Organization",
           "sidebar.settings": "Settings",
+          "sidebar.subscription": "Subscription",
           // Calendar
           "calendar.today": "Today",
           "calendar.yesterday": "Yesterday",
@@ -216,12 +194,12 @@ i18n
             },
           },
           // RightPanel
-          "rightPanel.objectives": "Objectives",
-          "rightPanel.addObjective": "Add objective",
-          "rightPanel.noObjectives": "No objectives added.",
-          "rightPanel.favorites": "Favorites",
-          "rightPanel.addFavorite": "Add favorite",
-          "rightPanel.noFavorites": "No favorites added.",
+          // "rightPanel.objectives": "Objectives",
+          // "rightPanel.addObjective": "Add objective",
+          // "rightPanel.noObjectives": "No objectives added.",
+          // "rightPanel.favorites": "Favorites", // Favoris désactivés
+          // "rightPanel.addFavorite": "Add favorite", // Favoris désactivés
+          // "rightPanel.noFavorites": "No favorites added.", // Favoris désactivés
           // Task actions
           "task.complete": "Complete task",
           "task.completed": "Completed",

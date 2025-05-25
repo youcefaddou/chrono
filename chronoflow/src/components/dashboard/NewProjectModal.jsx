@@ -85,7 +85,6 @@ function NewProjectModal({ open, onClose, onCreate, lang = 'fr', initialProject,
   const [nameError, setNameError] = useState('')
   const [periodError, setPeriodError] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [client, setClient] = useState(initialProject?.client || '')
   // Parse timeframe if present
   const initialStart = initialProject?.timeframe?.split(' - ')[0]
   const initialEnd = initialProject?.timeframe?.split(' - ')[1]
@@ -97,9 +96,6 @@ function NewProjectModal({ open, onClose, onCreate, lang = 'fr', initialProject,
   const [fixedFee, setFixedFee] = useState(initialProject?.fixedFee || false)
   const [privacy, setPrivacy] = useState(initialProject?.privacy || false)
   const [access, setAccess] = useState(initialProject?.access || 'regular')
-  const [members, setMembers] = useState(initialProject?.members || '')
-  const [showStartCal, setShowStartCal] = useState(false)
-  const [showEndCal, setShowEndCal] = useState(false)
   const startRef = useRef()
   const endRef = useRef()
 
@@ -108,42 +104,30 @@ function NewProjectModal({ open, onClose, onCreate, lang = 'fr', initialProject,
     name: 'Project name',
     nameRequired: 'Please enter a Project name',
     privacy: 'Private, visible only to project members',
-    invite: 'Invite members',
     access: 'Access',
     regular: 'Regular member',
     advanced: 'ADVANCED OPTIONS',
-    client: 'Client',
-    search: 'Search or add',
     period: 'Period',
     start: 'Start date',
     end: 'End date',
     noEnd: 'No end date',
     recurring: 'Recurring',
     estimate: 'Time estimate',
-    billing: 'Billing',
-    workspaceRates: 'using Workspace rates',
-    fixedFee: 'Fixed fee',
     create: isEdit ? 'Edit project' : 'Create project',
   } : {
     title: isEdit ? 'Éditer un projet' : 'Créer un projet',
     name: 'Nom du projet',
     nameRequired: 'Veuillez entrer un nom de projet',
     privacy: 'Privé, visible uniquement par les membres du projet',
-    invite: 'Inviter des membres',
     access: 'Accès',
     regular: 'Membre régulier',
     advanced: 'OPTIONS AVANCÉES',
-    client: 'Client',
-    search: 'Rechercher ou ajouter',
     period: 'Période',
     start: 'Date de début',
     end: 'Date de fin',
     noEnd: 'Pas de date de fin',
     recurring: 'Récurrent',
     estimate: 'Estimation du temps',
-    billing: 'Facturation',
-    workspaceRates: 'selon les tarifs de l’espace',
-    fixedFee: 'Forfait',
     create: isEdit ? 'Éditer le projet' : 'Créer le projet',
   }
 
@@ -169,7 +153,6 @@ function NewProjectModal({ open, onClose, onCreate, lang = 'fr', initialProject,
     if (hasError) return
     onCreate({
       name,
-      client,
       timeframe: startDate ? (endDate ? `${startDate.toISOString().slice(0,10)} - ${endDate.toISOString().slice(0,10)}` : `${startDate.toISOString().slice(0,10)} - ${t.noEnd}`) : '',
       recurring,
       estimate,
@@ -177,10 +160,8 @@ function NewProjectModal({ open, onClose, onCreate, lang = 'fr', initialProject,
       fixedFee,
       privacy,
       access,
-      members,
     })
     setName('')
-    setClient('')
     setStartDate(null)
     setEndDate(null)
     setRecurring(false)
@@ -189,7 +170,6 @@ function NewProjectModal({ open, onClose, onCreate, lang = 'fr', initialProject,
     setFixedFee(false)
     setPrivacy(false)
     setAccess('regular')
-    setMembers('')
     onClose()
   }
 
@@ -241,95 +221,39 @@ function NewProjectModal({ open, onClose, onCreate, lang = 'fr', initialProject,
                 <input type='checkbox' checked={privacy} onChange={e => setPrivacy(e.target.checked)} className='accent-primary-600' />
               </div>
               <div>
-                <label className='block text-sm font-medium mb-1'>{t.invite}</label>
-                <input type='text' className='w-full rounded border px-3 py-2 bg-neutral-800 border-neutral-700' value={members} onChange={e => setMembers(e.target.value)} placeholder={t.invite} />
-              </div>
-              <div>
-                <label className='block text-sm font-medium mb-1'>{t.access}</label>
-                <select className='w-full rounded border px-3 py-2 bg-neutral-800 border-neutral-700' value={access} onChange={e => setAccess(e.target.value)}>
-                  <option value='regular'>{t.regular}</option>
-                </select>
-              </div>
-              <button
-                type='button'
-                className='flex items-center gap-2 text-primary-400 font-semibold text-xs uppercase tracking-wide mt-2 mb-1 hover:text-primary-300 transition-colors'
-                onClick={() => setShowAdvanced(v => !v)}
-                aria-expanded={showAdvanced}
-              >
-                {t.advanced}
-                <ChevronDownIcon className={'w-4 h-4 transition-transform duration-200 ' + (showAdvanced ? 'rotate-180' : '')} />
-              </button>
-              <Transition show={showAdvanced} as={React.Fragment}>
-                <div className='flex flex-col gap-3 border-t border-neutral-700 pt-3'>
-                  <div>
-                    <label className='block text-sm font-medium mb-1'>{t.client}</label>
-                    <input type='text' className='w-full rounded border px-3 py-2 bg-neutral-800 border-neutral-700' value={client} onChange={e => setClient(e.target.value)} placeholder={t.search} />
+                <label className='block text-sm font-medium mb-1'>{t.period}</label>
+                <div className='flex gap-2 items-center'>
+                  <div className='relative w-full'>
+                    <button
+                      type='button'
+                      ref={startRef}
+                      className='w-full rounded border px-3 py-2 bg-neutral-800 border-neutral-700 text-left text-white'
+                    >
+                      {startDate ? formatDate(startDate) : t.start}
+                    </button>
                   </div>
-                  <div>
-                    <label className='block text-sm font-medium mb-1'>{t.period}</label>
-                    <div className='flex gap-2 items-center'>
-                      <div className='relative w-full'>
-                        <button
-                          type='button'
-                          ref={startRef}
-                          className='w-full rounded border px-3 py-2 bg-neutral-800 border-neutral-700 text-left text-white'
-                          onClick={() => setShowStartCal(v => !v)}
-                        >
-                          {startDate ? formatDate(startDate) : t.start}
-                        </button>
-                        {showStartCal && (
-                          <div className='absolute left-0 top-12 z-50'>
-                            <MiniCalendar
-                              value={startDate || new Date()}
-                              onChange={d => { setStartDate(d); setShowStartCal(false) }}
-                              lang={lang}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      <span>-</span>
-                      <div className='relative w-full'>
-                        <button
-                          type='button'
-                          ref={endRef}
-                          className='w-full rounded border px-3 py-2 bg-neutral-800 border-neutral-700 text-left text-white'
-                          onClick={() => setShowEndCal(v => !v)}
-                          disabled={!startDate}
-                        >
-                          {endDate ? formatDate(endDate) : t.end}
-                        </button>
-                        {showEndCal && (
-                          <div className='absolute left-0 top-12 z-50'>
-                            <MiniCalendar
-                              value={endDate || startDate || new Date()}
-                              onChange={d => { setEndDate(d); setShowEndCal(false) }}
-                              lang={lang}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {periodError && <div className='text-xs text-red-500 mt-1'>{periodError}</div>}
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <label className='text-sm'>{t.recurring}</label>
-                    <input type='checkbox' checked={recurring} onChange={e => setRecurring(e.target.checked)} className='accent-primary-600' />
-                  </div>
-                  <div>
-                    <label className='block text-sm font-medium mb-1'>{t.estimate}</label>
-                    <input type='text' className='w-full rounded border px-3 py-2 bg-neutral-800 border-neutral-700' value={estimate} onChange={e => setEstimate(e.target.value)} placeholder='ex: 20h' />
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <label className='text-sm'>{t.billing}</label>
-                    <input type='checkbox' checked={billable} onChange={e => setBillable(e.target.checked)} className='accent-primary-600' />
-                    <span className='text-xs text-neutral-400'>{t.workspaceRates}</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <label className='text-sm'>{t.fixedFee}</label>
-                    <input type='checkbox' checked={fixedFee} onChange={e => setFixedFee(e.target.checked)} className='accent-primary-600' />
+                  <span>-</span>
+                  <div className='relative w-full'>
+                    <button
+                      type='button'
+                      ref={endRef}
+                      className='w-full rounded border px-3 py-2 bg-neutral-800 border-neutral-700 text-left text-white'
+                      disabled={!startDate}
+                    >
+                      {endDate ? formatDate(endDate) : t.end}
+                    </button>
                   </div>
                 </div>
-              </Transition>
+                {periodError && <div className='text-xs text-red-500 mt-1'>{periodError}</div>}
+              </div>
+              <div className='flex items-center gap-2'>
+                <label className='text-sm'>{t.recurring}</label>
+                <input type='checkbox' checked={recurring} onChange={e => setRecurring(e.target.checked)} className='accent-primary-600' />
+              </div>
+              <div>
+                <label className='block text-sm font-medium mb-1'>{t.estimate}</label>
+                <input type='text' className='w-full rounded border px-3 py-2 bg-neutral-800 border-neutral-700' value={estimate} onChange={e => setEstimate(e.target.value)} placeholder='ex: 20h' />
+              </div>
               <button type='submit' className='mt-4 w-full py-2 rounded bg-rose-800 hover:bg-rose-500 font-semibold text-white transition-colors'>{t.create}</button>
             </form>
           </Dialog.Panel>
