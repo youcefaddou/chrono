@@ -1,0 +1,480 @@
+/* ========================================== */
+/*           CALENDRIER GRID - 24H/24         */
+/* ========================================== */
+
+/* Reset et base */
+.rbc-calendar {
+	box-sizing: border-box;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+	width: 100%;
+	height: 100%;
+	border-radius: 8px;
+	overflow: hidden;
+	background: #ffffff;
+	border: 1px solid #e2e8f0;
+}
+
+.rbc-calendar *,
+.rbc-calendar *:before,
+.rbc-calendar *:after {
+	box-sizing: border-box;
+}
+
+/* ========================================== */
+/*              CONTENEUR PRINCIPAL            */
+/* ========================================== */
+
+.rbc-time-view {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	background: #ffffff;
+}
+
+/* ========================================== */
+/*                 HEADER - JOURS              */
+/* ========================================== */
+
+.rbc-time-header {
+	display: flex;
+	width: 100%;
+	border-bottom: 2px solid #e2e8f0;
+	background: #f8fafc;
+	min-height: 60px;
+	flex-shrink: 0;
+}
+
+/* Hide any redundant header elements that might create sub-cases */
+.rbc-time-header .rbc-time-header-gutter + .rbc-header {
+	border-top: none;
+}
+
+.rbc-time-header > .rbc-time-header-content {
+	flex: 1;
+	display: flex;
+}
+
+/* Ensure single row of headers without sub-elements */
+.rbc-time-header .rbc-row {
+	display: flex;
+	width: 100%;
+}
+
+.rbc-time-header .rbc-row:not(:first-child) {
+	display: none; /* Hide additional header rows */
+}
+
+/* Colonne des heures dans le header */
+.rbc-time-header-gutter {
+	width: 80px;
+	min-width: 80px;
+	max-width: 80px;
+	background: #f1f5f9;
+	border-right: 1px solid #e2e8f0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	font-weight: 500;
+	color: #64748b;
+	flex-shrink: 0;
+}
+
+/* Headers des jours */
+.rbc-header {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px 8px;
+	background: #f8fafc;
+	border-right: 1px solid #e2e8f0;
+	font-size: 18px;
+	font-weight: 700;
+	color: #1e293b;
+	text-align: center;
+	min-height: 80px;
+}
+
+.rbc-header:last-child {
+	border-right: none;
+}
+
+/* Hide any additional header rows to merge everything into one clean header */
+.rbc-time-header .rbc-header + .rbc-header {
+	border-top: none;
+}
+
+/* Ensure unified header appearance */
+.rbc-time-header .rbc-header {
+	position: relative;
+	z-index: 1;
+}
+
+/* ========================================== */
+/*           CONTENU AVEC GRILLE HORAIRE       */
+/* ========================================== */
+
+.rbc-time-content {
+	display: flex;
+	flex: 1;
+	background: #ffffff;
+	overflow-x: auto;
+	overflow-y: auto;
+	max-height: calc(100vh - 200px);
+	/* Scroll mobile-friendly */
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: none; /* Firefox */
+	-ms-overflow-style: none; /* IE/Edge */
+}
+
+.rbc-time-content::-webkit-scrollbar {
+	display: none; /* Chrome, Safari, Opera */
+}
+
+/* ========================================== */
+/*           COLONNE DES HEURES (GUTTER)       */
+/* ========================================== */
+
+.rbc-time-gutter {
+	width: 80px;
+	min-width: 80px;
+	max-width: 80px;
+	background: #f1f5f9;
+	border-right: 1px solid #e2e8f0;
+	flex-shrink: 0;
+	position: sticky;
+	left: 0;
+	z-index: 10;
+}
+
+.rbc-time-gutter .rbc-label {
+	height: 60px;
+	min-height: 60px;
+	max-height: 60px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-bottom: 1px solid #e2e8f0;
+	font-size: 12px;
+	font-weight: 500;
+	color: #64748b;
+	padding: 0;
+	margin: 0;
+	box-sizing: border-box;
+}
+
+/* ========================================== */
+/*                GRILLE 24H                   */
+/* ========================================== */
+
+/* Cases horaires - EXACTEMENT 60px */
+.rbc-time-slot {
+	height: 60px !important;
+	min-height: 60px !important;
+	max-height: 60px !important;
+	flex: none !important;
+	flex-grow: 0 !important;
+	flex-shrink: 0 !important;
+	flex-basis: 60px !important;
+	border-bottom: 1px solid #f1f5f9;
+	background: #ffffff;
+	box-sizing: border-box;
+	position: relative;
+}
+
+/* Surcharge spécifique pour React Big Calendar - empêche flex: 1 0 0 */
+.rbc-calendar .rbc-time-view .rbc-time-content .rbc-time-slot,
+.rbc-time-view .rbc-time-content .rbc-time-slot,
+.rbc-time-content .rbc-time-slot {
+	flex: none !important;
+	flex-grow: 0 !important;
+	flex-shrink: 0 !important;
+	flex-basis: 60px !important;
+	height: 60px !important;
+	min-height: 60px !important;
+	max-height: 60px !important;
+}
+
+/* Groupes de slots (heures) */
+.rbc-timeslot-group {
+	height: 60px !important;
+	min-height: 60px !important;
+	max-height: 60px !important;
+	border-bottom: 1px solid #e2e8f0;
+	box-sizing: border-box;
+}
+
+/* Surcharge pour les groupes de slots - empêche flex de React Big Calendar */
+.rbc-calendar .rbc-timeslot-group,
+.rbc-time-view .rbc-timeslot-group {
+	display: block !important;
+	flex: none !important;
+	height: 60px !important;
+	min-height: 60px !important;
+	max-height: 60px !important;
+}
+
+/* ========================================== */
+/*               COLONNES JOURS                */
+/* ========================================== */
+
+.rbc-day-bg {
+	border-right: 1px solid #f1f5f9;
+	background: #ffffff;
+	min-width: 120px;
+	flex: 1;
+}
+
+.rbc-day-bg:last-child {
+	border-right: none;
+}
+
+/* Conteneur des événements par jour */
+.rbc-events-container {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.rbc-day-slot {
+	position: relative;
+	min-width: 120px;
+	
+}
+
+/* ========================================== */
+/*                ÉVÉNEMENTS                   */
+/* ========================================== */
+
+.rbc-event {
+	background: #3b82f6;
+	color: #ffffff;
+	border-radius: 6px;
+	border: none;
+	padding: 4px 6px;
+	margin: 0 2px;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.3;
+	cursor: pointer;
+	position: absolute;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	overflow: hidden;
+}
+
+.rbc-event:hover {
+	opacity: 0.9;
+}
+
+.rbc-event.rbc-selected {
+	box-shadow: 0 0 0 2px #1d4ed8;
+}
+
+/* ========================================== */
+/*              RESPONSIVE MOBILE              */
+/* ========================================== */
+
+@media (max-width: 768px) {
+	.rbc-time-header-gutter {
+		width: 60px;
+		min-width: 60px;
+		max-width: 60px;
+		font-size: 10px;
+	}
+	
+	.rbc-time-gutter {
+		width: 60px;
+		min-width: 60px;
+		max-width: 60px;
+	}
+	
+	.rbc-time-gutter .rbc-label {
+		font-size: 10px;
+	}
+		.rbc-header {
+		padding: 12px 4px;
+		font-size: 16px;
+		font-weight: 700;
+		min-height: 70px;
+	}
+	
+	.rbc-day-bg,
+	.rbc-day-slot {
+		min-width: 100px;
+	}
+	
+	.rbc-event {
+		font-size: 11px;
+		padding: 2px 4px;
+	}
+}
+
+@media (max-width: 480px) {
+	.rbc-time-header-gutter {
+		width: 50px;
+		min-width: 50px;
+		max-width: 50px;
+	}
+	
+	.rbc-time-gutter {
+		width: 50px;
+		min-width: 50px;
+		max-width: 50px;
+	}
+	
+}
+
+/* ========================================== */
+/*              STYLES SPÉCIAUX                */
+/* ========================================== */
+
+/* Ligne actuelle (heure courante) */
+.rbc-current-time-indicator {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: #ef4444;
+	z-index: 5;
+	pointer-events: none;
+}
+
+/* Sélection de créneaux */
+.rbc-slot-selection {
+	background: rgba(59, 130, 246, 0.1);
+	border: 1px solid #3b82f6;
+}
+
+/* Amélioration des tâches adaptatives */
+.task-block-micro {
+	padding: 1px 2px !important;
+	font-size: 10px !important;
+	line-height: 1.1 !important;
+}
+
+.task-block-small {
+	padding: 2px 4px !important;
+	font-size: 11px !important;
+	line-height: 1.2 !important;
+}
+
+.task-block-compact {
+	padding: 3px 5px !important;
+	font-size: 12px !important;
+	line-height: 1.2 !important;
+}
+
+.task-block-normal {
+	padding: 4px 6px !important;
+	font-size: 13px !important;
+	line-height: 1.3 !important;
+}
+
+/* ========================================== */
+/*          GESTION DES COLLISIONS           */
+/* ========================================== */
+
+/* Conteneur pour les événements positionnés avec collisions */
+.collision-positioned-event {
+	transition: all 0.2s ease;
+}
+
+/* Style pour les tâches qui se chevauchent */
+.collision-positioned-event.overlapped {
+	/* Bordure pour séparer visuellement les tâches */
+	border-left: 2px solid rgba(255, 255, 255, 0.8);
+	border-right: 1px solid rgba(255, 255, 255, 0.3);
+	/* Légère ombre pour donner de la profondeur */
+	box-shadow: inset 2px 0 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Première colonne (pas de bordure à gauche) */
+.collision-positioned-event.overlapped[style*="left: 0%"] {
+	border-left: none;
+}
+
+/* Dernière colonne (bordure droite plus visible) */
+.collision-positioned-event.overlapped:last-child {
+	border-right: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+/* Ajustements pour les tâches en collision */
+.overlapped-task {
+	/* Padding réduit pour optimiser l'espace */
+	padding: 1px 3px !important;
+}
+
+.overlapped-task .task-event-container {
+	/* Font plus petite pour s'adapter à l'espace réduit */
+	font-size: 11px !important;
+	line-height: 1.1 !important;
+}
+
+/* Ajustements spécifiques pour les très petites tâches en collision */
+.overlapped-task.very-small-task {
+	padding: 1px 2px !important;
+	font-size: 9px !important;
+}
+
+.overlapped-task.very-small-task .task-event-container {
+	font-size: 9px !important;
+}
+
+/* Ajustements pour les petites tâches en collision */
+.overlapped-task.small-task {
+	padding: 1px 3px !important;
+}
+
+.overlapped-task.small-task .task-event-container {
+	font-size: 10px !important;
+}
+
+/* Buttons plus petits pour les tâches en collision */
+.overlapped-task button {
+	padding: 1px 2px !important;
+	min-width: 16px !important;
+	min-height: 16px !important;
+}
+
+.overlapped-task button svg {
+	width: 8px !important;
+	height: 8px !important;
+}
+
+/* Tooltips améliorés pour les tâches en collision */
+.overlapped-task .absolute.z-50 {
+	/* Tooltip plus large pour compenser l'espace réduit */
+	min-width: 250px !important;
+	max-width: 300px !important;
+	font-size: 12px !important;
+	z-index: 1000 !important;
+}
+
+/* Animation douce pour les changements de position */
+.rbc-event-content {
+	transition: all 0.2s ease;
+}
+
+/* Hover effect pour les tâches en collision */
+.collision-positioned-event.overlapped:hover {
+	z-index: 10;
+	transform: scale(1.02);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Assurer que le conteneur parent supporte le positionnement absolu */
+.rbc-event {
+	position: relative !important;
+	overflow: visible !important;
+}
+
+/* Masquer le débordement seulement sur l'axe horizontal pour les collisions */
+.rbc-events-container {
+	overflow-x: hidden;
+	overflow-y: visible;
+}
