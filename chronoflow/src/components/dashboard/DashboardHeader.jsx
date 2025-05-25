@@ -4,7 +4,8 @@ import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import FocusZoneModal from './FocusZoneModal'
 import CalendarSelectorModal from './CalendarSelectorModal'
 import CalendarGrid from './CalendarGrid'
-import RightPanel from './RightPanel'
+import SaveTimerModal from './SaveTimerModal'
+import { supabase } from '../../lib/supabase'
 import flagFr from '../../assets/france.png'
 import flagEn from '../../assets/eng.png'
 import styles from './DashboardHeader.module.css'
@@ -30,25 +31,69 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 	const { seconds, running, paused, start, pause, resume, stop } = useGlobalTimer()
 	const [showZone, setShowZone] = useState(false)
 	const [showCalendar, setShowCalendar] = useState(false)
+	const [showSaveTimer, setShowSaveTimer] = useState(false)
+	const [elapsedSecondsToSave, setElapsedSecondsToSave] = useState(0)
 	const [selectedDate, setSelectedDate] = useState(getMondayOfWeek(new Date()))
 	const [selectedRange, setSelectedRange] = useState('this-week')
 	const [externalDate, setExternalDate] = useState(null) // Pour synchronisation externe
 
 	const weekNumber = getWeekNumber(selectedDate)
 	const year = selectedDate.getFullYear()
-
 	const currentFlag = i18n.language.startsWith("en") ? flagEn : flagFr
 	const nextLang = i18n.language.startsWith("en") ? "fr" : "en"
 	const handleLangSwitch = () => i18n.changeLanguage(nextLang)
-
 	const handleStartPause = () => {
 		if (!running) start()
 		else if (paused) resume()
 		else pause()
 	}
-	const handleStop = () => stop()
+		const handleStop = () => {
+		if (seconds > 0) {
+			// Capturer le temps écoulé AVANT d'appeler stop()
+			setElapsedSecondsToSave(seconds)
+			stop()
+			setShowSaveTimer(true)
+		} else {
+			stop()
+		}
+	}
+	const handleSaveTimer = async (taskData) => {
+		if (!user || !user.id) {
+			alert('Utilisateur non authentifié')
+			return
+		}
+
+		try {
+			const { data, error } = await supabase
+				.from('tasks')
+				.insert([
+					{
+						title: taskData.title,
+						description: taskData.desc || '',
+						start: taskData.start.toISOString(),
+						end: taskData.end.toISOString(),
+						color: taskData.color || '#2563eb',
+						user_id: user.id,
+						duration_seconds: taskData.duration_seconds || 0,
+						is_finished: true
+					}
+				])
+				.select()
+
+			if (error) {
+				console.error('Erreur lors de l\'enregistrement:', error)
+				alert('Erreur lors de l\'enregistrement: ' + error.message)
+				return
+			}			setShowSaveTimer(false)
+			setElapsedSecondsToSave(0) // Remettre à zéro le temps sauvegardé
+			// Optionnel: rafraîchir le calendrier si nécessaire
+			// window.location.reload()
+		} catch (err) {
+			console.error('Erreur lors de l\'enregistrement (exception):', err)
+			alert('Erreur lors de l\'enregistrement: ' + err.message)
+		}
+	}
 	const handleZone = () => setShowZone(true)
-	const handleAdd = () => alert('Add task/project')
 	const handleCloseZone = () => setShowZone(false)
 	const handleOpenCalendar = () => setShowCalendar(true)
 	const handleCloseCalendar = () => setShowCalendar(false)
@@ -97,8 +142,7 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 							<rect y='11' width='24' height='2' rx='1' fill='currentColor'/>
 							<rect y='18' width='24' height='2' rx='1' fill='currentColor'/>
 						</svg>
-					</button>
-					<span className='font-mono text-lg text-blue-700 w-20 text-center'>
+					</button>					<span className='font-mono text-3xl text-blue-700 w-24 text-center'>
 						{String(Math.floor(seconds / 60)).padStart(2, '0')}:
 						{String(seconds % 60).padStart(2, '0')}
 					</span>
@@ -147,18 +191,7 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 							{ i18n.language.startsWith('fr')
 								? 'Active le mode focus : le timer démarre et toutes les distractions sont masquées.'
 								: 'Enable focus mode: timer starts and all distractions are hidden.' }
-						</span>
-					</button>
-					<button
-						onClick={handleAdd}
-						className='p-2 rounded-full bg-blue-100 hover:bg-blue-200 border border-blue-200 flex items-center'
-						aria-label='Add task/project'
-					>
-						<svg width='20' height='20' fill='none' viewBox='0 0 20 20'>
-							<rect x='9' y='4' width='2' height='12' rx='1' fill='#2563eb'/>
-							<rect x='4' y='9' width='12' height='2' rx='1' fill='#2563eb'/>
-						</svg>
-					</button>
+						</span>					</button>
 				</div>
 			</header>
 			{showZone && (
@@ -169,14 +202,23 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 					onStartPause={handleStartPause}
 					onStop={handleStop}
 					onClose={handleCloseZone}
-				/>
-			)}
+				/>			)}
 			{showCalendar && (
 				<CalendarSelectorModal
 					onClose={handleCloseCalendar}
 					onSelect={handleSelectCalendar}
 					selectedRange={selectedRange}
 					selectedDate={selectedDate}
+				/>
+			)}			{showSaveTimer && (
+				<SaveTimerModal
+					open={showSaveTimer}
+					elapsedSeconds={elapsedSecondsToSave}
+					onClose={() => {
+						setShowSaveTimer(false)
+						setElapsedSecondsToSave(0)
+					}}
+					onSave={handleSaveTimer}
 				/>
 			)}
 			<div className={styles.dashboardMain}>
@@ -188,7 +230,6 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 						onExternalDateChange={handleExternalDateChange}
 					/>
 				</div>
-				<RightPanel />
 			</div>
 		</>
 	)

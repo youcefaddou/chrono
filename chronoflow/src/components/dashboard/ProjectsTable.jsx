@@ -25,8 +25,6 @@ function ProjectsTable ({
 	menuBtnRefs,
 	lang = 'fr',
 	handleEdit,
-	handleAddMember,
-	handleViewReports,
 	handleArchiveProject,
 	confirmDelete,
 	cancelDelete,
@@ -79,10 +77,8 @@ function ProjectsTable ({
 						return (
 							<div key={project.id} className='rounded-lg border border-neutral-800 bg-neutral-900 p-4 flex flex-col gap-2'>
 								<div className='font-bold'>{project.name}</div>
-								<div>Client : {project.client || '-'}</div>
 								<div>Période : {project.timeframe || '-'}</div>
 								<div>Temps : {getLiveTime(project)}</div>
-								<div>Équipe : {Array.isArray(project.members) ? project.members.join(', ') : (project.members || '-')}</div>
 								<div>Terminé : {project.is_finished ? 'Oui' : 'Non'}</div>
 								<div className='flex gap-2 mt-2'>
 									<button
@@ -122,8 +118,6 @@ function ProjectsTable ({
 									{showMenuIndex === i && (
 										<ProjectMenu anchorRef={menuBtnRefs && menuBtnRefs[i]} open={showMenuIndex === i} onClose={onCloseMenu}>
 											<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); handleEdit(project) }}>Éditer le projet</button>
-											<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); handleAddMember(project) }}>Ajouter un membre</button>
-											<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); handleViewReports(project) }}>Voir dans les rapports</button>
 											<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); handleArchiveProject(project) }}>Archiver</button>
 											<button className='block w-full text-left px-4 py-2 text-red-500 hover:bg-neutral-800' onClick={() => { onCloseMenu(); handleAskDelete(project); }}>Supprimer</button>
 										</ProjectMenu>
@@ -169,11 +163,8 @@ function ProjectsTable ({
 						<tr className='bg-neutral-900'>
 							<th className='px-8 py-2 text-left w-10'></th>
 							<th className='px-4 py-2 text-left whitespace-nowrap w-60'>{isFr ? 'Projet' : 'Project'}</th>
-							<th className='px-4 py-2 text-left whitespace-nowrap w-40'>{isFr ? 'Client' : 'Client'}</th>
 							<th className='px-4 py-2 text-left whitespace-nowrap w-60'>{isFr ? 'Période' : 'Period'}</th>
 							<th className='px-4 py-2 text-left whitespace-nowrap w-30'>{isFr ? 'Temps' : 'Time'}</th>
-							<th className='px-4 py-2 text-left whitespace-nowrap w-40'>{isFr ? 'Facturable' : 'Billable'}</th>
-							<th className='px-4 py-2 text-left whitespace-nowrap w-35'>{isFr ? 'Équipe' : 'Team'}</th>
 							<th className='px-4 py-2 text-left whitespace-nowrap w-20'>{isFr ? 'Terminé' : 'Finished'}</th>
 							<th className='px-4 py-2 text-left whitespace-nowrap'></th>
 						</tr>
@@ -209,11 +200,8 @@ function ProjectsTable ({
 										</button>
 									</td>
 									<td className='px-4 py-2 break-words font-bold'>{project.name}</td>
-									<td className='px-4 py-2 break-words'>{project.client || '-'}</td>
 									<td className='px-4 py-2 break-words'>{project.timeframe || '-'}</td>
 									<td className='px-4 py-2 break-words'>{getLiveTime(project)}</td>
-									<td className='px-4 py-2 break-words'>{project.billable ? (isFr ? 'Oui' : 'Yes') : (isFr ? 'Non' : 'No')}</td>
-									<td className='px-4 py-2 break-words'>{Array.isArray(project.members) ? project.members.join(', ') : (project.members || '-')}</td>
 									<td className='px-4 py-2 break-words'>
 										{project.is_finished ? (isFr ? 'Oui' : 'Yes') : (isFr ? 'Non' : 'No')}
 									</td>
@@ -238,8 +226,6 @@ function ProjectsTable ({
 										{showMenuIndex === i && (
 											<ProjectMenu anchorRef={menuBtnRefs && menuBtnRefs[i]} open={showMenuIndex === i} onClose={onCloseMenu}>
 												<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); handleEdit(project) }}>Éditer le projet</button>
-												<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); handleAddMember(project) }}>Ajouter un membre</button>
-												<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); handleViewReports(project) }}>Voir dans les rapports</button>
 												<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); handleArchiveProject(project) }}>Archiver</button>
 												<button className='block w-full text-left px-4 py-2 text-red-500 hover:bg-neutral-800' onClick={() => { onCloseMenu(); handleAskDelete(project); }}>Supprimer</button>
 											</ProjectMenu>

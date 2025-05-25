@@ -55,22 +55,9 @@ function ProjectCard ({
 				</div>
 				<ProjectMenu anchorRef={menuBtnRef} open={showMenu} onClose={onCloseMenu}>
 					<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800'>Éditer le projet</button>
-					<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800'>Ajouter un membre</button>
-					<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800'>Voir dans les rapports</button>
 					<button className='block w-full text-left px-4 py-2 hover:bg-neutral-800'>Archiver</button>
 					<button className='block w-full text-left px-4 py-2 text-red-500 hover:bg-neutral-800'>Supprimer</button>
 				</ProjectMenu>
-			</div>
-			<div className='flex flex-wrap gap-2 text-sm text-neutral-300'>
-				<span className='font-semibold'>Client:</span> {project.client}
-			</div>
-			<div className='flex flex-wrap gap-2 text-sm'>
-				<span className='font-semibold text-neutral-300'>Période:</span> {project.timeframe}
-				<span className='font-semibold text-neutral-300'>Temps:</span> {project.total_seconds}
-			</div>
-			<div className='flex flex-wrap gap-2 text-sm'>
-				<span className='font-semibold text-neutral-300'>Statut facturable:</span> {project.billable ? 'Oui' : 'Non'}
-				{project.pinned && <span className='ml-2'>📌</span>}
 			</div>
 		</div>
 	)

@@ -12,8 +12,6 @@ function ProjectCardEn({
   isPlaying,
   menuBtnRef,
   onEdit,
-  onAddMember,
-  onViewReports,
   onArchive,
   onDelete,
   liveTime,
@@ -65,22 +63,13 @@ function ProjectCardEn({
         </div>
         <ProjectMenu anchorRef={menuBtnRef} open={showMenu} onClose={onCloseMenu}>
           <button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); onEdit && onEdit(project) }}>Edit project</button>
-          <button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); onAddMember && onAddMember(project) }}>Add member</button>
-          <button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); onViewReports && onViewReports(project) }}>View in reports</button>
           <button className='block w-full text-left px-4 py-2 hover:bg-neutral-800' onClick={() => { onCloseMenu(); onArchive && onArchive(project) }}>Archive</button>
           <button className='block w-full text-left px-4 py-2 text-red-500 hover:bg-neutral-800' onClick={() => { onCloseMenu(); onDelete && onDelete(project) }}>Delete</button>
         </ProjectMenu>
       </div>
-      <div className='flex flex-wrap gap-2 text-sm text-neutral-300'>
-        <span className='font-semibold'>Client:</span> {project.client}
-      </div>
       <div className='flex flex-wrap gap-2 text-sm'>
         <span className='font-semibold text-neutral-300'>Period:</span> {project.timeframe}
         <span className='font-semibold text-neutral-300'>Time:</span> {displayTime}
-      </div>
-      <div className='flex flex-wrap gap-2 text-sm'>
-        <span className='font-semibold text-neutral-300'>Billable status:</span> {project.billable ? 'Yes' : 'No'}
-        {project.pinned && <span className='ml-2'>📌</span>}
       </div>
     </div>
   )

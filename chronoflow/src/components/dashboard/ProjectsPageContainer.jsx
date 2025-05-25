@@ -18,7 +18,7 @@ function formatTimer (seconds) {
 
 function ProjectsPageContainer () {
 	const [filter, setFilter] = useState('all')
-	const [filters, setFilters] = useState({ client: '', member: '', billable: '', name: '', template: '' })
+	const [filters, setFilters] = useState({ name: '', template: '' })
 	const [showMenuIndex, setShowMenuIndex] = useState(null)
 	const [filtersOpen, setFiltersOpen] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -90,13 +90,11 @@ function ProjectsPageContainer () {
 		}
 		const payload = {
 			name: project.name,
-			client: project.client,
 			timeframe: project.timeframe,
 			recurring: project.recurring,
 			estimate: parseNumber(project.estimate),
 			fixed_fee: parseNumber(project.fixedFee),
 			privacy: project.privacy,
-			members: project.members,
 			user_id: userId,
 		}
 		if (isEdit && initialProject && initialProject.id) {
@@ -148,16 +146,6 @@ function ProjectsPageContainer () {
 		setShowMenuIndex(null)
 	}
 
-	function handleAddMember (project) {
-		alert('Fonctionnalité à venir : Ajouter un membre au projet "' + project.name + '"')
-		setShowMenuIndex(null)
-	}
-
-	function handleViewReports (project) {
-		navigate(`/dashboard/reports?project=${project.id}`)
-		setShowMenuIndex(null)
-	}
-
 	async function handleArchiveProject (project) {
 		await supabase.from('projects').update({ archived: true }).eq('id', project.id)
 		setProjects(ps => ps.filter(p => p.id !== project.id))
@@ -189,12 +177,6 @@ function ProjectsPageContainer () {
 	const filteredProjects = projects.filter(project => {
 		if (filter === 'archived' && !project.archived) return false
 		if (filter === 'active' && project.archived) return false
-		if (filters.client && project.client && !project.client.toLowerCase().includes(filters.client.toLowerCase())) return false
-		if (filters.member && project.members && !project.members.some(m => m.toLowerCase().includes(filters.member.toLowerCase()))) return false
-		if (filters.billable) {
-			const billableStr = project.billable === true ? 'oui' : project.billable === false ? 'non' : ''
-			if (!billableStr.includes(filters.billable.toLowerCase())) return false
-		}
 		if (filters.name && project.name && !project.name.toLowerCase().includes(filters.name.toLowerCase())) return false
 		if (filters.template && project.template && !project.template.toLowerCase().includes(filters.template.toLowerCase())) return false
 		return true
@@ -266,9 +248,6 @@ function ProjectsPageContainer () {
 							menuBtnRefs={menuBtnRefs.current}
 							lang={newProjectLang}
 							handleEdit={handleEditProject}
-							handleAddMember={handleAddMember}
-							handleViewReports={handleViewReports}
-							handleArchiveProject={handleArchiveProject}
 						/>
 					) : (
 						<ProjectsTable
@@ -285,8 +264,6 @@ function ProjectsPageContainer () {
 							menuBtnRefs={menuBtnRefs.current}
 							lang={newProjectLang}
 							handleEdit={handleEditProject}
-							handleAddMember={handleAddMember}
-							handleViewReports={handleViewReports}
 							handleArchiveProject={handleArchiveProject}
 							confirmDelete={confirmDelete}
 							cancelDelete={cancelDeleteProject}
