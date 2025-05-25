@@ -321,7 +321,12 @@ function CalendarGrid ({ user }) {
 		}
 		// Remove agenda headers for date, time, event
 		if (view === 'agenda') {
-			return base
+			return {
+				...base,
+				date: '', // Masquer visuellement mais conserver la structure
+				time: '',
+				event: '',
+			}
 		}
 		return {
 			...base,

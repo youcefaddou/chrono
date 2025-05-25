@@ -22,9 +22,9 @@ function CalendarEventWithPlayPositioned({ event, style, ...props }) {
 			return
 		}
 		
-		// Pour les clics sur le contenu de la tâche (texte, fond), permettre la propagation
-		// pour que la modale de modification s'ouvre
-		// Ne pas appeler e.stopPropagation() ici
+		// Pour les clics sur le contenu de la tâche (texte, fond), empêcher la propagation
+		// pour éviter l'ouverture accidentelle de la modale
+		e.stopPropagation()
 	}
 	
 	// Styles pour gérer le positionnement et la collision
