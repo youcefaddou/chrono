@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import ProjectCard from './ProjectCard'
+import ProjectCard from './Projects/ProjectCard'
 import { DotsVerticalIcon } from '@radix-ui/react-icons'
-import ProjectMenu from './project-menu'
+import ProjectMenu from './Projects/project-menu'
 
 function formatTimer (seconds) {
 	if (!Number.isFinite(seconds) || seconds < 0) return '00:00:00'

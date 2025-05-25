@@ -297,34 +297,39 @@ function CalendarGrid ({ user }) {
 	const weekNumber = useMemo(() => getISOWeek(date), [date])
 
 	// Format la plage de dates affichée (ex : "19 mai – 25 mai" ou "May 19 – 25")
-	const weekRangeLabel = useMemo(() => {
-		const start = startOfWeek(date, { weekStartsOn: 1, locale: locales[lang] })
-		const end = endOfWeek(date, { weekStartsOn: 1, locale: locales[lang] })
-		const formatDay = d =>
-			lang === 'fr'
-				? `${d.getDate()} ${d.toLocaleString('fr-FR', { month: 'long' })}`
-				: `${d.toLocaleString('en-US', { month: 'short' })} ${d.getDate()}`
-		return `${formatDay(start)} – ${formatDay(end)}`
+	const monthYearLabel = useMemo(() => {
+		const options = lang === 'fr'
+			? { month: 'long', year: 'numeric' }
+			: { month: 'long', year: 'numeric' }
+		return date.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', options)
 	}, [date, lang])
-
-	const messages = useMemo(() => ({
-		today: t('calendar.today'),
-		previous: t('calendar.prev'),
-		next: t('calendar.next'),
-		month: t('calendar.calendar'),
-		week:
-			lang === 'fr'
-				? `Cette semaine - S${weekNumber}`
-				: `This week - W${weekNumber}`,
-		day: lang === 'fr' ? 'Jour' : 'Day',
-		agenda: t('calendar.listView'),
-		date: t('calendar.custom'),
-		time: t('calendar.timesheet'),
-		event: t('features.tasksTitle'),
-		noEventsInRange: lang === 'fr'
-			? 'Aucune tâche sur cette période'
-			: 'No tasks in this range',
-	}), [t, lang, weekNumber])
+	const messages = useMemo(() => {
+		const base = {
+			today: t('calendar.today'),
+			previous: t('calendar.prev'),
+			next: t('calendar.next'),
+			month: t('calendar.calendar'),
+			week:
+				lang === 'fr'
+					? `Cette semaine - S${weekNumber}`
+					: `This week - W${weekNumber}`,
+			day: lang === 'fr' ? 'Jour' : 'Day',
+			agenda: t('calendar.listView'),
+			noEventsInRange: lang === 'fr'
+				? 'Aucune tâche sur cette période'
+				: 'No tasks in this range',
+		}
+		// Remove agenda headers for date, time, event
+		if (view === 'agenda') {
+			return base
+		}
+		return {
+			...base,
+			date: t('calendar.custom'),
+			time: t('calendar.timesheet'),
+			event: t('features.tasksTitle'),
+		}
+	}, [t, lang, weekNumber, view])
 
 	// Navigation handlers
 	const handlePrev = () => {
@@ -374,7 +379,7 @@ function CalendarGrid ({ user }) {
 					className='font-semibold px-3 py-1 rounded hover:bg-blue-50 border border-blue-100 text-blue-700'
 					aria-label={lang === 'fr' ? 'Changer la date' : 'Change date'}
 				>
-					{weekRangeLabel}
+					{monthYearLabel.charAt(0).toUpperCase() + monthYearLabel.slice(1)}
 				</button>
 				<button
 					onClick={handleNext}

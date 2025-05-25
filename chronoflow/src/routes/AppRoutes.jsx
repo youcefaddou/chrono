@@ -13,8 +13,6 @@ import SignupPageEn from '../app/(auth)/signup/page.en'
 import LoginPage from '../app/(auth)/login/page'
 import LoginPageEn from '../app/(auth)/login/page.en'
 import DashboardPage from '../app/dashboard/page'
-import ProjectsPageContainer from '../components/dashboard/ProjectsPageContainer'
-import ProjectsPageContainerEn from '../components/dashboard/ProjectsPageContainer.en'
 // Ajoute d'autres pages si besoin
 
 export default function AppRoutes () {
@@ -30,7 +28,6 @@ export default function AppRoutes () {
 			<Route path="/faq" element={<FaqPage />} />
 			<Route path="/contact" element={<ContactPage />} />
 			<Route path="/dashboard" element={<DashboardPage />} />
-			<Route path="/dashboard/projects" element={<ProjectsPageContainer />} />
 
 			{/* EN routes */}
 			<Route path="/en" element={<HomePage />} />
@@ -40,7 +37,6 @@ export default function AppRoutes () {
 			<Route path="/en/legal-notice" element={<LegalNoticePageEn />} />
 			<Route path="/en/terms" element={<TermsPageEn />} />
 			<Route path="/en/dashboard" element={<DashboardPage />} />
-			<Route path="/en/dashboard/projects" element={<ProjectsPageContainerEn />} />
 			{/* Optionally add FAQ/contact in English if you have those pages */}
 			{/* <Route path="/en/faq" element={<FaqPageEn />} /> */}
 			{/* <Route path="/en/contact" element={<ContactPageEn />} /> */}

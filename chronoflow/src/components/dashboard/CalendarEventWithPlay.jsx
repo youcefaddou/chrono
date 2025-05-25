@@ -197,14 +197,10 @@ function CalendarEventWithPlay({ event, isOverlapped = false }) {
 			ref={containerRef}
 			className={`task-event-container ${taskSizeClass} ${collisionClass} flex flex-col w-full h-full relative p-2`}
 			onClick={handleContainerClick}
-			onMouseEnter={() => isVerySmallTask && setShowTooltip(true)}			onMouseLeave={() => setShowTooltip(false)}
+			onMouseEnter={() => isVerySmallTask && setShowTooltip(true)}
+			onMouseLeave={() => setShowTooltip(false)}
 			data-completed={isDone}
 		>
-			{isDone && (
-				<div className='absolute inset-0 flex items-center justify-center z-10 text-xs font-bold text-green-700 pointer-events-none' style={{background: 'rgba(255,255,255,0.7)', borderRadius: 'inherit'}}>
-					{t('task.completed')}
-				</div>
-			)}
 					{/* Tooltip pour très petites tâches */}
 			{isVerySmallTask && showTooltip && (
 				<div className='task-tooltip'>
