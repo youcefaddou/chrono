@@ -478,3 +478,33 @@
 	overflow-x: hidden;
 	overflow-y: visible;
 }
+
+/* Masquer les headers Date, Time, Event dans la vue agenda (liste) */
+.rbc-agenda-view th.rbc-header:first-child, /* Date */
+.rbc-agenda-view th.rbc-header:nth-child(2), /* Time */
+.rbc-agenda-view th.rbc-header:last-child /* Event */ {
+	display: none !important;
+}
+
+/* Masquer les colonnes Date, Time, Event dans la vue agenda (liste) */
+.rbc-agenda-view td.rbc-agenda-date-cell,
+.rbc-agenda-view td.rbc-agenda-time-cell,
+.rbc-agenda-view td.rbc-agenda-event-cell {
+	display: none !important;
+}
+
+/* Ajuster la largeur du tableau agenda pour ne pas laisser d'espace vide */
+.rbc-agenda-view table.rbc-agenda-table {
+	width: 100% !important;
+}
+
+/* Permettre l'interaction avec la barre d'onglets même si une modale est ouverte */
+.rbc-agenda-view .rbc-toolbar {
+	pointer-events: auto !important;
+	z-index: 100;
+}
+
+/* Empêcher la modale d'edit de bloquer les clics sur la barre d'onglets calendrier */
+.rbc-agenda-view .rbc-calendar {
+	pointer-events: auto !important;
+}

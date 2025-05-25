@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskList Layout Test</title>
+    <style>
+/* Task List Container */
+.task-list-container {
+  width: 100%;
+  max-width: 100%;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+.task-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.task-list-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.refresh-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+}
+
+/* Table Container */
+.task-table-container {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  margin-top: 1rem;
+}
+
+/* Mobile card layout - initially hidden */
+.task-mobile-container {
+  display: none;
+}
+
+/* Table */
+.task-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/* Table Header */
+.task-table thead {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.task-table thead th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  border-right: 1px solid #e5e7eb;
+}
+
+.task-table thead th:last-child {
+  border-right: none;
+}
+
+/* Column widths */
+.col-status {
+  width: 60px;
+  min-width: 60px;
+}
+
+.col-title {
+  width: auto;
+  min-width: 200px;
+}
+
+.col-start,
+.col-end {
+  width: 140px;
+  min-width: 140px;
+}
+
+.col-duration {
+  width: 100px;
+  min-width: 100px;
+}
+
+.col-actions {
+  width: 80px;
+  min-width: 80px;
+}
+
+/* Table Body */
+.task-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.task-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.task-table tbody tr.completed {
+  background: #f0fdf4;
+}
+
+.task-table tbody td {
+  padding: 0.75rem 1rem;
+  border-right: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.task-table tbody td:last-child {
+  border-right: none;
+}
+
+/* Status Column */
+.status-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #d1d5db;
+  border-radius: 0.25rem;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  color: #059669;
+  transition: all 0.2s;
+}
+
+.status-checkbox.checked {
+  background: #059669;
+  border-color: #059669;
+  color: white;
+}
+
+/* Title Column */
+.task-title-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.task-color-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.task-title {
+  font-weight: 500;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-description {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Actions Column */
+.timer-button {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.timer-button.active {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  /* Stack on mobile */
+  .task-table-container {
+    display: none;
+  }
+  
+  /* Mobile card layout */
+  .task-mobile-container {
+    display: block;
+  }
+  
+  .task-mobile-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .task-mobile-card.completed {
+    background: #f0fdf4;
+  }
+  
+  .task-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+  
+  .task-mobile-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+  }
+  
+  .task-mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .task-mobile-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+}
+    </style>
+</head>
+<body style="margin: 0; padding: 20px; background: #f3f4f6; font-family: Arial, sans-serif;">
+
+<div class="task-list-container">
+    <div class="task-list-header">
+        <h2 class="task-list-title">Liste des tâches (3)</h2>
+        <button class="refresh-button">🔄</button>
+    </div>
+
+    <!-- Desktop Table -->
+    <div class="task-table-container">
+        <table class="task-table">
+            <thead>
+                <tr>
+                    <th class="col-status">Statut</th>
+                    <th class="col-title">Titre</th>
+                    <th class="col-start">Début</th>
+                    <th class="col-end">Fin</th>
+                    <th class="col-duration">Durée</th>
+                    <th class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="task-row">
+                    <td class="col-status">
+                        <button class="status-checkbox"></button>
+                    </td>
+                    <td class="col-title">
+                        <div class="task-title-container">
+                            <div class="task-color-indicator" style="background-color: #3b82f6;"></div>
+                            <span class="task-title">Réunion équipe développement</span>
+                        </div>
+                        <div class="task-description">Discussion sur les nouvelles fonctionnalités</div>
+                    </td>
+                    <td class="col-start">09:00</td>
+                    <td class="col-end">10:00</td>
+                    <td class="col-duration">1h 0m</td>
+                    <td class="col-actions">
+                        <button class="timer-button">▶️</button>
+                    </td>
+                </tr>
+                <tr class="task-row completed">
+                    <td class="col-status">
+                        <button class="status-checkbox checked">✓</button>
+                    </td>
+                    <td class="col-title">
+                        <div class="task-title-container">
+                            <div class="task-color-indicator" style="background-color: #10b981;"></div>
+                            <span class="task-title">Code review du projet XYZ</span>
+                        </div>
+                        <div class="task-description">Révision du code avant mise en production</div>
+                    </td>
+                    <td class="col-start">10:30</td>
+                    <td class="col-end">11:30</td>
+                    <td class="col-duration">1h 0m</td>
+                    <td class="col-actions">
+                        <button class="timer-button">▶️</button>
+                    </td>
+                </tr>
+                <tr class="task-row">
+                    <td class="col-status">
+                        <button class="status-checkbox"></button>
+                    </td>
+                    <td class="col-title">
+                        <div class="task-title-container">
+                            <div class="task-color-indicator" style="background-color: #f59e0b;"></div>
+                            <span class="task-title">Développement fonctionnalité authentification</span>
+                        </div>
+                        <div class="task-description">Implémentation du système d'authentification avec Supabase</div>
+                    </td>
+                    <td class="col-start">14:00</td>
+                    <td class="col-end">17:00</td>
+                    <td class="col-duration">3h 0m</td>
+                    <td class="col-actions">
+                        <button class="timer-button active">⏸️</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile Card Layout -->
+    <div class="task-mobile-container">
+        <div class="task-mobile-card">
+            <div class="task-mobile-header">
+                <div class="task-mobile-title">
+                    <div class="task-color-indicator" style="background-color: #3b82f6;"></div>
+                    <div>
+                        <div class="task-title">Réunion équipe développement</div>
+                        <div class="task-description">Discussion sur les nouvelles fonctionnalités</div>
+                    </div>
+                </div>
+                <div class="task-mobile-actions">
+                    <button class="status-checkbox"></button>
+                    <button class="timer-button">▶️</button>
+                </div>
+            </div>
+            <div class="task-mobile-details">
+                <div class="task-mobile-detail">
+                    <div class="task-mobile-detail-label">Début</div>
+                    <div>09:00</div>
+                </div>
+                <div class="task-mobile-detail">
+                    <div class="task-mobile-detail-label">Fin</div>
+                    <div>10:00</div>
+                </div>
+                <div class="task-mobile-detail">
+                    <div class="task-mobile-detail-label">Durée</div>
+                    <div>1h 0m</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="task-mobile-card completed">
+            <div class="task-mobile-header">
+                <div class="task-mobile-title">
+                    <div class="task-color-indicator" style="background-color: #10b981;"></div>
+                    <div>
+                        <div class="task-title">Code review du projet XYZ</div>
+                        <div class="task-description">Révision du code avant mise en production</div>
+                    </div>
+                </div>
+                <div class="task-mobile-actions">
+                    <button class="status-checkbox checked">✓</button>
+                    <button class="timer-button">▶️</button>
+                </div>
+            </div>
+            <div class="task-mobile-details">
+                <div class="task-mobile-detail">
+                    <div class="task-mobile-detail-label">Début</div>
+                    <div>10:30</div>
+                </div>
+                <div class="task-mobile-detail">
+                    <div class="task-mobile-detail-label">Fin</div>
+                    <div>11:30</div>
+                </div>
+                <div class="task-mobile-detail">
+                    <div class="task-mobile-detail-label">Durée</div>
+                    <div>1h 0m</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Test the click event handling
+document.querySelectorAll('.task-row, .task-mobile-card').forEach(row => {
+    row.addEventListener('click', function(e) {
+        if (e.target.closest('button')) {
+            console.log('Button clicked - modal should NOT open');
+            return;
+        }
+        console.log('Row clicked - modal should open for task:', e.currentTarget);
+        alert('Task edit modal would open here');
+    });
+});
+
+document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        console.log('Button action:', e.target.className);
+        if (e.target.classList.contains('status-checkbox')) {
+            e.target.classList.toggle('checked');
+            e.target.textContent = e.target.classList.contains('checked') ? '✓' : '';
+        } else if (e.target.classList.contains('timer-button')) {
+            e.target.classList.toggle('active');
+            e.target.textContent = e.target.classList.contains('active') ? '⏸️' : '▶️';
+        }
+    });
+});
+</script>
+
+</body>
+</html>

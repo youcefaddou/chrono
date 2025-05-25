@@ -1,4 +1,3 @@
-
 /* Task container base styles */
 .task-event-container {
   position: relative;
@@ -46,36 +45,100 @@
   z-index: 10;
 }
 
-/* Completed task styles */
-.task-event-container[data-completed="true"] {
+/* Completed task styles - ONLY for calendar view, NOT agenda/list view */
+.rbc-time-view .task-event-container[data-completed="true"],
+.rbc-month-view .task-event-container[data-completed="true"] {
   background: repeating-linear-gradient(
     45deg,
     #d1fae5 0 8px,
     rgba(255, 255, 255, 0.8) 8px 16px
   ) !important;
+  position: relative;
+  overflow: hidden;
 }
 
-.task-event-container[data-completed="true"]::after {
+.rbc-time-view .task-event-container[data-completed="true"]::before,
+.rbc-month-view .task-event-container[data-completed="true"]::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.3);
   pointer-events: none;
   border-radius: inherit;
+  z-index: 1;
+}
+
+.rbc-time-view .task-event-container[data-completed="true"]::after,
+.rbc-month-view .task-event-container[data-completed="true"]::after {
+  content: 'Terminé';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #065f46;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 2px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+/* PREVENT completed task styles in agenda/list view */
+.rbc-agenda-view .task-event-container[data-completed="true"] {
+  background: none !important;
+}
+
+.rbc-agenda-view .task-event-container[data-completed="true"]::before,
+.rbc-agenda-view .task-event-container[data-completed="true"]::after {
+  display: none !important;
+}
+
+/* Agenda/List view specific styles for completed tasks */
+.rbc-agenda-view .task-event-container[data-completed="true"] {
+  background: #f0fdf4 !important;
+  border-left: 4px solid #22c55e !important;
+  opacity: 0.8;
+}
+
+.rbc-agenda-view .task-event-container[data-completed="true"] .task-title {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
+/* Ensure task list components don't conflict */
+.task-list-container .task-event-container[data-completed="true"],
+.task-table .task-event-container[data-completed="true"] {
+  background: none !important;
+}
+
+.task-list-container .task-event-container[data-completed="true"]::before,
+.task-list-container .task-event-container[data-completed="true"]::after,
+.task-table .task-event-container[data-completed="true"]::before,
+.task-table .task-event-container[data-completed="true"]::after {
+  display: none !important;
 }
 
 /* Ensure buttons remain clickable */
 .task-event-container button {
   position: relative;
-  z-index: 20;
+  z-index: 30;
   pointer-events: auto;
 }
 
 .task-event-container button:hover {
   transform: scale(1.05);
+}
+
+/* Ensure task content is visible */
+.task-event-container > * {
+  position: relative;
+  z-index: 10;
 }
 
 /* Tooltip styles */
