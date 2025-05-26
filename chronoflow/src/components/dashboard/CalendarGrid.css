@@ -1,8 +1,10 @@
-/* ========================================== */
-/*           CALENDRIER GRID - 24H/24         */
-/* ========================================== */
+/*
+==========================================
+           CALENDRIER GRID - 24H/24         
+==========================================
 
 /* Reset et base */
+/*
 .rbc-calendar {
 	box-sizing: border-box;
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -19,11 +21,12 @@
 .rbc-calendar *:after {
 	box-sizing: border-box;
 }
+*/
 
 /* ========================================== */
 /*              CONTENEUR PRINCIPAL            */
 /* ========================================== */
-
+/*
 .rbc-time-view {
 	display: flex;
 	flex-direction: column;
@@ -31,11 +34,12 @@
 	height: 100%;
 	background: #ffffff;
 }
+*/
 
 /* ========================================== */
 /*                 HEADER - JOURS              */
 /* ========================================== */
-
+/*
 .rbc-time-header {
 	display: flex;
 	width: 100%;
@@ -45,7 +49,6 @@
 	flex-shrink: 0;
 }
 
-/* Hide any redundant header elements that might create sub-cases */
 .rbc-time-header .rbc-time-header-gutter + .rbc-header {
 	border-top: none;
 }
@@ -55,17 +58,15 @@
 	display: flex;
 }
 
-/* Ensure single row of headers without sub-elements */
 .rbc-time-header .rbc-row {
 	display: flex;
 	width: 100%;
 }
 
 .rbc-time-header .rbc-row:not(:first-child) {
-	display: none; /* Hide additional header rows */
+	display: none !important; 
 }
 
-/* Colonne des heures dans le header */
 .rbc-time-header-gutter {
 	width: 80px;
 	min-width: 80px;
@@ -81,17 +82,15 @@
 	flex-shrink: 0;
 }
 
-/* Headers des jours */
 .rbc-header {
 	flex: 1;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 16px 8px;
-	background: #f8fafc;
-	border-right: 1px solid #e2e8f0;
-	font-size: 18px;
-	font-weight: 700;
+	padding: 0 10px; 
+	border-bottom: 2px solid #e2e8f0; 
+	font-size: 14px; 
+	background: #f8fafc; 
 	color: #1e293b;
 	text-align: center;
 	min-height: 80px;
@@ -101,21 +100,20 @@
 	border-right: none;
 }
 
-/* Hide any additional header rows to merge everything into one clean header */
 .rbc-time-header .rbc-header + .rbc-header {
 	border-top: none;
 }
 
-/* Ensure unified header appearance */
 .rbc-time-header .rbc-header {
 	position: relative;
 	z-index: 1;
 }
+*/
 
 /* ========================================== */
 /*           CONTENU AVEC GRILLE HORAIRE       */
 /* ========================================== */
-
+/*
 .rbc-time-content {
 	display: flex;
 	flex: 1;
@@ -123,20 +121,20 @@
 	overflow-x: auto;
 	overflow-y: auto;
 	max-height: calc(100vh - 200px);
-	/* Scroll mobile-friendly */
 	-webkit-overflow-scrolling: touch;
-	scrollbar-width: none; /* Firefox */
-	-ms-overflow-style: none; /* IE/Edge */
+	scrollbar-width: none; 
+	-ms-overflow-style: none; 
 }
 
 .rbc-time-content::-webkit-scrollbar {
-	display: none; /* Chrome, Safari, Opera */
+	display: none; 
 }
+*/
 
 /* ========================================== */
 /*           COLONNE DES HEURES (GUTTER)       */
 /* ========================================== */
-
+/*
 .rbc-time-gutter {
 	width: 80px;
 	min-width: 80px;
@@ -164,12 +162,12 @@
 	margin: 0;
 	box-sizing: border-box;
 }
+*/
 
 /* ========================================== */
 /*                GRILLE 24H                   */
 /* ========================================== */
-
-/* Cases horaires - EXACTEMENT 60px */
+/*
 .rbc-time-slot {
 	height: 60px !important;
 	min-height: 60px !important;
@@ -184,7 +182,6 @@
 	position: relative;
 }
 
-/* Surcharge spécifique pour React Big Calendar - empêche flex: 1 0 0 */
 .rbc-calendar .rbc-time-view .rbc-time-content .rbc-time-slot,
 .rbc-time-view .rbc-time-content .rbc-time-slot,
 .rbc-time-content .rbc-time-slot {
@@ -197,7 +194,6 @@
 	max-height: 60px !important;
 }
 
-/* Groupes de slots (heures) */
 .rbc-timeslot-group {
 	height: 60px !important;
 	min-height: 60px !important;
@@ -206,7 +202,6 @@
 	box-sizing: border-box;
 }
 
-/* Surcharge pour les groupes de slots - empêche flex de React Big Calendar */
 .rbc-calendar .rbc-timeslot-group,
 .rbc-time-view .rbc-timeslot-group {
 	display: block !important;
@@ -215,11 +210,12 @@
 	min-height: 60px !important;
 	max-height: 60px !important;
 }
+*/
 
 /* ========================================== */
 /*               COLONNES JOURS                */
 /* ========================================== */
-
+/*
 .rbc-day-bg {
 	border-right: 1px solid #f1f5f9;
 	background: #ffffff;
@@ -231,7 +227,6 @@
 	border-right: none;
 }
 
-/* Conteneur des événements par jour */
 .rbc-events-container {
 	position: relative;
 	width: 100%;
@@ -241,13 +236,13 @@
 .rbc-day-slot {
 	position: relative;
 	min-width: 120px;
-	
 }
+*/
 
 /* ========================================== */
 /*                ÉVÉNEMENTS                   */
 /* ========================================== */
-
+/*
 .rbc-event {
 	background: #3b82f6;
 	color: #ffffff;
@@ -274,11 +269,12 @@
 .rbc-event.rbc-selected {
 	box-shadow: 0 0 0 2px #1d4ed8;
 }
+*/
 
 /* ========================================== */
 /*              RESPONSIVE MOBILE              */
 /* ========================================== */
-
+/*
 @media (max-width: 768px) {
 	.rbc-time-header-gutter {
 		width: 60px;
@@ -328,12 +324,12 @@
 	}
 	
 }
+*/
 
 /* ========================================== */
 /*              STYLES SPÉCIAUX                */
 /* ========================================== */
-
-/* Ligne actuelle (heure courante) */
+/*
 .rbc-current-time-indicator {
 	position: absolute;
 	left: 0;
@@ -344,13 +340,11 @@
 	pointer-events: none;
 }
 
-/* Sélection de créneaux */
 .rbc-slot-selection {
 	background: rgba(59, 130, 246, 0.1);
 	border: 1px solid #3b82f6;
 }
 
-/* Amélioration des tâches adaptatives */
 .task-block-micro {
 	padding: 1px 2px !important;
 	font-size: 10px !important;
@@ -374,48 +368,39 @@
 	font-size: 13px !important;
 	line-height: 1.3 !important;
 }
+*/
 
 /* ========================================== */
 /*          GESTION DES COLLISIONS           */
 /* ========================================== */
-
-/* Conteneur pour les événements positionnés avec collisions */
+/*
 .collision-positioned-event {
 	transition: all 0.2s ease;
 }
 
-/* Style pour les tâches qui se chevauchent */
 .collision-positioned-event.overlapped {
-	/* Bordure pour séparer visuellement les tâches */
 	border-left: 2px solid rgba(255, 255, 255, 0.8);
 	border-right: 1px solid rgba(255, 255, 255, 0.3);
-	/* Légère ombre pour donner de la profondeur */
 	box-shadow: inset 2px 0 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Première colonne (pas de bordure à gauche) */
 .collision-positioned-event.overlapped[style*="left: 0%"] {
 	border-left: none;
 }
 
-/* Dernière colonne (bordure droite plus visible) */
 .collision-positioned-event.overlapped:last-child {
 	border-right: 2px solid rgba(255, 255, 255, 0.8);
 }
 
-/* Ajustements pour les tâches en collision */
 .overlapped-task {
-	/* Padding réduit pour optimiser l'espace */
 	padding: 1px 3px !important;
 }
 
 .overlapped-task .task-event-container {
-	/* Font plus petite pour s'adapter à l'espace réduit */
 	font-size: 11px !important;
 	line-height: 1.1 !important;
 }
 
-/* Ajustements spécifiques pour les très petites tâches en collision */
 .overlapped-task.very-small-task {
 	padding: 1px 2px !important;
 	font-size: 9px !important;
@@ -425,7 +410,6 @@
 	font-size: 9px !important;
 }
 
-/* Ajustements pour les petites tâches en collision */
 .overlapped-task.small-task {
 	padding: 1px 3px !important;
 }
@@ -434,7 +418,6 @@
 	font-size: 10px !important;
 }
 
-/* Buttons plus petits pour les tâches en collision */
 .overlapped-task button {
 	padding: 1px 2px !important;
 	min-width: 16px !important;
@@ -446,65 +429,115 @@
 	height: 8px !important;
 }
 
-/* Tooltips améliorés pour les tâches en collision */
 .overlapped-task .absolute.z-50 {
-	/* Tooltip plus large pour compenser l'espace réduit */
 	min-width: 250px !important;
 	max-width: 300px !important;
 	font-size: 12px !important;
 	z-index: 1000 !important;
 }
 
-/* Animation douce pour les changements de position */
 .rbc-event-content {
 	transition: all 0.2s ease;
 }
 
-/* Hover effect pour les tâches en collision */
 .collision-positioned-event.overlapped:hover {
 	z-index: 10;
 	transform: scale(1.02);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Assurer que le conteneur parent supporte le positionnement absolu */
 .rbc-event {
 	position: relative !important;
 	overflow: visible !important;
 }
 
-/* Masquer le débordement seulement sur l'axe horizontal pour les collisions */
 .rbc-events-container {
 	overflow-x: hidden;
 	overflow-y: visible;
 }
+*/
 
-/* Masquer les headers Date, Time, Event dans la vue agenda (liste) */
-.rbc-agenda-view th.rbc-header:first-child, /* Date */
-.rbc-agenda-view th.rbc-header:nth-child(2), /* Time */
-.rbc-agenda-view th.rbc-header:last-child /* Event */ {
-	display: none !important;
+/* Aligne les cellules de la vue agenda */
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  vertical-align: top;
+  text-align: left;
+  padding: 8px;
 }
 
-/* Masquer les colonnes Date, Time, Event dans la vue agenda (liste) */
-.rbc-agenda-view td.rbc-agenda-date-cell,
-.rbc-agenda-view td.rbc-agenda-time-cell,
-.rbc-agenda-view td.rbc-agenda-event-cell {
-	display: none !important;
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td.rbc-agenda-date-cell {
+  font-weight: bold;
+  color: #1e293b;
+  width: 20%; /* Largeur fixe pour la colonne des dates */
 }
 
-/* Ajuster la largeur du tableau agenda pour ne pas laisser d'espace vide */
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td.rbc-agenda-time-cell {
+  width: 30%; /* Largeur fixe pour la colonne des heures */
+}
+
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td.rbc-agenda-event-cell {
+  width: 50%; /* Largeur fixe pour la colonne des tâches */
+}
+
+/* Applique un layout fixe pour aligner les colonnes */
 .rbc-agenda-view table.rbc-agenda-table {
-	width: 100% !important;
+  table-layout: fixed; /* Force les colonnes à avoir des largeurs fixes */
+  width: 100%; /* S'assure que le tableau occupe toute la largeur */
+  border-collapse: collapse; /* Supprime les espaces entre les bordures */
 }
 
-/* Permettre l'interaction avec la barre d'onglets même si une modale est ouverte */
-.rbc-agenda-view .rbc-toolbar {
-	pointer-events: auto !important;
-	z-index: 100;
+/* Uniformise les bordures des colonnes */
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th,
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  border: 1px solid #ddd; /* Bordures cohérentes */
+  padding: 8px; /* Uniformise le padding */
+  text-align: left; /* Alignement du texte */
+  vertical-align: middle; /* Alignement vertical */
+  overflow: hidden; /* Empêche le débordement */
+  white-space: nowrap; /* Empêche le texte de s'étendre */
 }
 
-/* Empêcher la modale d'edit de bloquer les clics sur la barre d'onglets calendrier */
-.rbc-agenda-view .rbc-calendar {
-	pointer-events: auto !important;
+/* Supprime les bordures doubles entre les colonnes */
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td + td,
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th + th {
+  border-left: none; /* Supprime les bordures doubles */
+}
+
+/* Ajoute une bordure droite pour harmoniser les colonnes */
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td:last-child,
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th:last-child {
+  border-right: 1px solid #ddd; /* Bordure droite pour la dernière colonne */
+}
+
+/* Corrige l'affichage du header "Time" */
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th.rbc-agenda-time-cell {
+	text-align: center;
+	font-weight: bold;
+	color: #1e293b;
+	background-color: #f8fafc;
+	padding: 8px;
+	border: 1px solid #ddd;
+}
+
+/* Corrige l'affichage de la colonne "Date" */
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td.rbc-agenda-date-cell {
+	font-weight: bold;
+	color: #1e293b;
+	width: 25%; /* Ajuste la largeur pour inclure la date */
+	text-align: left;
+	padding: 8px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Corrige l'affichage de la colonne "Time" */
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td.rbc-agenda-time-cell {
+	text-align: center;
+	font-weight: bold;
+	color: #1e293b;
+	width: 25%; /* Ajuste la largeur pour inclure les heures */
+	padding: 8px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }

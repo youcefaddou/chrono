@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { fr, enUS } from 'date-fns/locale'
-import { format, parse, startOfWeek, getDay, getISOWeek, endOfWeek, isSameDay } from 'date-fns'
+import { format, parse, startOfWeek, getDay, getISOWeek, endOfWeek } from 'date-fns'
 import { useTranslation } from '../../hooks/useTranslation'
 import { supabase } from '../../lib/supabase'
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
 import CalendarSelectorModal from './CalendarSelectorModal'
 import AddTaskModal from './AddTaskModal'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
-import CalendarEventWithPlay from './CalendarEventWithPlay'
 import CalendarEventWithPlayPositioned from './CalendarEventWithPlayPositioned'
+import CalendarEventWithPlay from './CalendarEventWithPlay'
 import { calculateAllEventPositions } from './utils/collision-detection'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
@@ -18,9 +18,7 @@ import './CalendarGrid.css'
 const DnDCalendar = withDragAndDrop(Calendar)
 const locales = { fr, en: enUS }
 
-// Custom day names for French (no dot, capitalized)
 const daysShortFr = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-// Custom day names for English (no dot, capitalized, Monday first)
 const daysShortEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 function CalendarGrid ({ user }) {
@@ -29,7 +27,7 @@ function CalendarGrid ({ user }) {
 	const [events, setEvents] = useState([])
 	const [view, setView] = useState('week')
 	const [date, setDate] = useState(new Date())
-	const [loading, setLoading] = useState(false)
+	const [isGlobalLoading, setIsGlobalLoading] = useState(false)
 	const [showCalendarModal, setShowCalendarModal] = useState(false)
 	const [showAddTaskModal, setShowAddTaskModal] = useState(false)
 	const [draftTask, setDraftTask] = useState(null)
@@ -48,45 +46,37 @@ function CalendarGrid ({ user }) {
 			locales,
 		}), [lang]
 	)
-	// Custom formats for react-big-calendar
+
 	const formats = useMemo(() => ({
 		weekdayFormat: (date) => {
 			const day = date.getDay()
-			// Map Sunday (0) to last index for both languages
 			const idx = day === 0 ? 6 : day - 1
-			if (lang === 'fr') {
-				return `${daysShortFr[idx]} ${date.getDate()}`
-			} else {
-				return `${daysShortEn[idx]} ${date.getDate()}`
-			}
+			return lang === 'fr'
+				? `${daysShortFr[idx]} ${date.getDate()}`
+				: `${daysShortEn[idx]} ${date.getDate()}`
 		},
-		// Ensure all header formats are unified to prevent sub-headers
 		dayFormat: (date) => {
 			const day = date.getDay()
 			const idx = day === 0 ? 6 : day - 1
-			if (lang === 'fr') {
-				return `${daysShortFr[idx]} ${date.getDate()}`
-			} else {
-				return `${daysShortEn[idx]} ${date.getDate()}`
-			}
+			return lang === 'fr'
+				? `${daysShortFr[idx]} ${date.getDate()}`
+				: `${daysShortEn[idx]} ${date.getDate()}`
 		},
 		dayHeaderFormat: (date) => {
 			const day = date.getDay()
 			const idx = day === 0 ? 6 : day - 1
-			if (lang === 'fr') {
-				return `${daysShortFr[idx]} ${date.getDate()}`
-			} else {
-				return `${daysShortEn[idx]} ${date.getDate()}`
-			}
+			return lang === 'fr'
+				? `${daysShortFr[idx]} ${date.getDate()}`
+				: `${daysShortEn[idx]} ${date.getDate()}`
 		},
 		timeGutterFormat: (date, culture, localizer) => {
 			return localizer.format(date, 'HH:mm', culture)
 		},
 	}), [lang])
-	// Fetch tasks from Supabase
-	const fetchTasks = useCallback(async () => {
+
+	async function fetchTasks () {
 		if (!user) return
-		setLoading(true)
+		setIsGlobalLoading(true)
 		const { data, error } = await supabase
 			.from('tasks')
 			.select('*')
@@ -96,27 +86,26 @@ function CalendarGrid ({ user }) {
 				id: task.id,
 				title: task.title,
 				desc: task.description,
-				start: new Date(task.start),
-				end: new Date(task.end),
+				start: task.start ? new Date(task.start) : null,
+				end: task.end ? new Date(task.end) : null,
 				color: task.color || 'blue',
 				is_finished: !!task.is_finished,
 				duration_seconds: task.duration_seconds || 0,
 			}))
-			
-			// Calculer les positions de collision pour tous les événements
+
 			const positions = calculateAllEventPositions(mappedEvents)
-			
-			// Ajouter les données de collision à chaque événement
 			const eventsWithCollisionData = mappedEvents.map(event => ({
 				...event,
-				collisionData: positions[event.id] || { width: 100, left: 0 }
+				collisionData: positions[event.id] || { width: 100, left: 0 },
 			}))
-			
 			setEvents(eventsWithCollisionData)
 		}
-		setLoading(false)
-	}, [user])
-	useEffect(() => { fetchTasks() }, [fetchTasks])
+		setIsGlobalLoading(false)
+	}
+
+	useEffect(() => {
+		fetchTasks()
+	}, [user, date])
 
 	useEffect(() => {
 		function handleTaskFinished () {
@@ -126,41 +115,7 @@ function CalendarGrid ({ user }) {
 		return () => {
 			window.removeEventListener('task-finished', handleTaskFinished)
 		}
-	}, [fetchTasks])
-
-	// Ajouter les labels de jours dans les colonnes
-	useEffect(() => {
-		const addDayLabelsToColumns = () => {
-			const dayColumns = document.querySelectorAll('.rbc-day-bg')
-			const currentWeekStart = startOfWeek(date, { weekStartsOn: 1, locale: locales[lang] })
-			const today = new Date()
-
-			dayColumns.forEach((column, index) => {
-				const currentDay = new Date(currentWeekStart)
-				currentDay.setDate(currentDay.getDate() + index)
-				
-				const dayIndex = currentDay.getDay() === 0 ? 6 : currentDay.getDay() - 1
-				const dayName = lang === 'fr' ? daysShortFr[dayIndex] : daysShortEn[dayIndex]
-				const dayNumber = currentDay.getDate()
-				const dayLabel = `${dayName} ${dayNumber}`
-				
-				// Ajouter l'attribut data pour le CSS
-				column.setAttribute('data-day-label', dayLabel)
-				
-				// Ajouter la classe "today" si c'est aujourd'hui
-				if (isSameDay(currentDay, today)) {
-					column.classList.add('today')
-				} else {
-					column.classList.remove('today')
-				}
-			})
-		}
-
-		// Délai pour s'assurer que le calendrier est rendu
-		const timer = setTimeout(addDayLabelsToColumns, 100)
-		
-		return () => clearTimeout(timer)
-	}, [date, lang, view]) // Re-exécuter quand la date, langue ou vue change
+	}, [user, date])
 
 	const handleEventSave = async event => {
 		if (!user) return
@@ -180,7 +135,6 @@ function CalendarGrid ({ user }) {
 			const { data } = await supabase.from('tasks').insert([task]).select()
 			if (data && data[0]) event.id = data[0].id
 		}
-		fetchTasks()
 	}
 
 	const handleEventDelete = async event => {
@@ -197,174 +151,47 @@ function CalendarGrid ({ user }) {
 		await handleEventSave({ ...event, start, end })
 	}
 
-	const handleSelectSlot = useCallback(({ start, end }) => {
+	const handleSelectSlot = ({ start, end }) => {
 		setDraftTask({ start, end })
 		setShowAddTaskModal(true)
-	}, [])
-
-	const handleSaveTask = async (task, startTimer) => {
-		if (!user || !user.id) {
-			setErrorMessage('Utilisateur non authentifié. Veuillez vous reconnecter.')
-			return
-		}
-		try {
-			const { data, error } = await supabase
-				.from('tasks')
-				.insert([
-					{
-						title: task.title,
-						description: task.desc || '',
-						start: task.start,
-						end: task.end,
-						color: task.color || 'blue',
-						user_id: user.id,
-					},
-				])
-				.select()
-			if (error) {
-				setErrorMessage('Erreur lors de la création de la tâche : ' + error.message)
-				return
-			}
-			await fetchTasks()
-			setShowAddTaskModal(false)
-			setDraftTask(null)
-			setErrorMessage('')
-			if (startTimer && timer && timer.start && data && data[0]) {
-				timer.start({
-					id: data[0].id,
-					title: data[0].title,
-					desc: data[0].description,
-					start: new Date(data[0].start),
-					end: new Date(data[0].end),
-					color: data[0].color,
-				})
-			}
-		} catch (err) {
-			setErrorMessage('Erreur lors de la création de la tâche (exception JS) : ' + err.message)
-		}
-	}
-
-	const handleSelectEvent = event => {
-		setEditTask(event)
-	}
-
-	const handleUpdateTask = async (task) => {
-		if (!user || !user.id) return
-		try {
-			const { error } = await supabase
-				.from('tasks')
-				.update({
-					title: task.title,
-					description: task.desc || '',
-					start: task.start,
-					end: task.end,
-					color: task.color || 'blue',
-					is_finished: !!task.is_finished,
-					duration_seconds: task.duration_seconds || 0,
-				})
-				.eq('id', task.id)
-			if (error) {
-				setErrorMessage('Erreur lors de la modification : ' + error.message)
-				return
-			}
-			await fetchTasks()
-			setEditTask(null)
-			setErrorMessage('')
-		} catch (err) {
-			setErrorMessage('Erreur lors de la modification (exception JS) : ' + err.message)
-		}
-	}
-
-	const handleDeleteTask = async (task) => {
-		if (!user || !user.id) return
-		try {
-			const { error } = await supabase
-				.from('tasks')
-				.delete()
-				.eq('id', task.id)
-			if (error) {
-				setErrorMessage('Erreur lors de la suppression : ' + error.message)
-				return
-			}
-			await fetchTasks()
-			setEditTask(null)
-			setErrorMessage('')
-		} catch (err) {
-			setErrorMessage('Erreur lors de la suppression (exception JS) : ' + err.message)
-		}
 	}
 
 	const weekNumber = useMemo(() => getISOWeek(date), [date])
 
-	// Format la plage de dates affichée (ex : "19 mai – 25 mai" ou "May 19 – 25")
-	const monthYearLabel = useMemo(() => {
-		const options = lang === 'fr'
-			? { month: 'long', year: 'numeric' }
-			: { month: 'long', year: 'numeric' }
-		return date.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', options)
+	const weekRangeLabel = useMemo(() => {
+		const start = startOfWeek(date, { weekStartsOn: 1, locale: locales[lang] })
+		const end = endOfWeek(date, { weekStartsOn: 1, locale: locales[lang] })
+		const formatDay = d => lang === 'fr'
+			? `${d.getDate()} ${d.toLocaleString('fr-FR', { month: 'long' })}`
+			: `${d.toLocaleString('en-US', { month: 'short' })} ${d.getDate()}`
+		return `${formatDay(start)} – ${formatDay(end)}`
 	}, [date, lang])
-	const messages = useMemo(() => {
-		const base = {
-			today: t('calendar.today'),
-			previous: t('calendar.prev'),
-			next: t('calendar.next'),
-			month: t('calendar.calendar'),
-			week:
-				lang === 'fr'
-					? `Cette semaine - S${weekNumber}`
-					: `This week - W${weekNumber}`,
-			day: lang === 'fr' ? 'Jour' : 'Day',
-			agenda: t('calendar.listView'),
-			noEventsInRange: lang === 'fr'
-				? 'Aucune tâche sur cette période'
-				: 'No tasks in this range',
-		}
-		// Remove agenda headers for date, time, event
-		if (view === 'agenda') {
-			return {
-				...base,
-				date: '', // Masquer visuellement mais conserver la structure
-				time: '',
-				event: '',
-			}
-		}
-		return {
-			...base,
-			date: t('calendar.custom'),
-			time: t('calendar.timesheet'),
-			event: t('features.tasksTitle'),
-		}
-	}, [t, lang, weekNumber, view])
 
-	// Navigation handlers
-	const handlePrev = () => {
-		const newDate =
-			view === 'week'
-				? new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7)
-				: view === 'day'
-					? new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1)
-					: new Date(date.getFullYear(), date.getMonth() - 1, 1)
-		setDate(newDate)
-	}
-	const handleNext = () => {
-		const newDate =
-			view === 'week'
-				? new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7)
-				: view === 'day'
-					? new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
-					: new Date(date.getFullYear(), date.getMonth() + 1, 1)
-		setDate(newDate)
-	}
+	const messages = useMemo(() => ({
+		today: t('calendar.today'),
+		previous: t('calendar.prev'),
+		next: t('calendar.next'),
+		month: t('calendar.calendar'),
+		week: lang === 'fr'
+			? `Cette semaine - S${weekNumber}`
+			: `This week - W${weekNumber}`,
+		day: lang === 'fr' ? 'Jour' : 'Day',
+		agenda: t('calendar.listView'),
+		date: t('calendar.custom'),
+		time: t('calendar.timesheet'),
+		event: t('features.tasksTitle'),
+		noEventsInRange: lang === 'fr'
+			? 'Aucune tâche sur cette période'
+			: 'No tasks in this range',
+	}), [t, lang, weekNumber])
 
-	const handleDateLabelClick = () => setShowCalendarModal(true)
-	const handleCalendarModalClose = () => setShowCalendarModal(false)
-	const handleCalendarModalSelect = (_range, selectedDate) => {
-		setDate(selectedDate)
-		setShowCalendarModal(false)
-	}
 	return (
 		<div className='bg-white rounded-xl shadow p-2 md:p-4'>
-			{loading && <div className='text-center text-blue-600'>{lang === 'fr' ? 'Chargement...' : 'Loading...'}</div>}
+			{isGlobalLoading && (
+				<div className='text-center text-blue-600'>
+					{lang === 'fr' ? 'Chargement...' : 'Loading...'}
+				</div>
+			)}
 			{errorMessage && (
 				<div className='mb-2 p-2 bg-red-100 text-red-700 rounded text-center text-sm font-semibold'>
 					{errorMessage}
@@ -373,31 +200,32 @@ function CalendarGrid ({ user }) {
 			{/* Barre de navigation calendrier */}
 			<div className='flex items-center justify-center gap-2 mb-2'>
 				<button
-					onClick={handlePrev}
+					onClick={() => setDate(new Date(date.getFullYear(), date.getMonth(), date.getDate() - 7))}
 					className='px-2 py-1 rounded hover:bg-blue-50 border border-blue-100 text-blue-700 font-semibold'
 					aria-label={messages.previous}
 				>
 					{'<'}
 				</button>
 				<button
-					onClick={handleDateLabelClick}
+					onClick={() => setShowCalendarModal(true)}
 					className='font-semibold px-3 py-1 rounded hover:bg-blue-50 border border-blue-100 text-blue-700'
 					aria-label={lang === 'fr' ? 'Changer la date' : 'Change date'}
 				>
-					{monthYearLabel.charAt(0).toUpperCase() + monthYearLabel.slice(1)}
+					{weekRangeLabel}
 				</button>
 				<button
-					onClick={handleNext}
+					onClick={() => setDate(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7))}
 					className='px-2 py-1 rounded hover:bg-blue-50 border border-blue-100 text-blue-700 font-semibold'
 					aria-label={messages.next}
 				>
 					{'>'}
 				</button>
-			</div>			<DnDCalendar
+			</div>
+			<DnDCalendar
 				localizer={localizer}
 				events={events}
-				startAccessor='start'
-				endAccessor='end'
+				startAccessor={event => event?.start ? new Date(event.start) : null}
+				endAccessor={event => event?.end ? new Date(event.end) : null}
 				defaultView='week'
 				view={view}
 				onView={setView}
@@ -408,13 +236,12 @@ function CalendarGrid ({ user }) {
 				onEventDrop={handleEventDrop}
 				onEventResize={handleEventResize}
 				onSelectSlot={handleSelectSlot}
-				onSelectEvent={handleSelectEvent}
 				messages={messages}
 				formats={formats}
 				style={{ minHeight: '100%', height: 'calc(100vh - 250px)', background: '#fff' }}
 				eventPropGetter={event => ({
 					style: {
-						backgroundColor: event.color || '#2563eb',
+						backgroundColor: event?.color || '#2563eb',
 						color: '#fff',
 						borderRadius: 6,
 						border: 'none',
@@ -428,16 +255,65 @@ function CalendarGrid ({ user }) {
 						width: '100%',
 						margin: 0,
 					},
-				})}				step={60}
+				})}
+				step={60}
 				timeslots={1}
 				min={new Date(2024, 0, 1, 0, 0, 0)}
 				max={new Date(2024, 0, 1, 23, 59, 59)}
-				components={{ event: CalendarEventWithPlayPositioned }}
+				components={{
+					event: props => (
+						<CalendarEventWithPlayPositioned
+							{...props}
+							isListMode={false}
+						/>
+					),
+					agenda: {
+						date: ({ event, label, day }) => {
+							
+							// Affichons le label directement s'il est disponible, sinon tentons d'extraire la date
+							return (
+								<div className='rbc-agenda-date-cell font-bold text-black'>
+									{label || 
+									 (event?.start && new Date(event.start).toLocaleDateString()) || 
+									 (day && new Date(day).toLocaleDateString()) || 
+									 "Pas de date"}
+								</div>
+							);
+						},
+						time: ({ event, label, value }) => {
+						
+							
+							// label contient souvent le texte formaté de l'heure dans la vue agenda
+							return (
+								<div className='rbc-agenda-time-cell'>
+									{label || (event?.start && event?.end ? 
+										`${new Date(event.start).toLocaleTimeString('fr-FR', {
+											hour: '2-digit',
+											minute: '2-digit',
+										})} - ${new Date(event.end).toLocaleTimeString('fr-FR', {
+											hour: '2-digit',
+											minute: '2-digit',
+										})}` : '')}
+								</div>
+							);
+						},
+						event: ({ event }) => {
+							// Un dernier console.log pour vérifier cet objet
+							console.log("AGENDA EVENT PROPS:", { event });
+							return (
+								<CalendarEventWithPlay
+									event={event}
+									isListMode={true}
+								/>
+							);
+						},
+					},
+				}}
 			/>
 			{showCalendarModal && (
 				<CalendarSelectorModal
-					onClose={handleCalendarModalClose}
-					onSelect={handleCalendarModalSelect}
+					onClose={() => setShowCalendarModal(false)}
+					onSelect={(_range, selectedDate) => setDate(selectedDate)}
 					selectedRange='custom'
 					selectedDate={date}
 				/>
@@ -451,7 +327,7 @@ function CalendarGrid ({ user }) {
 					setDraftTask(null)
 					setErrorMessage('')
 				}}
-				onSave={handleSaveTask}
+				onSave={handleEventSave}
 			/>
 			{editTask && (
 				<AddTaskModal
@@ -462,9 +338,9 @@ function CalendarGrid ({ user }) {
 					initialDesc={editTask.desc}
 					initialColor={editTask.color}
 					onClose={() => setEditTask(null)}
-					onSave={task => handleUpdateTask({ ...editTask, ...task })}
+					onSave={task => handleEventSave({ ...editTask, ...task })}
 					showDelete
-					onDelete={() => handleDeleteTask(editTask)}
+					onDelete={() => handleEventDelete(editTask)}
 				/>
 			)}
 		</div>
