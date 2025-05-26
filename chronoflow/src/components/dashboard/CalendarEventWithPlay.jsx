@@ -3,67 +3,118 @@ import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import { supabase } from '../../lib/supabase'
 import { useTranslation } from '../../hooks/useTranslation'
 import './CalendarEventWithPlay.css'
-import { format } from 'date-fns'
+import '../Timer/timer-styles.css'
+import TimerDisplay from '../Timer/TimerDisplay'
 
-function formatDuration (seconds) {
-	if (!seconds || seconds < 1) return ''
-	const h = Math.floor(seconds / 3600)
-	const m = Math.floor((seconds % 3600) / 60)
-	const s = seconds % 60
-	return [h, m, s].map(v => String(v).padStart(2, '0')).join(':')
-}
+// Cache global pour suivre les IDs de tâches supprimées
+// Ce cache sera partagé entre toutes les instances du composant
+const deletedTasksCache = new Set();
 
-function CalendarEventWithPlay({ event = {}, isOverlapped = false, isListMode = false }) {
+function CalendarEventWithPlay({ 
+	event = {}, 
+	isOverlapped = false, 
+	isListMode = false,
+	// Nouvelle prop pour désactiver le polling dans certains contextes
+	disablePolling = false 
+}) {
 	// Ajoutez une valeur par défaut pour `event` pour éviter les erreurs
 	const timer = useGlobalTimer()
 	const { t } = useTranslation()
-	const isRunning = timer.running && timer.task?.id === event.id
-	const isPaused = isRunning && timer.paused
+	// Optimisation : extraire uniquement les infos nécessaires du timer pour éviter les re-renders globaux
+	const runningTaskId = React.useMemo(() => timer.task?.id, [timer.task?.id])
+	const isRunning = React.useMemo(() => timer.running && runningTaskId === event.id, [timer.running, runningTaskId, event.id])
+	const isPaused = React.useMemo(() => isRunning && timer.paused, [isRunning, timer.paused])
+	const getElapsedSeconds = React.useMemo(() => (isRunning && typeof timer.getElapsedSeconds === 'function') ? timer.getElapsedSeconds : undefined, [isRunning, timer.getElapsedSeconds])
 	const [localDuration, setLocalDuration] = React.useState(event.duration_seconds || 0)
 	const [saving, setSaving] = React.useState(false)
 	const [pollingInterval, setPollingInterval] = React.useState(null)
-	// Calculer le temps total affiché (temps accumulé + temps en cours)
-	const getDisplayDuration = React.useCallback(() => {
-		if (isRunning && !isPaused && timer.getElapsedSeconds) {
-			// Afficher le temps accumulé + temps de la session en cours
-			return localDuration + timer.getElapsedSeconds()
-		}
-		// Sinon, afficher seulement le temps accumulé
-		return localDuration
-	}, [isRunning, isPaused, localDuration, timer])
-
-	// Forcer le re-render toutes les secondes quand le timer fonctionne
-	const [, forceUpdate] = React.useReducer(x => x + 1, 0)
+	const [taskExists, setTaskExists] = React.useState(true)
+	const taskIdRef = React.useRef(event.id)
+	const [displayedDuration, setDisplayedDuration] = React.useState(localDuration)
 	
+	// Poll la DB pour avoir le temps réel (toutes les 30s), mais uniquement si nécessaire
 	React.useEffect(() => {
-		if (isRunning && !isPaused) {
-			const interval = setInterval(forceUpdate, 1000)
-			return () => clearInterval(interval)
+		// Ne pas faire de polling si explicitement désactivé
+		if (disablePolling) return;
+		
+		// Ne rien faire si l'ID est dans le cache des tâches supprimées
+		if (!event.id || deletedTasksCache.has(event.id)) {
+			setTaskExists(false);
+			return;
 		}
-	}, [isRunning, isPaused])
 
-	// Poll la DB pour avoir le temps réel (toutes les 30s)
-	React.useEffect(() => {
-		if (!event.id) return
-		function fetchDuration () {
-			supabase
-				.from('tasks')
-				.select('duration_seconds')
-				.eq('id', event.id)
-				.single()
-				.then(({ data }) => {
-					if (data && typeof data.duration_seconds === 'number') {
-						setLocalDuration(data.duration_seconds)
-					}
-				})
-		}
-		fetchDuration()
-		const interval = setInterval(fetchDuration, 30000)
-		setPollingInterval(interval)
+		// Référence pour composant monté
+		let isMounted = true;
+		
+		// Vérifier d'abord si la tâche existe avant de commencer le polling
+		supabase
+			.from('tasks')
+			.select('id')
+			.eq('id', event.id)
+			.single()
+			.then(({ data, error }) => {
+				if (error || !data) {
+					deletedTasksCache.add(event.id);
+					if (isMounted) setTaskExists(false);
+					return;
+				}
+				
+				// La tâche existe, configurer le polling pour la durée
+				if (!isMounted) return;
+				
+				function fetchDuration() {
+					if (!isMounted || deletedTasksCache.has(event.id)) return;
+					
+					supabase
+						.from('tasks')
+						.select('duration_seconds')
+						.eq('id', event.id)
+						.single()
+						.then(({ data, error }) => {
+							if (!isMounted) return;
+							
+							if (error) {
+								if (error.code === '406') {
+									deletedTasksCache.add(event.id);
+									setTaskExists(false);
+									if (pollingInterval) {
+										clearInterval(pollingInterval);
+										setPollingInterval(null);
+									}
+								}
+								return;
+							}
+							
+							if (data && typeof data.duration_seconds === 'number') {
+								setLocalDuration(data.duration_seconds);
+							}
+						});
+				}
+				
+				fetchDuration();
+				const interval = setInterval(fetchDuration, 30000);
+				setPollingInterval(interval);
+			})
+			.catch(err => {
+				console.error("Error checking task existence:", err);
+			});
+		
 		return () => {
-			clearInterval(interval) // Nettoie l'interval à chaque changement d'event.id ou unmount
-		}
-	}, [event.id])
+			isMounted = false;
+			if (pollingInterval) {
+				clearInterval(pollingInterval);
+			}
+		};
+	}, [event.id, disablePolling, pollingInterval])
+
+	// Nettoyer l'intervalle au démontage
+	React.useEffect(() => {
+		return () => {
+			if (pollingInterval) {
+				clearInterval(pollingInterval);
+			}
+		};
+	}, [pollingInterval])
 
 	// Update local duration when event changes
 	React.useEffect(() => {
@@ -135,10 +186,15 @@ function CalendarEventWithPlay({ event = {}, isOverlapped = false, isListMode = 
 		const isButton = target.tagName === 'BUTTON' || target.closest('button')
 		const isInteractive = target.tagName === 'INPUT' || target.closest('input')
 		const isSvg = target.tagName === 'svg' || target.closest('svg')
+		
+		// Ne pas déclencher l'événement onEdit si on clique sur un bouton/input/svg
 		if (isButton || isInteractive || isSvg) {
 			return
 		}
-		// Only open modal if click is on the main event content (not background)
+		
+		e.stopPropagation(); // Empêcher la propagation pour éviter de déclencher onSelectEvent
+		
+		// Appeler la fonction onEdit si elle existe
 		if (typeof event.onEdit === 'function') {
 			event.onEdit(event)
 		}
@@ -186,8 +242,8 @@ function CalendarEventWithPlay({ event = {}, isOverlapped = false, isListMode = 
 	const startTime = event.start ? new Date(event.start) : null
 	const endTime = event.end ? new Date(event.end) : null
 
-	// Ajoutez un log pour vérifier les données de l'événement
-	console.log('Event Data:', event)
+	// Si la tâche n'existe pas, ne pas rendre le composant
+	if (!taskExists) return null;
 
 	return (
 		<div
@@ -198,8 +254,6 @@ function CalendarEventWithPlay({ event = {}, isOverlapped = false, isListMode = 
 					: `task-event-container ${taskSizeClass} ${collisionClass} flex flex-col w-full h-full relative p-2`
 			}
 			onClick={handleContainerClick}
-			onMouseEnter={() => isVerySmallTask && setShowTooltip(true)}
-			onMouseLeave={() => setShowTooltip(false)}
 			data-completed={isDone}
 			style={isListMode ? { position: 'static', height: 'auto' } : undefined}
 		>
@@ -261,8 +315,10 @@ function CalendarEventWithPlay({ event = {}, isOverlapped = false, isListMode = 
 							{saving ? '...' : t('task.complete')}
 						</button>
 					)}
+					{/* Chronomètre réactivé ici uniquement en mode liste */}
 					<div className='text-xs font-semibold text-gray-700 font-mono bg-gray-100 px-2 py-0.5 rounded ml-2'>
-						⏱ {formatDuration(getDisplayDuration())}
+						⏱&nbsp;
+						{String(Math.floor((displayedDuration || 0) / 60)).padStart(2, '0')}:{String((displayedDuration || 0) % 60).padStart(2, '0')}
 					</div>
 				</div>
 			) : (
@@ -308,19 +364,6 @@ function CalendarEventWithPlay({ event = {}, isOverlapped = false, isListMode = 
 							</button>
 						</div>
 					</div>
-					{isSmallTask ? (
-						<div className='flex items-center justify-between w-full gap-1'>
-							<div className='text-xs font-semibold text-gray-700 font-mono bg-gray-100 px-1 py-0.5 rounded text-center min-w-0'>
-								⏱ {formatDuration(getDisplayDuration())}
-							</div>
-						</div>
-					) : (
-						<div className='flex flex-col items-center gap-1'>
-							<div className='text-sm font-semibold text-gray-700 font-mono bg-gray-50 px-2 py-0.5 rounded border'>
-								⏱ {formatDuration(getDisplayDuration())}
-							</div>
-						</div>
-					)}
 					<div className='w-full flex flex-col items-stretch'>
 						{isDone ? (
 							<div className='flex items-center justify-center text-xs font-bold text-green-700 bg-green-50 rounded mb-1 py-1'>
@@ -344,4 +387,9 @@ function CalendarEventWithPlay({ event = {}, isOverlapped = false, isListMode = 
 	)
 }
 
-export default CalendarEventWithPlay
+// Exporter un mécanisme pour vider le cache si nécessaire
+CalendarEventWithPlay.clearDeletedTasksCache = () => {
+	deletedTasksCache.clear();
+};
+
+export default React.memo(CalendarEventWithPlay)

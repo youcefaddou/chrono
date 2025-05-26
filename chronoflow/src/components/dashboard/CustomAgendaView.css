@@ -1,0 +1,154 @@
+.custom-agenda-view {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.custom-agenda-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.custom-agenda-table th {
+  position: sticky;
+  top: 0;
+  background-color: #f0f9ff; /* Bleu très clair */
+  z-index: 5;
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 2px solid #60a5fa; /* Bordure bleue */
+  font-weight: bold;
+  color: #1e40af; /* Bleu foncé */
+}
+
+.custom-agenda-table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* Alternance de couleurs pour les lignes */
+.custom-agenda-row:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.custom-agenda-row:hover {
+  background-color: #f0f9ff;
+  z-index: 5; /* Assurer que les lignes survolées passent au-dessus */
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Styles pour les entêtes/cellules de date */
+.custom-agenda-header-date,
+.custom-agenda-date-cell {
+  width: 25%;
+  background-color: #f0f9ff;
+  font-weight: bold;
+  color: #1e40af;
+  border-right: 1px solid #cbd5e1;
+}
+
+/* Styles pour les entêtes/cellules de temps */
+.custom-agenda-header-time,
+.custom-agenda-time-cell {
+  width: 20%;
+  text-align: center;
+  font-weight: 600;
+  color: #1e293b;
+  border-right: 1px solid #cbd5e1;
+  background-color: #f8fafc;
+}
+
+/* Styles pour les entêtes/cellules d'événements */
+.custom-agenda-header-event {
+  font-weight: bold;
+  color: #1e40af;
+}
+
+.custom-agenda-event-cell {
+  padding: 0 !important;
+}
+
+/* Message quand il n'y a pas d'événements */
+.custom-agenda-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  color: #64748b;
+  font-style: italic;
+  text-align: center;
+  width: 100%;
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+/* Style pour le bouton d'ajout de tâche */
+.custom-agenda-add-event {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 8px;
+}
+
+.custom-agenda-add-button-container {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+  padding: 8px;
+}
+
+.custom-agenda-add-button {
+  background-color: #2563eb;
+  color: white;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.custom-agenda-add-button:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .custom-agenda-header-date,
+  .custom-agenda-date-cell {
+    width: 30%;
+  }
+
+  .custom-agenda-header-time,
+  .custom-agenda-time-cell {
+    width: 25%;
+  }
+
+  .custom-agenda-table th,
+  .custom-agenda-table td {
+    padding: 8px;
+  }
+}
+
+/* Correction pour les évènements terminés */
+.custom-agenda-row .task-event-container[data-completed="true"]::after {
+  background: rgba(255, 255, 255, 0.2); /* Réduire l'opacité pour moins griser */
+}
+
+/* Style pour colorer les lignes avec la couleur de l'événement */
+.custom-agenda-row {
+  transition: all 0.2s ease;
+  border-left: 4px solid transparent; /* Place pour la couleur */
+}

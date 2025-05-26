@@ -69,15 +69,15 @@
 // 	}
 // })
 
-import { serve } from 'https://deno.land/std@0.203.0/http/server.ts'
+// import { serve } from 'https://deno.land/std@0.203.0/http/server.ts'
 
-serve(async (req) => {
-	// Fonction désactivée - retourne simplement un OK sans traitement
-	return new Response(JSON.stringify({ 
-		ok: true, 
-		disabled: true,
-		message: 'Function disabled - not needed for this SaaS application' 
-	}), {
-		headers: { 'Content-Type': 'application/json' }
-	})
-})
+// serve(async (req) => {
+// 	// Fonction désactivée - retourne simplement un OK sans traitement
+// 	return new Response(JSON.stringify({ 
+// 		ok: true, 
+// 		disabled: true,
+// 		message: 'Function disabled - not needed for this SaaS application' 
+// 	}), {
+// 		headers: { 'Content-Type': 'application/json' }
+// 	})
+// })

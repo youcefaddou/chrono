@@ -2,12 +2,12 @@ import React from 'react'
 import CalendarEventWithPlay from './CalendarEventWithPlay'
 
 // Wrapper pour CalendarEventWithPlay qui gère le positionnement en cas de collision
-function CalendarEventWithPlayPositioned({ event = {}, style, isListMode, ...props }) {
+function CalendarEventWithPlayPositioned({ event = {}, style, isListMode, onEdit, ...props }) {
 	// En mode agenda/liste, ne pas appliquer de positionnement absolu ni de wrapper
 	if (isListMode) {
 		return (
 			<CalendarEventWithPlay
-				event={event}
+				event={{...event, onEdit}}
 				isListMode={true}
 				{...props}
 			/>
@@ -46,7 +46,7 @@ function CalendarEventWithPlayPositioned({ event = {}, style, isListMode, ...pro
 			className={`collision-positioned-event ${collisionData.width < 100 ? 'overlapped' : ''}`}
 		>
 			<CalendarEventWithPlay
-				event={event}
+				event={{...event, onEdit}} // IMPORTANT: Passer la fonction onEdit à l'événement
 				{...props}
 				// Passer un flag pour indiquer que la tâche est dans un contexte de collision
 				isOverlapped={collisionData.width < 100}
