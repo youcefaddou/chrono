@@ -185,6 +185,11 @@ function CalendarGrid ({ user }) {
 			: 'No tasks in this range',
 	}), [t, lang, weekNumber])
 
+	// Ajout d'une fonction pour gérer l'édition d'une tâche
+	const handleEventEdit = (event) => {
+		setEditTask(event);
+	};
+
 	return (
 		<div className='bg-white rounded-xl shadow p-2 md:p-4'>
 			{isGlobalLoading && (
@@ -265,18 +270,41 @@ function CalendarGrid ({ user }) {
 						<CalendarEventWithPlayPositioned
 							{...props}
 							isListMode={false}
+							onEdit={handleEventEdit}
 						/>
 					),
 					agenda: {
-						date: ({ event, label, day }) => {
+						date: ({ event, label, day, resource }) => {
+							// Force l'affichage de la date pour chaque événement dans l'agenda
+							// en désactivant le regroupement implicite de react-big-calendar
 							
-							// Affichons le label directement s'il est disponible, sinon tentons d'extraire la date
+							let dateDisplay = '';
+							
+							try {
+								if (event?.start) {
+									const eventDate = new Date(event.start);
+									dateDisplay = eventDate.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', {
+										weekday: 'short',
+										day: '2-digit',
+										month: 'short',
+										year: 'numeric'
+									});
+								} else if (label) {
+									dateDisplay = label;
+								} else if (day) {
+									const dayDate = new Date(day);
+									dateDisplay = dayDate.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US');
+								} else {
+									dateDisplay = "—";
+								}
+							} catch (e) {
+								console.error("Error formatting date:", e);
+								dateDisplay = "—";
+							}
+							
 							return (
 								<div className='rbc-agenda-date-cell font-bold text-black'>
-									{label || 
-									 (event?.start && new Date(event.start).toLocaleDateString()) || 
-									 (day && new Date(day).toLocaleDateString()) || 
-									 "Pas de date"}
+									{dateDisplay}
 								</div>
 							);
 						},
@@ -302,13 +330,17 @@ function CalendarGrid ({ user }) {
 							console.log("AGENDA EVENT PROPS:", { event });
 							return (
 								<CalendarEventWithPlay
-									event={event}
+									event={{
+										...event,
+										onEdit: handleEventEdit // Passer la fonction d'édition
+									}}
 									isListMode={true}
 								/>
 							);
 						},
 					},
 				}}
+				length={7} // Afficher 7 jours à la fois
 			/>
 			{showCalendarModal && (
 				<CalendarSelectorModal
