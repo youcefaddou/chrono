@@ -1,0 +1,104 @@
+/* Styles unifiés pour les chronomètres de l'application */
+
+/* Container principal du timer */
+.timer-wrapper {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  min-width: 95px;
+  height: 22px;
+  contain: strict;
+  padding: 0 4px;
+  box-sizing: border-box;
+  background-color: transparent;
+}
+
+/* Texte du timer */
+.timer-display-text {
+  display: inline-block;
+  padding-left: 4px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  min-width: 80px; /* Augmente la largeur min pour éviter les sauts */
+  max-width: 80px; /* Largeur fixe pour éviter les pulsations */
+  width: 80px;
+  text-align: center;
+  font-family: 'Menlo', 'Consolas', 'Roboto Mono', 'monospace', monospace;
+  text-rendering: geometricPrecision;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: contents;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Icône du timer */
+.timer-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 2px;
+}
+
+/* États du timer */
+.timer-running .timer-icon {
+  color: #eab308;
+}
+
+.timer-paused .timer-icon {
+  color: #eab308;
+  opacity: 0.7;
+}
+
+/* Suppressions des transitions pour éviter les problèmes de rendu */
+.timer-wrapper *,
+.timer-display-text,
+.timer-display-text * {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+  will-change: auto;
+}
+
+/* Optimisations de rendu */
+.timer-wrapper {
+  isolation: isolate;
+  z-index: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Variantes de taille */
+.timer-wrapper-small {
+  min-width: 80px;
+  height: 18px;
+  font-size: 11px;
+}
+
+.timer-wrapper-medium {
+  min-width: 95px;
+  height: 22px;
+  font-size: 12px;
+}
+
+.timer-wrapper-large {
+  min-width: 110px;
+  height: 26px;
+  font-size: 14px;
+}
+
+/* Variantes de style */
+.timer-wrapper-outline {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.timer-wrapper-filled {
+  background-color: #f3f4f6;
+  border-radius: 4px;
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { fr, enUS } from 'date-fns/locale'
 import { format, parse, startOfWeek, getDay, getISOWeek, endOfWeek } from 'date-fns'
@@ -11,6 +11,7 @@ import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import CalendarEventWithPlayPositioned from './CalendarEventWithPlayPositioned'
 import CalendarEventWithPlay from './CalendarEventWithPlay'
 import { calculateAllEventPositions } from './utils/collision-detection'
+import CustomAgendaView from './CustomAgendaView'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import './CalendarGrid.css'
@@ -20,6 +21,24 @@ const locales = { fr, en: enUS }
 
 const daysShortFr = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 const daysShortEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+// Hook pour désactiver dynamiquement les transitions/animations du calendrier
+function useDisableCalendarTransitions () {
+	React.useEffect(() => {
+		const style = document.createElement('style')
+		style.innerHTML = `
+			.rbc-event-content, .rbc-event-content *,
+			.collision-positioned-event, .collision-positioned-event *,
+			.collision-positioned-event.overlapped,
+			.collision-positioned-event.overlapped:hover {
+				transition: none !important;
+				animation: none !important;
+			}
+		`
+		document.head.appendChild(style)
+		return () => { style.remove() }
+	}, [])
+}
 
 function CalendarGrid ({ user }) {
 	const { t, i18n } = useTranslation()
@@ -34,6 +53,8 @@ function CalendarGrid ({ user }) {
 	const [editTask, setEditTask] = useState(null)
 	const [errorMessage, setErrorMessage] = useState('')
 	const timer = useGlobalTimer()
+
+	useDisableCalendarTransitions()
 
 	const localizer = useMemo(() =>
 		dateFnsLocalizer({
@@ -74,14 +95,19 @@ function CalendarGrid ({ user }) {
 		},
 	}), [lang])
 
-	async function fetchTasks () {
+	const fetchTasks = React.useCallback(async () => {
 		if (!user) return
 		setIsGlobalLoading(true)
 		const { data, error } = await supabase
 			.from('tasks')
 			.select('*')
 			.eq('user_id', user.id)
+		
 		if (!error) {
+			// Optionnel : vider le cache des tâches supprimées lors du rechargement
+			if (CalendarEventWithPlay.clearDeletedTasksCache) {
+				CalendarEventWithPlay.clearDeletedTasksCache()
+			}
 			const mappedEvents = data.map(task => ({
 				id: task.id,
 				title: task.title,
@@ -101,11 +127,11 @@ function CalendarGrid ({ user }) {
 			setEvents(eventsWithCollisionData)
 		}
 		setIsGlobalLoading(false)
-	}
+	}, [user])
 
 	useEffect(() => {
 		fetchTasks()
-	}, [user, date])
+	}, [user, date, fetchTasks])
 
 	useEffect(() => {
 		function handleTaskFinished () {
@@ -115,7 +141,7 @@ function CalendarGrid ({ user }) {
 		return () => {
 			window.removeEventListener('task-finished', handleTaskFinished)
 		}
-	}, [user, date])
+	}, [user, date, fetchTasks])
 
 	const handleEventSave = async event => {
 		if (!user) return
@@ -129,11 +155,24 @@ function CalendarGrid ({ user }) {
 			is_finished: !!event.is_finished,
 			duration_seconds: event.duration_seconds || 0,
 		}
-		if (event.id) {
-			await supabase.from('tasks').update(task).eq('id', event.id)
-		} else {
-			const { data } = await supabase.from('tasks').insert([task]).select()
-			if (data && data[0]) event.id = data[0].id
+		try {
+			if (event.id) {
+				await supabase.from('tasks').update(task).eq('id', event.id)
+			} else {
+				const { data } = await supabase.from('tasks').insert([task]).select()
+				if (data && data[0]) event.id = data[0].id
+			}
+			
+			// Ajouter le fetchTasks() pour rafraîchir les données après l'ajout/mise à jour
+			await fetchTasks()
+			
+			return true // Retourner true pour indiquer le succès
+		} catch (error) {
+			console.error("Erreur lors de la sauvegarde de la tâche:", error)
+			setErrorMessage(lang === 'fr' 
+				? 'Erreur lors de la sauvegarde de la tâche' 
+				: 'Error saving task')
+			return false // Retourner false pour indiquer l'échec
 		}
 	}
 
@@ -151,10 +190,14 @@ function CalendarGrid ({ user }) {
 		await handleEventSave({ ...event, start, end })
 	}
 
-	const handleSelectSlot = ({ start, end }) => {
+	const handleEventEdit = React.useCallback((event) => {
+		setEditTask(event)
+	}, [])
+
+	const handleSelectSlot = React.useCallback(({ start, end }) => {
 		setDraftTask({ start, end })
 		setShowAddTaskModal(true)
-	}
+	}, [])
 
 	const weekNumber = useMemo(() => getISOWeek(date), [date])
 
@@ -185,10 +228,29 @@ function CalendarGrid ({ user }) {
 			: 'No tasks in this range',
 	}), [t, lang, weekNumber])
 
-	// Ajout d'une fonction pour gérer l'édition d'une tâche
-	const handleEventEdit = (event) => {
-		setEditTask(event);
-	};
+	// Créer un composant wrapper AVEC les méthodes statiques requises
+	const AgendaWrapper = useMemo(() => {
+		// Définir une classe composant qui hérite toutes les méthodes statiques
+		function AgendaView(props) {
+			return (
+				<CustomAgendaView 
+					{...props}
+					lang={lang}
+					messages={messages}
+					handleEventEdit={handleEventEdit}
+					onSelectSlot={handleSelectSlot}
+					showPastTasks={true} // Toujours afficher les tâches passées par défaut
+				/>
+			)
+		}
+
+		// Copier manuellement les méthodes statiques nécessaires
+		AgendaView.range = CustomAgendaView.range
+		AgendaView.title = CustomAgendaView.title
+		AgendaView.navigate = CustomAgendaView.navigate
+
+		return AgendaView
+	}, [lang, messages, handleEventEdit, handleSelectSlot])
 
 	return (
 		<div className='bg-white rounded-xl shadow p-2 md:p-4'>
@@ -265,6 +327,12 @@ function CalendarGrid ({ user }) {
 				timeslots={1}
 				min={new Date(2024, 0, 1, 0, 0, 0)}
 				max={new Date(2024, 0, 1, 23, 59, 59)}
+				views={{
+					month: true,
+					week: true,
+					day: true,
+					agenda: AgendaWrapper // Utiliser le composant wrapper avec méthodes statiques
+				}}
 				components={{
 					event: props => (
 						<CalendarEventWithPlayPositioned
@@ -272,73 +340,7 @@ function CalendarGrid ({ user }) {
 							isListMode={false}
 							onEdit={handleEventEdit}
 						/>
-					),
-					agenda: {
-						date: ({ event, label, day, resource }) => {
-							// Force l'affichage de la date pour chaque événement dans l'agenda
-							// en désactivant le regroupement implicite de react-big-calendar
-							
-							let dateDisplay = '';
-							
-							try {
-								if (event?.start) {
-									const eventDate = new Date(event.start);
-									dateDisplay = eventDate.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', {
-										weekday: 'short',
-										day: '2-digit',
-										month: 'short',
-										year: 'numeric'
-									});
-								} else if (label) {
-									dateDisplay = label;
-								} else if (day) {
-									const dayDate = new Date(day);
-									dateDisplay = dayDate.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US');
-								} else {
-									dateDisplay = "—";
-								}
-							} catch (e) {
-								console.error("Error formatting date:", e);
-								dateDisplay = "—";
-							}
-							
-							return (
-								<div className='rbc-agenda-date-cell font-bold text-black'>
-									{dateDisplay}
-								</div>
-							);
-						},
-						time: ({ event, label, value }) => {
-						
-							
-							// label contient souvent le texte formaté de l'heure dans la vue agenda
-							return (
-								<div className='rbc-agenda-time-cell'>
-									{label || (event?.start && event?.end ? 
-										`${new Date(event.start).toLocaleTimeString('fr-FR', {
-											hour: '2-digit',
-											minute: '2-digit',
-										})} - ${new Date(event.end).toLocaleTimeString('fr-FR', {
-											hour: '2-digit',
-											minute: '2-digit',
-										})}` : '')}
-								</div>
-							);
-						},
-						event: ({ event }) => {
-							// Un dernier console.log pour vérifier cet objet
-							console.log("AGENDA EVENT PROPS:", { event });
-							return (
-								<CalendarEventWithPlay
-									event={{
-										...event,
-										onEdit: handleEventEdit // Passer la fonction d'édition
-									}}
-									isListMode={true}
-								/>
-							);
-						},
-					},
+					)
 				}}
 				length={7} // Afficher 7 jours à la fois
 			/>
@@ -359,7 +361,13 @@ function CalendarGrid ({ user }) {
 					setDraftTask(null)
 					setErrorMessage('')
 				}}
-				onSave={handleEventSave}
+				onSave={async (task) => {
+					const success = await handleEventSave(task)
+					if (success) {
+						setShowAddTaskModal(false)
+						setDraftTask(null)
+					}
+				}}
 			/>
 			{editTask && (
 				<AddTaskModal
@@ -370,9 +378,17 @@ function CalendarGrid ({ user }) {
 					initialDesc={editTask.desc}
 					initialColor={editTask.color}
 					onClose={() => setEditTask(null)}
-					onSave={task => handleEventSave({ ...editTask, ...task })}
+					onSave={async (task) => {
+						const success = await handleEventSave({ ...editTask, ...task })
+						if (success) {
+							setEditTask(null)
+                        }
+					}}
 					showDelete
-					onDelete={() => handleEventDelete(editTask)}
+					onDelete={async () => {
+						await handleEventDelete(editTask)
+						setEditTask(null)
+					}}
 				/>
 			)}
 		</div>

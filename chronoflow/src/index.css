@@ -1,2 +1,19 @@
 @import 'tailwindcss';
 
+/* Réparation pour les événements dans react-big-calendar */
+.rbc-event, 
+.rbc-day-slot .rbc-event {
+  overflow: visible !important;
+  contain: layout !important;
+  transform: none !important;
+}
+
+.rbc-day-slot .rbc-events-container {
+  margin-right: 0 !important;
+}
+
+.rbc-event-content {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+

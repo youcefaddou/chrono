@@ -130,6 +130,37 @@ function AddTaskModal({ open, initialStart, initialEnd, initialTitle = '', initi
 		setColor(initialColor)
 	}, [initialTitle, initialDesc, initialStart, initialEnd, initialColor])
 
+	// Ajout d'un gestionnaire de soumission explicite
+	const handleSubmit = (e) => {
+		e.preventDefault();
+		
+		// Validation
+		if (!title.trim()) return;
+		if (!start || !end) return;
+		
+		// Créer l'objet tâche
+		const task = {
+			title: title.trim(),
+			desc: desc.trim(),
+			start,
+			end,
+			color
+		};
+		
+		// Appeler onSave avec les données de la tâche
+		onSave && onSave(task);
+		
+		// Réinitialiser le formulaire (optionnel si vous fermez la modale)
+		setTitle('');
+		setDesc('');
+		setStart(new Date());
+		setEnd(new Date());
+		setColor(COLORS[0]);
+		
+		// Fermer la modale
+		onClose && onClose();
+	};
+
 	if (!open) return null
 
 	return (
@@ -143,54 +174,56 @@ function AddTaskModal({ open, initialStart, initialEnd, initialTitle = '', initi
 					&times;
 				</button>
 				<h2 className='text-xl font-bold mb-4'>{lang === 'fr' ? (showDelete ? 'Modifier la tâche' : 'Créer une tâche') : (showDelete ? 'Edit Task' : 'Create Task')}</h2>
-				<div className='flex flex-col gap-3'>
-					<input
-						type='text'
-						placeholder={lang === 'fr' ? 'Titre' : 'Title'}
-						value={title}
-						onChange={e => setTitle(e.target.value)}
-						className='border rounded px-3 py-2 text-sm mb-1'
-						required
-					/>
-					<textarea
-						placeholder={lang === 'fr' ? 'Description' : 'Description'}
-						value={desc}
-						onChange={e => setDesc(e.target.value)}
-						className='border rounded px-3 py-2 text-sm mb-1'
-						rows={2}
-					/>
-					<label className='text-xs font-semibold mb-1'>{lang === 'fr' ? 'Début' : 'Start'}</label>
-					<input
-						type='datetime-local'
-						value={start ? toLocalISOString(new Date(start)) : ''}
-						onChange={e => setStart(new Date(e.target.value))}
-						className='border rounded px-3 py-2 text-sm mb-1'
-						required
-					/>
-					<label className='text-xs font-semibold mb-1'>{lang === 'fr' ? 'Fin' : 'End'}</label>
-					<input
-						type='datetime-local'
-						value={end ? toLocalISOString(new Date(end)) : ''}
-						onChange={e => setEnd(new Date(e.target.value))}
-						className='border rounded px-3 py-2 text-sm mb-1'
-						required
-					/>
-					<div className='flex items-center gap-2 mb-2'>
-						<span className='text-xs'>{lang === 'fr' ? 'Couleur :' : 'Color:'}</span>
-						{COLORS.map(c => (
-							<button
-								key={c}
-								type='button'
-								className={`w-6 h-6 rounded-full border-2 ${color === c ? 'border-blue-600' : 'border-gray-200'}`}
-								style={{ background: c }}
-								onClick={() => setColor(c)}
-								aria-label={c}
-							/>
-						))}
+				<form onSubmit={handleSubmit} className='flex flex-col gap-3'>
+					<div className='flex flex-col gap-3'>
+						<input
+							type='text'
+							placeholder={lang === 'fr' ? 'Titre' : 'Title'}
+							value={title}
+							onChange={e => setTitle(e.target.value)}
+							className='border rounded px-3 py-2 text-sm mb-1'
+							required
+						/>
+						<textarea
+							placeholder={lang === 'fr' ? 'Description' : 'Description'}
+							value={desc}
+							onChange={e => setDesc(e.target.value)}
+							className='border rounded px-3 py-2 text-sm mb-1'
+							rows={2}
+						/>
+						<label className='text-xs font-semibold mb-1'>{lang === 'fr' ? 'Début' : 'Start'}</label>
+						<input
+							type='datetime-local'
+							value={start ? toLocalISOString(new Date(start)) : ''}
+							onChange={e => setStart(new Date(e.target.value))}
+							className='border rounded px-3 py-2 text-sm mb-1'
+							required
+						/>
+						<label className='text-xs font-semibold mb-1'>{lang === 'fr' ? 'Fin' : 'End'}</label>
+						<input
+							type='datetime-local'
+							value={end ? toLocalISOString(new Date(end)) : ''}
+							onChange={e => setEnd(new Date(e.target.value))}
+							className='border rounded px-3 py-2 text-sm mb-1'
+							required
+						/>
+						<div className='flex items-center gap-2 mb-2'>
+							<span className='text-xs'>{lang === 'fr' ? 'Couleur :' : 'Color:'}</span>
+							{COLORS.map(c => (
+								<button
+									key={c}
+									type='button'
+									className={`w-6 h-6 rounded-full border-2 ${color === c ? 'border-blue-600' : 'border-gray-200'}`}
+									style={{ background: c }}
+									onClick={() => setColor(c)}
+									aria-label={c}
+								/>
+							))}
+						</div>
 					</div>
 					<div className='flex gap-2 mt-2'>
 						<button
-							onClick={() => onSave && onSave({ title, desc, start, end, color }, false)}
+							type="submit"
 							className='bg-blue-600 text-white px-4 py-2 rounded font-semibold text-sm hover:bg-blue-700 transition'
 							disabled={!title || !start || !end}
 						>
@@ -215,7 +248,7 @@ function AddTaskModal({ open, initialStart, initialEnd, initialTitle = '', initi
 							</button>
 						)}
 					</div>
-				</div>
+				</form>
 			</div>
 		</div>
 	)
