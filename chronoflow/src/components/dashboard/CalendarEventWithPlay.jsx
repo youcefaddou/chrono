@@ -3,6 +3,7 @@ import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import { supabase } from '../../lib/supabase'
 import { useTranslation } from '../../hooks/useTranslation'
 import './CalendarEventWithPlay.css'
+import { format } from 'date-fns'
 
 function formatDuration (seconds) {
 	if (!seconds || seconds < 1) return ''
@@ -12,7 +13,8 @@ function formatDuration (seconds) {
 	return [h, m, s].map(v => String(v).padStart(2, '0')).join(':')
 }
 
-function CalendarEventWithPlay({ event, isOverlapped = false }) {
+function CalendarEventWithPlay({ event = {}, isOverlapped = false, isListMode = false }) {
+	// Ajoutez une valeur par défaut pour `event` pour éviter les erreurs
 	const timer = useGlobalTimer()
 	const { t } = useTranslation()
 	const isRunning = timer.running && timer.task?.id === event.id
@@ -58,7 +60,9 @@ function CalendarEventWithPlay({ event, isOverlapped = false }) {
 		fetchDuration()
 		const interval = setInterval(fetchDuration, 30000)
 		setPollingInterval(interval)
-		return () => clearInterval(interval)
+		return () => {
+			clearInterval(interval) // Nettoie l'interval à chaque changement d'event.id ou unmount
+		}
 	}, [event.id])
 
 	// Update local duration when event changes
@@ -73,7 +77,6 @@ function CalendarEventWithPlay({ event, isOverlapped = false }) {
 			elapsed = timer.getElapsedSeconds()
 		}
 		timer.stop()
-		
 		const newDuration = localDuration + (elapsed || 0)
 		setLocalDuration(newDuration)
 		setSaving(true)
@@ -84,14 +87,6 @@ function CalendarEventWithPlay({ event, isOverlapped = false }) {
 		setSaving(false)
 	}
 
-	// Refetch global après stop ou finish
-	React.useEffect(() => {
-		if (saving === false) {
-			if (typeof window !== 'undefined' && window.dispatchEvent) {
-				window.dispatchEvent(new Event('task-finished'))
-			}
-		}
-	}, [saving])
 	const handlePlayPause = e => {
 		e.stopPropagation()
 		if (!isRunning) {
@@ -117,7 +112,6 @@ function CalendarEventWithPlay({ event, isOverlapped = false }) {
 			elapsed = timer.getElapsedSeconds()
 		}
 		timer.stop()
-		
 		const newDuration = localDuration + (elapsed || 0)
 		setLocalDuration(newDuration)
 		setSaving(true)
@@ -129,27 +123,25 @@ function CalendarEventWithPlay({ event, isOverlapped = false }) {
 		if (typeof event.onFinish === 'function') {
 			event.onFinish(event.id)
 		}
-		if (window.dispatchEvent) {
+		// Ne déclenche le refetch global QUE si on n'est PAS en mode agenda/liste
+		if (!isListMode && window.dispatchEvent) {
 			window.dispatchEvent(new Event('task-finished'))
 		}
 	}
+
 	// Gérer les clics sur le conteneur de la tâche
 	const handleContainerClick = (e) => {
-		// Vérifier si le clic provient d'un bouton ou élément interactif
 		const target = e.target
 		const isButton = target.tagName === 'BUTTON' || target.closest('button')
 		const isInteractive = target.tagName === 'INPUT' || target.closest('input')
 		const isSvg = target.tagName === 'svg' || target.closest('svg')
-		
-		// Si c'est un élément interactif, ne pas empêcher la propagation
 		if (isButton || isInteractive || isSvg) {
-			e.stopPropagation()
 			return
 		}
-		
-		// Pour les clics sur le contenu de la tâche (texte, fond), permettre la propagation
-		// pour que la modale de modification s'ouvre
-		// Ne pas appeler e.stopPropagation() ici
+		// Only open modal if click is on the main event content (not background)
+		if (typeof event.onEdit === 'function') {
+			event.onEdit(event)
+		}
 	}
 	const isDone = event.is_finished === true || event.is_finished === 'true' || event.is_finished === 1
 	// Calculer la hauteur disponible pour déterminer le layout
@@ -177,8 +169,7 @@ function CalendarEventWithPlay({ event, isOverlapped = false }) {
 		return () => resizeObserver.disconnect()
 	}, [])
 	
-	// Définir les seuils de taille - layout compact privilégié
-	// Ajuster les seuils si la tâche est en collision avec d'autres
+
 	const baseVerySmallThreshold = isOverlapped ? 35 : 40
 	const baseSmallThreshold = isOverlapped ? 80 : 100
 	const baseMediumThreshold = isOverlapped ? 120 : 150
@@ -186,41 +177,96 @@ function CalendarEventWithPlay({ event, isOverlapped = false }) {
 	const isVerySmallTask = containerHeight < baseVerySmallThreshold // Très petite tâche
 	const isSmallTask = containerHeight < baseSmallThreshold   // Petite tâche (layout compact préféré)
 	const isMediumTask = containerHeight < baseMediumThreshold   // Tâche moyenne
-		// Classes CSS conditionnelles
+	
 	const taskSizeClass = isVerySmallTask ? 'very-small-task' : 
 						  isSmallTask ? 'small-task' : 
 						  isMediumTask ? 'medium-task' : 'large-task'
-	// Classes additionnelles pour collision
 	const collisionClass = isOverlapped ? 'overlapped-task' : ''
 	
-	return (		<div 
+	const startTime = event.start ? new Date(event.start) : null
+	const endTime = event.end ? new Date(event.end) : null
+
+	// Ajoutez un log pour vérifier les données de l'événement
+	console.log('Event Data:', event)
+
+	return (
+		<div
 			ref={containerRef}
-			className={`task-event-container ${taskSizeClass} ${collisionClass} flex flex-col w-full h-full relative p-2`}
+			className={
+				isListMode
+					? 'task-event-container flex items-center w-full p-2 gap-2 bg-white border-b'
+					: `task-event-container ${taskSizeClass} ${collisionClass} flex flex-col w-full h-full relative p-2`
+			}
 			onClick={handleContainerClick}
 			onMouseEnter={() => isVerySmallTask && setShowTooltip(true)}
 			onMouseLeave={() => setShowTooltip(false)}
 			data-completed={isDone}
+			style={isListMode ? { position: 'static', height: 'auto' } : undefined}
 		>
-					{/* Tooltip pour très petites tâches */}
-			{isVerySmallTask && showTooltip && (
-				<div className='task-tooltip'>
-					<div className='font-semibold mb-1'>{event.title}</div>
-					<div className='text-xs mb-2'>
-						{new Date(event.start).toLocaleTimeString()} - {new Date(event.end).toLocaleTimeString()}
-					</div>
-					<div className='text-xs'>⏱ {formatDuration(getDisplayDuration())}</div>
-				</div>
-			)}
-			
-			{/* Layout adaptatif selon la taille de la tâche */}
-			{isVerySmallTask ? (
-				/* Layout minimal pour très petites tâches */
-				<div className='flex items-center justify-center w-full h-full text-xs'>
-					<span className='truncate font-bold'>
-						⏱ {new Date(event.start).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+			{isListMode ? (
+				// Mode agenda/liste : tout sur une ligne, actions à droite
+				<div className='flex items-center w-full gap-2'>
+					<span
+						className={`truncate font-semibold text-sm${isDone ? ' line-through text-gray-400' : ''}`}
+						style={{ flex: 1, minWidth: 0 }}
+					>
+						{event.title}
 					</span>
+					<button
+						onClick={handlePlayPause}
+						className='p-1 rounded-full flex items-center justify-center bg-blue-100 hover:bg-blue-200'
+						title={isRunning ? (isPaused ? t('timer.resume') : t('timer.pause')) : t('timer.start')}
+						aria-label={isRunning ? (isPaused ? t('timer.resume') : t('timer.pause')) : t('timer.start')}
+						disabled={isDone || saving}
+					>
+						{!isRunning ? (
+							<svg width='14' height='14' fill='none' viewBox='0 0 20 20'>
+								<polygon points='6,4 16,10 6,16' fill='#2563eb'/>
+							</svg>
+						) : isPaused ? (
+							<svg width='14' height='14' fill='none' viewBox='0 0 20 20'>
+								<polygon points='6,4 16,10 6,16' fill='#eab308'/>
+							</svg>
+						) : (
+							<svg width='14' height='14' fill='none' viewBox='0 0 20 20'>
+								<rect x='5' y='4' width='3' height='12' rx='1' fill='#eab308'/>
+								<rect x='12' y='4' width='3' height='12' rx='1' fill='#eab308'/>
+							</svg>
+						)}
+					</button>
+					<button
+						onClick={handleStop}
+						className='p-1 rounded-full bg-rose-100 hover:bg-rose-200 flex items-center justify-center'
+						title={t('timer.stop')}
+						aria-label={t('timer.stop')}
+						disabled={isDone || saving}
+					>
+						<svg width='14' height='14' fill='none' viewBox='0 0 20 20'>
+							<rect x='5' y='5' width='10' height='10' rx='2' fill='#e11d48'/>
+						</svg>
+					</button>
+					{/* Affiche le bouton "Terminer la tâche" si non terminé, sinon badge terminé */}
+					{isDone ? (
+						<span className='text-xs font-bold text-green-700 bg-green-50 rounded px-2 py-1 ml-1'>
+							{t('task.completed')}
+						</span>
+					) : (
+						<button
+							onClick={handleFinish}
+							className='px-2 py-1 rounded bg-green-100 hover:bg-green-200 text-xs font-medium text-green-700 ml-1'
+							title={t('task.complete')}
+							aria-label={t('task.complete')}
+							disabled={isDone || saving}
+						>
+							{saving ? '...' : t('task.complete')}
+						</button>
+					)}
+					<div className='text-xs font-semibold text-gray-700 font-mono bg-gray-100 px-2 py-0.5 rounded ml-2'>
+						⏱ {formatDuration(getDisplayDuration())}
+					</div>
 				</div>
 			) : (
+				// Mode CALENDRIER : bouton "Terminer la tâche" SOUS la tâche
 				<>
 					<div className={`flex items-center justify-between w-full ${isSmallTask ? 'mb-1' : 'mb-2'}`}>
 						<span className={`truncate font-semibold ${isSmallTask ? 'text-xs' : 'text-sm'}${isDone ? ' line-through text-gray-400' : ''}`}>
@@ -262,40 +308,39 @@ function CalendarEventWithPlay({ event, isOverlapped = false }) {
 							</button>
 						</div>
 					</div>
-					
-					{/* Layout adaptatif selon la hauteur de la tâche */}					{isSmallTask ? (
-						/* Layout compact pour petites tâches */
-						<div className='flex items-center justify-between w-full gap-1'>							<div className='text-xs font-semibold text-gray-700 font-mono bg-gray-100 px-1 py-0.5 rounded text-center min-w-0'>
+					{isSmallTask ? (
+						<div className='flex items-center justify-between w-full gap-1'>
+							<div className='text-xs font-semibold text-gray-700 font-mono bg-gray-100 px-1 py-0.5 rounded text-center min-w-0'>
 								⏱ {formatDuration(getDisplayDuration())}
 							</div>
-							<button
-								onClick={handleFinish}
-								className='px-1 py-0.5 rounded bg-green-100 hover:bg-green-200 text-xs font-medium text-green-700 whitespace-nowrap'
-								title={t('task.complete')}
-								aria-label={t('task.complete')}
-								disabled={isDone || saving}
-							>
-								{saving ? '...' : '✓'}
-							</button>
 						</div>
 					) : (
-						/* Layout vertical pour tâches normales */
-						<div className='flex flex-col items-center gap-1 mt-auto'>
+						<div className='flex flex-col items-center gap-1'>
+							<div className='text-sm font-semibold text-gray-700 font-mono bg-gray-50 px-2 py-0.5 rounded border'>
+								⏱ {formatDuration(getDisplayDuration())}
+							</div>
+						</div>
+					)}
+					<div className='w-full flex flex-col items-stretch'>
+						{isDone ? (
+							<div className='flex items-center justify-center text-xs font-bold text-green-700 bg-green-50 rounded mb-1 py-1'>
+								{t('task.completed')}
+							</div>
+						) : (
 							<button
 								onClick={handleFinish}
-								className='px-2 py-1 rounded bg-green-100 hover:bg-green-200 text-xs font-medium text-green-700 w-full'
+								className={`w-full ${isSmallTask ? 'px-1 py-0.5 text-xs' : 'px-2 py-1 text-xs'} rounded bg-green-100 hover:bg-green-200 font-medium text-green-700 mb-1`}
 								title={t('task.complete')}
 								aria-label={t('task.complete')}
 								disabled={isDone || saving}
 							>
 								{saving ? '...' : t('task.complete')}
-							</button>							<div className='text-sm font-semibold text-gray-700 font-mono bg-gray-50 px-2 py-0.5 rounded border'>
-								⏱ {formatDuration(getDisplayDuration())}
-							</div>
-						</div>
-					)}
+							</button>
+						)}
+					</div>
 				</>
-			)}		</div>
+			)}
+		</div>
 	)
 }
 

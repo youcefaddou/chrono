@@ -6,6 +6,14 @@
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  overflow: visible; /* important pour que le bouton ne soit pas coupé */
+  background: transparent;
 }
 
 .task-event-container:hover {
@@ -45,9 +53,8 @@
   z-index: 10;
 }
 
-/* Completed task styles - ONLY for calendar view, NOT agenda/list view */
-.rbc-time-view .task-event-container[data-completed="true"],
-.rbc-month-view .task-event-container[data-completed="true"] {
+/* Completed task styles */
+.task-event-container[data-completed="true"] {
   background: repeating-linear-gradient(
     45deg,
     #d1fae5 0 8px,
@@ -57,89 +64,30 @@
   overflow: hidden;
 }
 
-.rbc-time-view .task-event-container[data-completed="true"]::before,
-.rbc-month-view .task-event-container[data-completed="true"]::before {
+.task-event-container[data-completed="true"]::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.4);
   pointer-events: none;
   border-radius: inherit;
-  z-index: 1;
-}
-
-.rbc-time-view .task-event-container[data-completed="true"]::after,
-.rbc-month-view .task-event-container[data-completed="true"]::after {
-  content: 'Terminé';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 0.75rem;
-  font-weight: bold;
-  color: #065f46;
-  background: rgba(255, 255, 255, 0.7);
-  padding: 2px 8px;
-  border-radius: 4px;
-  pointer-events: none;
-  z-index: 2;
-  white-space: nowrap;
-}
-
-/* PREVENT completed task styles in agenda/list view */
-.rbc-agenda-view .task-event-container[data-completed="true"] {
-  background: none !important;
-}
-
-.rbc-agenda-view .task-event-container[data-completed="true"]::before,
-.rbc-agenda-view .task-event-container[data-completed="true"]::after {
-  display: none !important;
-}
-
-/* Agenda/List view specific styles for completed tasks */
-.rbc-agenda-view .task-event-container[data-completed="true"] {
-  background: #f0fdf4 !important;
-  border-left: 4px solid #22c55e !important;
-  opacity: 0.8;
-  position: relative;
-}
-
-.rbc-agenda-view .task-event-container[data-completed="true"] .task-title {
-  text-decoration: line-through;
-  color: #6b7280;
-}
-
-/* Ensure task list components don't conflict */
-.task-list-container .task-event-container[data-completed="true"],
-.task-table .task-event-container[data-completed="true"] {
-  background: none !important;
-}
-
-.task-list-container .task-event-container[data-completed="true"]::before,
-.task-list-container .task-event-container[data-completed="true"]::after,
-.task-table .task-event-container[data-completed="true"]::before,
-.task-table .task-event-container[data-completed="true"]::after {
-  display: none !important;
+  z-index: 10;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* Ensure buttons remain clickable */
 .task-event-container button {
   position: relative;
-  z-index: 30;
+  z-index: 20;
   pointer-events: auto;
 }
 
 .task-event-container button:hover {
   transform: scale(1.05);
-}
-
-/* Ensure task content is visible */
-.task-event-container > * {
-  position: relative;
-  z-index: 10;
 }
 
 /* Tooltip styles */
@@ -193,4 +141,52 @@
   .overlapped-task {
     border-width: 1px;
   }
+}
+
+/* ... Ajouts pour le positionnement du bouton ... */
+.task-event-container .w-full {
+	width: 100%;
+	margin-top: 0 !important;
+}
+
+.task-event-container button,
+.task-event-container .flex {
+	position: static !important; /* force le bouton à rester dans le flux */
+	z-index: auto !important;
+}
+
+.task-event-container .absolute {
+	position: absolute !important;
+}
+
+.task-event-container .task-tooltip {
+	z-index: 20;
+}
+
+.task-event-container [data-completed='true'] {
+	pointer-events: none;
+}
+
+/* Corrige un éventuel overflow caché par react-big-calendar */
+.rbc-event,
+.rbc-day-slot .rbc-event {
+	overflow: visible !important;
+}
+
+/* S'assure que le contenu custom occupe toute la hauteur de l'event */
+.rbc-event-content,
+.rbc-day-slot .rbc-event-content {
+	display: block !important;
+	height: 100% !important;
+	width: 100% !important;
+	padding: 0 !important;
+	background: transparent !important;
+}
+
+/* Corrige l'alignement vertical imposé par react-big-calendar */
+.rbc-event,
+.rbc-day-slot .rbc-event {
+	align-items: stretch !important;
+	justify-content: flex-start !important;
+	flex-direction: column !important;
 }
