@@ -1,5 +1,5 @@
 .footer-link {
-    @apply text-neutral-600 hover:text-rose-600 transition-colors duration-150 text-sm no-underline;
+    @apply text-black hover:underline transition-colors duration-150 text-sm no-underline;
 }
 
 .footer-list {

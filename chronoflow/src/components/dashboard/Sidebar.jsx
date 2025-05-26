@@ -1,12 +1,24 @@
 import { useTranslation } from 'react-i18next'
 import { useLocation, NavLink } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-function Sidebar ({ user, collapsed, onToggle }) {
+function Sidebar ({ user }) {
 	const { t } = useTranslation()
 	const location = useLocation()
 	const [isHovered, setIsHovered] = useState(false)
+	const [collapsed, setCollapsed] = useState(true)
+
+	// Always collapsed on mount and on route change
+	useEffect(() => {
+		setCollapsed(true)
+	}, [location.pathname])
+
 	const isCollapsed = collapsed && !isHovered
+
+	// Responsive: overlay on mobile, static on desktop
+	const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+	const sidebarWidth = isCollapsed ? 'w-16' : 'w-56'
+	const sidebarPosition = isMobile ? 'fixed top-0 left-0 h-full z-50' : 'md:static md:z-30'
 
 	// Determine language prefix for routing
 	const isEn = location.pathname.startsWith('/en')
@@ -14,65 +26,32 @@ function Sidebar ({ user, collapsed, onToggle }) {
 
 	return (
 		<aside
-			className={`transition-all duration-200 bg-gray-900 text-white flex flex-col h-full px-2 py-4 z-40 ${isCollapsed ? 'w-16' : 'w-56 px-4'} fixed md:static left-0 top-0 shadow-lg md:z-30`}
+			className={`transition-all duration-300 bg-gray-900 text-white flex flex-col h-full px-2 py-4 ${sidebarWidth} ${sidebarPosition} shadow-lg`}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
+			style={{ minWidth: isCollapsed ? 64 : 224 }}
 		>
-			{/* Chevron always at the very top in mobile */}
-			<div className='flex items-center justify-center h-12 w-full mb-2 md:mb-6'>
-				<button
-					className='flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-800 focus:outline-none transition md:hidden'
-					onClick={onToggle}
-					aria-label={isCollapsed ? t('sidebar.open') || 'Ouvrir le menu' : t('sidebar.close') || 'Fermer le menu'}
-				>
-					<svg
-						width='22'
-						height='22'
-						fill='none'
-						viewBox='0 0 24 24'
-						className={'transition-transform duration-300 ease-in-out transform ' + (isCollapsed ? 'rotate-180' : 'rotate-0')}
-						aria-hidden='true'
-					>
-						<path d='M9 6l6 6-6 6' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'/>
-					</svg>
-				</button>
-			</div>
-			{/* Chevron for desktop (hidden on mobile) */}
-			<button
-				className='mb-6 flex items-center justify-center w-10 h-10 rounded hover:bg-gray-800 focus:outline-none self-end md:self-start transition-transform duration-300 ease-in-out md:flex'
-				onClick={onToggle}
-				aria-label={isCollapsed ? t('sidebar.open') || 'Ouvrir le menu' : t('sidebar.close') || 'Fermer le menu'}
-			>
-				<svg
-					width='24'
-					height='24'
-					fill='none'
-					viewBox='0 0 24 24'
-					className={'transition-transform duration-300 ease-in-out transform ' + (isCollapsed ? 'rotate-180' : 'rotate-0')}
-					aria-hidden='true'
-				>
-					<path d='M9 6l6 6-6 6' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'/>
-				</svg>
-			</button>
+			{/* Workspace title */}
 			<div className={'mb-8 flex items-center gap-2 min-h-[32px] transition-all duration-300 ease-in-out ' + (isCollapsed ? 'justify-center' : 'justify-start')}
 				style={{ minWidth: isCollapsed ? undefined : 160 }}
 			>
 				<span className={'text-2xl font-bold whitespace-nowrap transition-all duration-300 ease-in-out ' + (isCollapsed ? 'sr-only' : '')}>{t('sidebar.workspace')}</span>
-			</div>			<nav className='flex-1 flex flex-col items-center md:items-stretch'>
+			</div>
+			<nav className='flex-1 flex flex-col items-center md:items-stretch'>
 				{/* Section utilisateur/options */}
 				<div className={`mb-4 flex flex-col items-center w-full transition-all duration-300 ease-in-out ${
 					isCollapsed 
 						? 'gap-2' 
 						: 'bg-gray-800/80 rounded-xl p-4 shadow-sm'
-				}`}>
+				}`}> 
 					{/* Avatar/email */}
 					{user?.email && (
 						<div className={`flex flex-col items-center w-full transition-all duration-300 ease-in-out ${
-							isCollapsed ? 'mb-2' : 'mb-3'
-						}`}>
+						isCollapsed ? 'mb-2' : 'mb-3'
+					}`}>
 							<div className={`rounded-full bg-gradient-to-br from-blue-500 to-blue-300 flex items-center justify-center text-white font-bold shadow transition-all duration-300 ease-in-out ${
-								isCollapsed ? 'w-8 h-8 text-sm' : 'w-12 h-12 text-xl mb-2'
-							}`}>
+							isCollapsed ? 'w-8 h-8 text-sm' : 'w-12 h-12 text-xl mb-2'
+						}`}>
 								{user.email[0]?.toUpperCase() || 'U'}
 							</div>
 							{!isCollapsed && (
@@ -86,9 +65,9 @@ function Sidebar ({ user, collapsed, onToggle }) {
 						<NavLink 
 							to={dashPrefix + '/subscription'} 
 							className={`flex items-center font-medium rounded-lg hover:bg-blue-600/80 transition text-white group ${
-								isCollapsed 
-									? 'justify-center p-2' 
-									: 'gap-3 text-base md:text-lg px-3 py-2'
+							isCollapsed 
+								? 'justify-center p-2' 
+								: 'gap-3 text-base md:text-lg px-3 py-2'
 							}`}
 							title={isCollapsed ? t('sidebar.subscription') || 'Abonnement' : undefined}
 						>
@@ -98,9 +77,9 @@ function Sidebar ({ user, collapsed, onToggle }) {
 						<NavLink 
 							to={dashPrefix + '/organization'} 
 							className={`flex items-center font-medium rounded-lg hover:bg-blue-600/80 transition text-white group ${
-								isCollapsed 
-									? 'justify-center p-2' 
-									: 'gap-3 text-base md:text-lg px-3 py-2'
+							isCollapsed 
+								? 'justify-center p-2' 
+								: 'gap-3 text-base md:text-lg px-3 py-2'
 							}`}
 							title={isCollapsed ? t('sidebar.organization') || 'Organisation' : undefined}
 						>
@@ -110,9 +89,9 @@ function Sidebar ({ user, collapsed, onToggle }) {
 						<NavLink 
 							to={dashPrefix + '/settings'} 
 							className={`flex items-center font-medium rounded-lg hover:bg-blue-600/80 transition text-white group ${
-								isCollapsed 
-									? 'justify-center p-2' 
-									: 'gap-3 text-base md:text-lg px-3 py-2'
+							isCollapsed 
+								? 'justify-center p-2' 
+								: 'gap-3 text-base md:text-lg px-3 py-2'
 							}`}
 							title={isCollapsed ? t('sidebar.settings') || 'Paramètres' : undefined}
 						>

@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import Sidebar from '../../components/dashboard/Sidebar'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
-import { GlobalTimerProvider } from '../../components/Timer/GlobalTimerProvider'
 
 export default function DashboardPage () {
 	const [user, setUser] = useState(null)
@@ -38,22 +37,21 @@ export default function DashboardPage () {
 	}
 
 	return (
-		<GlobalTimerProvider>
-			<div className='flex min-h-screen h-screen bg-white'>				<Sidebar
-					user={user}
-					collapsed={sidebarCollapsed}
-					onToggle={() => setSidebarCollapsed(v => !v)}
-				/>
-				<main
-					className={
-						'flex-1 flex flex-col transition-all duration-200 min-w-0 h-full ' +
-						(sidebarCollapsed ? 'ml-16' : 'ml-5')
-					}
-				>
-					<DashboardHeader user={user} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} />
-					{/* La grille est désormais gérée uniquement dans DashboardHeader */}
-				</main>
-			</div>
-		</GlobalTimerProvider>
+		<div className='flex min-h-screen h-screen bg-white'>
+			<Sidebar
+				user={user}
+				collapsed={sidebarCollapsed}
+				onToggle={() => setSidebarCollapsed(v => !v)}
+			/>
+			<main
+				className={
+					'flex-1 flex flex-col transition-all duration-200 min-w-0 h-full ' +
+					(sidebarCollapsed ? 'ml-10' : 'ml-5')
+				}
+			>
+				<DashboardHeader user={user} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} />
+				{/* La grille est désormais gérée uniquement dans DashboardHeader */}
+			</main>
+		</div>
 	)
 }

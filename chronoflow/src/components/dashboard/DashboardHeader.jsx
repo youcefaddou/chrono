@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import FocusZoneModal from './FocusZoneModal'
 import CalendarSelectorModal from './CalendarSelectorModal'
-import CalendarGrid from './CalendarGrid'
+// import CalendarGrid from './CalendarGrid'
+import FullCalendarGrid from './FullCalendarGrid'
 import SaveTimerModal from './SaveTimerModal'
 import { supabase } from '../../lib/supabase'
 import flagFr from '../../assets/france.png'
 import flagEn from '../../assets/eng.png'
 import styles from './DashboardHeader.module.css'
+import { useRef } from 'react'
 
 function getWeekNumber (date) {
 	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -28,7 +30,8 @@ function getMondayOfWeek (date) {
 
 function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 	const { t, i18n } = useTranslation()
-	const { seconds, running, paused, start, pause, resume, stop } = useGlobalTimer()
+	const timer = useGlobalTimer()
+	const [seconds, setSeconds] = useState(0)
 	const [showZone, setShowZone] = useState(false)
 	const [showCalendar, setShowCalendar] = useState(false)
 	const [showSaveTimer, setShowSaveTimer] = useState(false)
@@ -36,6 +39,7 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 	const [selectedDate, setSelectedDate] = useState(getMondayOfWeek(new Date()))
 	const [selectedRange, setSelectedRange] = useState('this-week')
 	const [externalDate, setExternalDate] = useState(null) // Pour synchronisation externe
+	const [refreshKey, setRefreshKey] = useState(0)
 
 	const weekNumber = getWeekNumber(selectedDate)
 	const year = selectedDate.getFullYear()
@@ -43,18 +47,24 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 	const nextLang = i18n.language.startsWith("en") ? "fr" : "en"
 	const handleLangSwitch = () => i18n.changeLanguage(nextLang)
 	const handleStartPause = () => {
-		if (!running) start()
-		else if (paused) resume()
-		else pause()
-	}
-		const handleStop = () => {
-		if (seconds > 0) {
-			// Capturer le temps écoulé AVANT d'appeler stop()
-			setElapsedSecondsToSave(seconds)
-			stop()
-			setShowSaveTimer(true)
+		if (!timer.running) {
+			timer.start()
+		} else if (timer.paused) {
+			timer.resume()
 		} else {
-			stop()
+			timer.pause()
+		}
+	}
+	const handleStop = () => {
+		const elapsed = timer.getElapsedSeconds ? timer.getElapsedSeconds() : 0
+		if ((timer.running || timer.paused) && elapsed > 0) {
+			setElapsedSecondsToSave(elapsed)
+			setShowSaveTimer(true)
+			// Do not reset timer yet; wait for modal
+		} else {
+			// If not running and no time, just reset
+			timer.stop()
+			setSeconds(0)
 		}
 	}
 	const handleSaveTimer = async (taskData) => {
@@ -62,7 +72,6 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 			alert('Utilisateur non authentifié')
 			return
 		}
-
 		try {
 			const { data, error } = await supabase
 				.from('tasks')
@@ -79,15 +88,16 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 					}
 				])
 				.select()
-
 			if (error) {
 				console.error('Erreur lors de l\'enregistrement:', error)
 				alert('Erreur lors de l\'enregistrement: ' + error.message)
 				return
-			}			setShowSaveTimer(false)
-			setElapsedSecondsToSave(0) // Remettre à zéro le temps sauvegardé
-			// Optionnel: rafraîchir le calendrier si nécessaire
-			// window.location.reload()
+			}
+			setShowSaveTimer(false)
+			setElapsedSecondsToSave(0)
+			timer.stop()
+			setSeconds(0)
+			setRefreshKey(k => k + 1) // Ajoute cette ligne pour rafraîchir FullCalendarGrid
 		} catch (err) {
 			console.error('Erreur lors de l\'enregistrement (exception):', err)
 			alert('Erreur lors de l\'enregistrement: ' + err.message)
@@ -128,36 +138,40 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 		setExternalDate(date)
 	}
 
+	// Live update seconds from timer
+	useEffect(() => {
+		if (!timer.running && !timer.paused) {
+			setSeconds(0)
+			return
+		}
+		const update = () => setSeconds(timer.getElapsedSeconds ? timer.getElapsedSeconds() : 0)
+		update()
+		const interval = setInterval(update, 1000)
+		return () => clearInterval(interval)
+	}, [timer, timer.running, timer.paused])
+
+	const safeSeconds = Number.isFinite(seconds) && seconds >= 0 ? seconds : 0
+
 	return (
 		<>
 			<header className='flex flex-col md:flex-row md:items-center md:justify-between px-6 py-4 border-b border-gray-200 bg-white'>
 				<div className='flex items-center gap-4 mb-2 md:mb-0'>
-					<button
-						onClick={() => setSidebarCollapsed(v => !v)}
-						className='p-2 rounded-full hover:bg-gray-200 focus:outline-none md:hidden'
-						aria-label={sidebarCollapsed ? 'Open menu' : 'Close menu'}
-					>
-						<svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
-							<rect y='4' width='24' height='2' rx='1' fill='currentColor'/>
-							<rect y='11' width='24' height='2' rx='1' fill='currentColor'/>
-							<rect y='18' width='24' height='2' rx='1' fill='currentColor'/>
-						</svg>
-					</button>					<span className='font-mono text-3xl text-blue-700 w-24 text-center'>
-						{String(Math.floor(seconds / 60)).padStart(2, '0')}:
-						{String(seconds % 60).padStart(2, '0')}
+					<span className='font-mono text-3xl text-blue-700 w-24 text-center'>
+						{String(Math.floor(safeSeconds / 60)).padStart(2, '0')}:
+						{String(safeSeconds % 60).padStart(2, '0')}
 					</span>
 					<button
 						onClick={handleStartPause}
 						className={`p-2 rounded-full border flex items-center ${
-							!running
+							!timer.running
 								? 'bg-blue-100 hover:bg-blue-200 border-blue-200'
-								: paused
+								: timer.paused
 									? 'bg-blue-100 hover:bg-blue-200 border-blue-200'
 									: 'bg-yellow-100 hover:bg-yellow-200 border-yellow-200'
 						}`}
-						aria-label={!running ? 'Start timer' : paused ? 'Resume timer' : 'Pause timer'}
+						aria-label={!timer.running ? 'Start timer' : timer.paused ? 'Resume timer' : 'Pause timer'}
 					>
-						{!running || paused ? (
+						{!timer.running || timer.paused ? (
 							<svg width='20' height='20' fill='none' viewBox='0 0 20 20'>
 								<polygon points='6,4 16,10 6,16' fill='#2563eb'/>
 							</svg>
@@ -170,8 +184,8 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 					</button>
 					<button
 						onClick={handleStop}
-						disabled={!running && seconds === 0}
-						className={`p-2 rounded-full border flex items-center ${running || seconds > 0 ? 'bg-rose-100 hover:bg-rose-200 border-rose-200' : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'}`}
+						disabled={!timer.running && safeSeconds === 0}
+						className={`p-2 rounded-full border flex items-center ${timer.running || safeSeconds > 0 ? 'bg-rose-100 hover:bg-rose-200 border-rose-200' : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'}`}
 						aria-label='Stop timer'
 					>
 						<svg width='20' height='20' fill='none' viewBox='0 0 20 20'>
@@ -197,8 +211,8 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 			{showZone && (
 				<FocusZoneModal
 					seconds={seconds}
-					running={running}
-					isPaused={paused}
+					running={timer.running}
+					isPaused={timer.paused}
 					onStartPause={handleStartPause}
 					onStop={handleStop}
 					onClose={handleCloseZone}
@@ -223,12 +237,13 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 			)}
 			<div className={styles.dashboardMain}>
 				<div className={styles.calendarPanel}>
-					<CalendarGrid
+					{/* <CalendarGrid
 						user={user}
 						selectedRange={selectedRange}
 						selectedDate={selectedDate}
 						onExternalDateChange={handleExternalDateChange}
-					/>
+					/> */}
+					<FullCalendarGrid user={user} refreshKey={refreshKey} />
 				</div>
 			</div>
 		</>

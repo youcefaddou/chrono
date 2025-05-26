@@ -1,5 +1,5 @@
 import { useContext } from 'react'
-import { GlobalTimerContext } from './GlobalTimerProvider'
+import { GlobalTimerContext } from './GlobalTimerContext'
 
 export function useGlobalTimer () {
 	return useContext(GlobalTimerContext)
