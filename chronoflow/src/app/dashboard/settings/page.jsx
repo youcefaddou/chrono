@@ -1,39 +1,50 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FaUser, FaEnvelope, FaSave, FaEdit, FaCogs, FaKey, FaPlug } from 'react-icons/fa'
+import { FaUser, FaEnvelope, FaSave, FaEdit, FaCalendarAlt } from 'react-icons/fa'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
 )
 
 export default function SettingsPage () {
 	const [profile, setProfile] = useState({
-		name: '',
-		email: '',
 		username: '',
+		email: '',
+		createdAt: '',
+		lastSignInAt: '',
+		provider: '',
 	})
 	const [isEditing, setIsEditing] = useState(false)
 
-	// Fetch user profile from Supabase
+	// Fetch user profile from Supabase Auth
 	useEffect(() => {
 		const fetchProfile = async () => {
-			const { data, error } = await supabase
-				.from('users')
-				.select('name, email')
-				.eq('id', supabase.auth.user()?.id)
-				.single()
+			// Récupérer l'utilisateur connecté
+			const { data: session, error: sessionError } = await supabase.auth.getSession()
 
-			if (error) {
-				console.error('Erreur lors de la récupération du profil:', error)
-			} else {
-				setProfile({
-					name: data.name || '',
-					email: data.email || '',
-				})
+			if (sessionError) {
+				console.error('Erreur lors de la récupération de la session utilisateur:', sessionError)
+				return
 			}
+
+			const user = session?.session?.user
+
+			if (!user) {
+				console.error('Aucun utilisateur connecté')
+				return
+			}
+
+			// Mettre à jour le profil avec les données disponibles
+			setProfile({
+				username: user.user_metadata?.user_name || '',
+				email: user.email || '',
+				createdAt: new Date(user.created_at).toLocaleDateString(),
+				lastSignInAt: new Date(user.last_sign_in_at).toLocaleDateString(),
+				provider: user.app_metadata?.provider || 'email',
+			})
 		}
 
 		fetchProfile()
@@ -48,11 +59,10 @@ export default function SettingsPage () {
 		e.preventDefault()
 		setIsEditing(false)
 
-		// Update user profile in Supabase
-		const { error } = await supabase
-			.from('users')
-			.update({ username: profile.username })
-			.eq('id', supabase.auth.user()?.id)
+		// Mettre à jour les métadonnées utilisateur
+		const { error } = await supabase.auth.updateUser({
+			data: { user_name: profile.username },
+		})
 
 		if (error) {
 			console.error('Erreur lors de la sauvegarde du profil:', error)
@@ -77,32 +87,6 @@ export default function SettingsPage () {
 				</div>
 				<form className='space-y-6' onSubmit={handleSaveProfile}>
 					<div>
-						<label htmlFor='name' className='block text-sm font-medium text-gray-700'>
-							Nom
-						</label>
-						<input
-							type='text'
-							id='name'
-							name='name'
-							value={profile.name}
-							disabled
-							className='mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 cursor-not-allowed sm:text-sm'
-						/>
-					</div>
-					<div>
-						<label htmlFor='email' className='block text-sm font-medium text-gray-700'>
-							Email
-						</label>
-						<input
-							type='email'
-							id='email'
-							name='email'
-							value={profile.email}
-							disabled
-							className='mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 cursor-not-allowed sm:text-sm'
-						/>
-					</div>
-					<div>
 						<label htmlFor='username' className='block text-sm font-medium text-gray-700'>
 							Nom d'utilisateur
 						</label>
@@ -116,8 +100,34 @@ export default function SettingsPage () {
 							className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
 								isEditing ? 'bg-white' : 'bg-gray-100 cursor-not-allowed'
 							}`}
-							placeholder='Votre nom d\'utilisateur'
+							placeholder="Votre nom d'utilisateur"
 						/>
+					</div>
+					<div>
+						<label htmlFor='email' className='block text-sm font-medium text-gray-700'>
+							Email
+						</label>
+						<p className='mt-1 text-sm text-gray-700 font-semibold rounded-md'>
+							{profile.email}
+						</p>
+					</div>
+					<div>
+						<label htmlFor='createdAt' className='block text-sm font-medium text-gray-700'>
+							Date de création
+						</label>
+						<div className='mt-1 text-sm text-gray-600'>{profile.createdAt}</div>
+					</div>
+					<div>
+						<label htmlFor='lastSignInAt' className='block text-sm font-medium text-gray-700'>
+							Dernière connexion
+						</label>
+						<div className='mt-1 text-sm text-gray-600'>{profile.lastSignInAt}</div>
+					</div>
+					<div>
+						<label htmlFor='provider' className='block text-sm font-medium text-gray-700'>
+							Fournisseur d'authentification
+						</label>
+						<div className='mt-1 text-sm text-gray-600 capitalize'>{profile.provider}</div>
 					</div>
 					<div className='flex justify-end gap-4'>
 						<button
@@ -143,33 +153,6 @@ export default function SettingsPage () {
 						</button>
 					</div>
 				</form>
-			</section>
-
-			{/* Section Abonnement */}
-			<section className='bg-white shadow-lg rounded-lg p-6'>
-				<div className='flex items-center mb-4'>
-					<FaCogs className='text-green-500 text-2xl mr-3' />
-					<h2 className='text-2xl font-semibold text-gray-800'>Abonnement</h2>
-				</div>
-				<p className='text-sm text-gray-600'>TODO: Ajouter la gestion des abonnements.</p>
-			</section>
-
-			{/* Section Intégrations */}
-			<section className='bg-white shadow-lg rounded-lg p-6'>
-				<div className='flex items-center mb-4'>
-					<FaPlug className='text-purple-500 text-2xl mr-3' />
-					<h2 className='text-2xl font-semibold text-gray-800'>Intégrations</h2>
-				</div>
-				<p className='text-sm text-gray-600'>TODO: Ajouter les intégrations (e.g., Google, Slack).</p>
-			</section>
-
-			{/* Section 2FA */}
-			<section className='bg-white shadow-lg rounded-lg p-6'>
-				<div className='flex items-center mb-4'>
-					<FaKey className='text-red-500 text-2xl mr-3' />
-					<h2 className='text-2xl font-semibold text-gray-800'>Authentification à deux facteurs (2FA)</h2>
-				</div>
-				<p className='text-sm text-gray-600'>TODO: Ajouter la configuration de l'authentification à deux facteurs.</p>
 			</section>
 		</div>
 	)
