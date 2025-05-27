@@ -233,6 +233,7 @@ function CalendarEventWithPlay({
 	const isVerySmallTask = containerHeight < baseVerySmallThreshold // Très petite tâche
 	const isSmallTask = containerHeight < baseSmallThreshold   // Petite tâche (layout compact préféré)
 	const isMediumTask = containerHeight < baseMediumThreshold   // Tâche moyenne
+	const isTinyTask = containerHeight < 10
 	
 	const taskSizeClass = isVerySmallTask ? 'very-small-task' : 
 						  isSmallTask ? 'small-task' : 
@@ -268,21 +269,22 @@ function CalendarEventWithPlay({
 					</span>
 					<button
 						onClick={handlePlayPause}
-						className='p-1 rounded-full flex items-center justify-center bg-blue-100 hover:bg-blue-200'
+						className={`${isTinyTask ? 'p-0' : 'p-1'} rounded-full flex items-center justify-center bg-blue-100 hover:bg-blue-200`}
+						style={isTinyTask ? { minWidth: 10, minHeight: 10, width: 10, height: 10 } : {}}
 						title={isRunning ? (isPaused ? t('timer.resume') : t('timer.pause')) : t('timer.start')}
 						aria-label={isRunning ? (isPaused ? t('timer.resume') : t('timer.pause')) : t('timer.start')}
 						disabled={isDone || saving}
 					>
 						{!isRunning ? (
-							<svg width='14' height='14' fill='none' viewBox='0 0 20 20'>
+							<svg width={isTinyTask ? '6' : '14'} height={isTinyTask ? '6' : '14'} fill='none' viewBox='0 0 20 20'>
 								<polygon points='6,4 16,10 6,16' fill='#2563eb'/>
 							</svg>
 						) : isPaused ? (
-							<svg width='14' height='14' fill='none' viewBox='0 0 20 20'>
+							<svg width={isTinyTask ? '6' : '14'} height={isTinyTask ? '6' : '14'} fill='none' viewBox='0 0 20 20'>
 								<polygon points='6,4 16,10 6,16' fill='#eab308'/>
 							</svg>
 						) : (
-							<svg width='14' height='14' fill='none' viewBox='0 0 20 20'>
+							<svg width={isTinyTask ? '6' : '14'} height={isTinyTask ? '6' : '14'} fill='none' viewBox='0 0 20 20'>
 								<rect x='5' y='4' width='3' height='12' rx='1' fill='#eab308'/>
 								<rect x='12' y='4' width='3' height='12' rx='1' fill='#eab308'/>
 							</svg>
@@ -290,12 +292,13 @@ function CalendarEventWithPlay({
 					</button>
 					<button
 						onClick={handleStop}
-						className='p-1 rounded-full bg-rose-100 hover:bg-rose-200 flex items-center justify-center'
+						className={`${isTinyTask ? 'p-0' : 'p-1'} rounded-full bg-rose-100 hover:bg-rose-200 flex items-center justify-center`}
+						style={isTinyTask ? { minWidth: 12, minHeight: 12, width: 12, height: 12 } : {}}
 						title={t('timer.stop')}
 						aria-label={t('timer.stop')}
 						disabled={isDone || saving}
 					>
-						<svg width='14' height='14' fill='none' viewBox='0 0 20 20'>
+						<svg width={isTinyTask ? '6' : '14'} height={isTinyTask ? '6' : '14'} fill='none' viewBox='0 0 20 20'>
 							<rect x='5' y='5' width='10' height='10' rx='2' fill='#e11d48'/>
 						</svg>
 					</button>

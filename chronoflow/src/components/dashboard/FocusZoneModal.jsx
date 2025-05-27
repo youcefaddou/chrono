@@ -106,6 +106,10 @@ function FocusZoneModal ({
 
 	const isFr = lang === 'fr'
 
+	const handleReset = () => {
+		if (onStop) onStop()
+	}
+
 	return (
 		<div
 			ref={modalRef}
@@ -161,9 +165,9 @@ function FocusZoneModal ({
 								: (!running || isPaused ? 'Start' : 'Pause')}
 						</button>
 						<button
-							onClick={onStop}
-							disabled={!running && seconds === 0}
-							className={`px-6 py-2 rounded-full text-lg font-semibold ${running || seconds > 0 ? 'bg-rose-100 text-blue-700 hover:bg-rose-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+							onClick={handleReset}
+							disabled={seconds === 0}
+							className={`px-6 py-2 rounded-full text-lg font-semibold ${seconds > 0 ? 'bg-rose-100 text-blue-700 hover:bg-rose-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
 						>
 							{isFr ? 'Réinitialiser' : 'Reset'}
 						</button>

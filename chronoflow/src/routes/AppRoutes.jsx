@@ -13,6 +13,7 @@ import SignupPageEn from '../app/(auth)/signup/page.en'
 import LoginPage from '../app/(auth)/login/page'
 import LoginPageEn from '../app/(auth)/login/page.en'
 import DashboardPage from '../app/dashboard/page'
+import SettingsPage from '../app/dashboard/settings/page'
 
 // Ajoute d'autres pages si besoin
 
@@ -29,6 +30,7 @@ export default function AppRoutes () {
 			<Route path="/faq" element={<FaqPage />} />
 			<Route path="/contact" element={<ContactPage />} />
 			<Route path="/dashboard" element={<DashboardPage />} />
+			<Route path="/dashboard/settings" element={<SettingsPage />} />
 			
 
 			{/* EN routes */}

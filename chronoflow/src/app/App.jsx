@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import FocusZoneModal from './FocusZoneModal'

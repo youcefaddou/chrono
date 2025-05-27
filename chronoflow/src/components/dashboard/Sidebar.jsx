@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useLocation, NavLink } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import SettingsPage from '../../app/dashboard/settings/page'
 
 function Sidebar ({ user }) {
 	const { t } = useTranslation()
@@ -95,7 +96,10 @@ function Sidebar ({ user }) {
 							}`}
 							title={isCollapsed ? t('sidebar.settings') || 'Paramètres' : undefined}
 						>
-							<svg width={isCollapsed ? '20' : '26'} height={isCollapsed ? '20' : '26'} fill='none' viewBox='0 0 24 24' className='text-blue-200 group-hover:text-white'><circle cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='2.2'/><path d='M12 8v4l3 3' stroke='currentColor' strokeWidth='2.2' strokeLinecap='round'/></svg>
+							<svg width={isCollapsed ? '20' : '26'} height={isCollapsed ? '20' : '26'} fill='none' viewBox='0 0 24 24' className='text-blue-200 group-hover:text-white'>
+								<circle cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='2.2'/>
+								<path d='M12 8v4l3 3' stroke='currentColor' strokeWidth='2.2' strokeLinecap='round'/>
+							</svg>
 							{!isCollapsed && <span>Paramètres</span>}
 						</NavLink>
 					</div>
