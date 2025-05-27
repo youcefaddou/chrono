@@ -143,22 +143,24 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 		return () => clearInterval(interval)
 	}, [timer, timer.running, timer.paused])
 
-	useEffect(() => {
-		function preventCopyPaste (e) {
-			e.preventDefault()
-			return false
-		}
-		document.addEventListener('copy', preventCopyPaste, true)
-		document.addEventListener('cut', preventCopyPaste, true)
-		document.addEventListener('paste', preventCopyPaste, true)
-		document.addEventListener('contextmenu', preventCopyPaste, true)
-		return () => {
-			document.removeEventListener('copy', preventCopyPaste, true)
-			document.removeEventListener('cut', preventCopyPaste, true)
-			document.removeEventListener('paste', preventCopyPaste, true)
-			document.removeEventListener('contextmenu', preventCopyPaste, true)
-		}
-	}, [])
+    // Prevent copy-paste and right-click context menu
+    
+	// useEffect(() => {
+	// 	function preventCopyPaste (e) {
+	// 		e.preventDefault()
+	// 		return false
+	// 	}
+	// 	document.addEventListener('copy', preventCopyPaste, true)
+	// 	document.addEventListener('cut', preventCopyPaste, true)
+	// 	document.addEventListener('paste', preventCopyPaste, true)
+	// 	document.addEventListener('contextmenu', preventCopyPaste, true)
+	// 	return () => {
+	// 		document.removeEventListener('copy', preventCopyPaste, true)
+	// 		document.removeEventListener('cut', preventCopyPaste, true)
+	// 		document.removeEventListener('paste', preventCopyPaste, true)
+	// 		document.removeEventListener('contextmenu', preventCopyPaste, true)
+	// 	}
+	// }, [])
 
 	const safeSeconds = Number.isFinite(seconds) && seconds >= 0 ? seconds : 0
 
