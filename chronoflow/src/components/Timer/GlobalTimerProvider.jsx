@@ -74,7 +74,7 @@ export function GlobalTimerProvider ({ children }) {
 		setStartTimestamp(null)
 		setTask(null)
 		setProjectId(null)
-		setAccumulated(0)
+		setAccumulated(0) // Toujours remettre à zéro
 	}
 
 	const setTime = s => setAccumulated(s)
