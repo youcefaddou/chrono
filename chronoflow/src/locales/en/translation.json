@@ -1,0 +1,30 @@
+{
+	"settings": {
+		"title": "Settings",
+		"userProfile": "User Profile",
+		"preferences": "Preferences",
+		"security": "Security",
+		"integrations": "Integrations",
+		"support": "Support",
+		"others": "Others",
+		"items": {
+			"name": "Name",
+			"email": "Email Address",
+			"password": "Password",
+			"language": "Language",
+			"theme": "Theme",
+			"notifications": "Notifications",
+			"twoFactorAuth": "Two-Factor Authentication",
+			"connectedDevices": "Connected Devices",
+			"loginHistory": "Login History",
+			"connectServices": "Connect Third-Party Services",
+			"managePermissions": "Manage Permissions",
+			"faq": "FAQ",
+			"contactSupport": "Contact Support",
+			"documentation": "Documentation",
+			"reset": "Reset",
+			"exportData": "Export Data",
+			"deleteData": "Delete Data"
+		}
+	}
+}
