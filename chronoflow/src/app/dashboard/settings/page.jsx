@@ -5,6 +5,7 @@ import { FaUser, FaCog, FaShieldAlt, FaPlug, FaQuestionCircle, FaTrashAlt } from
 import { createClient } from '@supabase/supabase-js'
 import Sidebar from '../../../components/dashboard/Sidebar'
 import ErrorBoundary from '../../../components/ErrorBoundary'
+import { useTranslation } from 'react-i18next'
 
 const supabase = createClient(
 	import.meta.env.VITE_SUPABASE_URL,
@@ -12,6 +13,7 @@ const supabase = createClient(
 )
 
 export default function SettingsPage () {
+	const { t, i18n } = useTranslation()
 	const [profile, setProfile] = useState({
 		displayName: '',
 		email: '',
@@ -20,6 +22,7 @@ export default function SettingsPage () {
 	})
 	const [isEditingName, setIsEditingName] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+	const [theme, setTheme] = useState('light') // Default theme
 
 	// Fetch user profile from auth.users
 	useEffect(() => {
@@ -52,6 +55,11 @@ export default function SettingsPage () {
 		}
 
 		fetchProfile()
+
+		// Load theme from localStorage
+		const savedTheme = localStorage.getItem('theme') || 'light'
+		setTheme(savedTheme)
+		document.body.className = savedTheme
 	}, [])
 
 	const handleNameChange = (e) => {
@@ -65,12 +73,18 @@ export default function SettingsPage () {
 		const { error } = await supabase.auth.updateUser({
 			data: { display_name: profile.displayName },
 		})
+	}
 
-		if (error) {
-			console.error('Erreur lors de la sauvegarde du nom:', error)
-		} else {
-			console.log('Nom sauvegardé avec succès !')
-		}
+	const handleLanguageChange = (e) => {
+		const selectedLanguage = e.target.value
+		i18n.changeLanguage(selectedLanguage)
+	}
+
+	const handleThemeChange = (e) => {
+		const selectedTheme = e.target.value
+		setTheme(selectedTheme)
+		localStorage.setItem('theme', selectedTheme)
+		document.body.className = selectedTheme
 	}
 
 	const sections = [
@@ -89,7 +103,7 @@ export default function SettingsPage () {
 							/>
 							<button
 								onClick={handleSaveName}
-								className='bg-blue-500 text-white px-3 py-1 rounded'
+								className='bg-blue-500 text-white px-3 py-1 rounded cursor-pointer'
 							>
 								Sauvegarder
 							</button>
@@ -99,7 +113,7 @@ export default function SettingsPage () {
 							<span>{profile.displayName}</span>
 							<button
 								onClick={() => setIsEditingName(true)}
-								className='text-blue-500 underline'
+								className='text-blue-500 underline cursor-pointer'
 							>
 								Modifier
 							</button>
@@ -118,9 +132,42 @@ export default function SettingsPage () {
 		{
 			title: 'Préférences',
 			items: [
-				{ label: 'Langue' },
-				{ label: 'Thème' },
-				{ label: 'Notifications' },
+				{				
+					content: (
+						<div className='flex items-center space-x-6'>
+							<label htmlFor='language-select' className='font-medium w-24'>
+								Langue
+							</label>
+							<select
+								id='language-select'
+								value={i18n.language}
+								onChange={handleLanguageChange}
+								className='border rounded px-4 py-2 w-48 cursor-pointer'
+							>
+								<option value='fr'>Français</option>
+								<option value='en'>English</option>
+							</select>
+						</div>
+					),
+				},
+				{
+					content: (
+						<div className='flex items-center space-x-6'>
+							<label htmlFor='theme-select' className='font-medium w-24'>
+								Thème
+							</label>
+							<select
+								id='theme-select'
+								value={theme}
+								onChange={handleThemeChange}
+								className='border rounded px-4 py-2 w-48 cursor-pointer'
+							>
+								<option value='light'>Clair</option>
+								<option value='dark'>Sombre</option>
+							</select>
+						</div>
+					),
+				},
 			],
 			icon: <FaCog className='text-green-500' />,
 		},
@@ -169,7 +216,7 @@ export default function SettingsPage () {
 					onToggle={() => setSidebarCollapsed((prev) => !prev)}
 				/>
 				<main className={`flex-1 p-6 transition-all ${sidebarCollapsed ? 'ml-16' : 'ml-0'} h-auto`}>
-					<h1 className='text-3xl font-bold text-blue-700 mb-6'>Paramètres</h1>
+					<h1 className='text-3xl font-bold text-blue-700 mb-6'>{t('settings.title')}</h1>
 					<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
 						{sections.map((section, index) => (
 							<div
