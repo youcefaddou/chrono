@@ -1,0 +1,30 @@
+{
+	"settings": {
+		"title": "Paramètres",
+		"userProfile": "Profil Utilisateur",
+		"preferences": "Préférences",
+		"security": "Sécurité",
+		"integrations": "Intégrations",
+		"support": "Support",
+		"others": "Autres",
+		"items": {
+			"name": "Nom",
+			"email": "Adresse e-mail",
+			"password": "Mot de passe",
+			"language": "Langue",
+			"theme": "Thème",
+			"notifications": "Notifications",
+			"twoFactorAuth": "Authentification à deux facteurs",
+			"connectedDevices": "Appareils connectés",
+			"loginHistory": "Historique des connexions",
+			"connectServices": "Connecter des services tiers",
+			"managePermissions": "Gérer les autorisations",
+			"faq": "FAQ",
+			"contactSupport": "Contacter le support",
+			"documentation": "Documentation",
+			"reset": "Réinitialiser",
+			"exportData": "Exporter les données",
+			"deleteData": "Supprimer les données"
+		}
+	}
+}
