@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Sidebar from '../../../../components/dashboard/Sidebar'
 import ErrorBoundary from '../../../../components/ErrorBoundary'
+import ThemeToggle from '../../../../components/theme-toggle'
 import {
 	FaUser,
 	FaCog,
@@ -19,7 +20,7 @@ const supabase = createClient(
 	import.meta.env.VITE_SUPABASE_ANON_KEY
 )
 
-export default function EnglishSettingsPage () {
+export default function EnglishSettingsPage() {
 	const { t, i18n } = useTranslation()
 	const [profile, setProfile] = useState({
 		displayName: '',
@@ -29,7 +30,6 @@ export default function EnglishSettingsPage () {
 	})
 	const [isEditingName, setIsEditingName] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-	const [theme, setTheme] = useState('light')
 
 	// Fetch user profile from auth.users
 	useEffect(() => {
@@ -138,7 +138,7 @@ export default function EnglishSettingsPage () {
 								id='language-select'
 								value={i18n.language}
 								onChange={(e) => i18n.changeLanguage(e.target.value)}
-								className='border rounded px-4 py-2 w-full sm:w-auto sm:min-w-[120px] cursor-pointer'
+								className='border rounded px-4 py-2 w-full sm:w-48 cursor-pointer'
 							>
 								<option value='en'>English</option>
 								<option value='fr'>Français</option>
@@ -146,29 +146,7 @@ export default function EnglishSettingsPage () {
 						</div>
 					),
 				},
-				{
-					content: (
-						<div className='flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-2 sm:space-y-0'>
-							<label htmlFor='theme-select' className='font-medium w-full sm:w-24'>
-								{t('settings.items.theme')}
-							</label>
-							<select
-								id='theme-select'
-								value={theme}
-								onChange={(e) => {
-									const selectedTheme = e.target.value
-									setTheme(selectedTheme)
-									localStorage.setItem('theme', selectedTheme)
-									document.body.className = selectedTheme
-								}}
-								className='border rounded px-4 py-2 w-full sm:w-auto sm:min-w-[120px] cursor-pointer'
-							>
-								<option value='light'>{t('settings.items.light')}</option>
-								<option value='dark'>{t('settings.items.dark')}</option>
-							</select>
-						</div>
-					),
-				},
+				
 			],
 			icon: <FaCog className='text-green-500' />,
 		},

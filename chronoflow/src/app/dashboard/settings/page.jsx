@@ -22,7 +22,6 @@ export default function SettingsPage () {
 	})
 	const [isEditingName, setIsEditingName] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-	const [theme, setTheme] = useState('light') // Default theme
 
 	// Fetch user profile from auth.users
 	useEffect(() => {
@@ -55,11 +54,6 @@ export default function SettingsPage () {
 		}
 
 		fetchProfile()
-
-		// Load theme from localStorage
-		const savedTheme = localStorage.getItem('theme') || 'light'
-		setTheme(savedTheme)
-		document.body.className = savedTheme
 	}, [])
 
 	const handleNameChange = (e) => {
@@ -78,13 +72,6 @@ export default function SettingsPage () {
 	const handleLanguageChange = (e) => {
 		const selectedLanguage = e.target.value
 		i18n.changeLanguage(selectedLanguage)
-	}
-
-	const handleThemeChange = (e) => {
-		const selectedTheme = e.target.value
-		setTheme(selectedTheme)
-		localStorage.setItem('theme', selectedTheme)
-		document.body.className = selectedTheme
 	}
 
 	const sections = [
@@ -132,7 +119,7 @@ export default function SettingsPage () {
 		{
 			title: 'Préférences',
 			items: [
-				{				
+				{
 					content: (
 						<div className='flex items-center space-x-6'>
 							<label htmlFor='language-select' className='font-medium w-24'>
@@ -146,24 +133,6 @@ export default function SettingsPage () {
 							>
 								<option value='fr'>Français</option>
 								<option value='en'>English</option>
-							</select>
-						</div>
-					),
-				},
-				{
-					content: (
-						<div className='flex items-center space-x-6'>
-							<label htmlFor='theme-select' className='font-medium w-24'>
-								Thème
-							</label>
-							<select
-								id='theme-select'
-								value={theme}
-								onChange={handleThemeChange}
-								className='border rounded px-4 py-2 w-48 cursor-pointer'
-							>
-								<option value='light'>Clair</option>
-								<option value='dark'>Sombre</option>
 							</select>
 						</div>
 					),
@@ -215,7 +184,7 @@ export default function SettingsPage () {
 					collapsed={sidebarCollapsed}
 					onToggle={() => setSidebarCollapsed((prev) => !prev)}
 				/>
-				<main className={`flex-1 p-6 transition-all ${sidebarCollapsed ? 'ml-16' : 'ml-0'} h-auto`}>
+				<main className={`flex-1 p-6 transition-all ${sidebarCollapsed ? 'ml-16' : 'ml-5'} h-auto`}>
 					<h1 className='text-3xl font-bold text-blue-700 mb-6'>{t('settings.title')}</h1>
 					<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
 						{sections.map((section, index) => (

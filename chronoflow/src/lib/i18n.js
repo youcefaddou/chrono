@@ -147,6 +147,10 @@ i18n
               dark: 'Sombre',
             },
           },
+          themeToggle: {
+            darkMode: 'Mode sombre',
+            lightMode: 'Mode clair',
+          },
         },
       },
       en: {
@@ -278,6 +282,10 @@ i18n
               light: 'Light',
               dark: 'Dark',
             },
+          },
+          themeToggle: {
+            darkMode: 'Dark Mode',
+            lightMode: 'Light Mode',
           },
         },
       },

@@ -1,25 +1,17 @@
-import colors from 'tailwindcss/colors';
-
 /** @type {import('tailwindcss').Config} */
 export default {
-  future: {
-    defaultColorPalette: 'classic',
-  },
+  darkMode: 'class', // Enable dark mode based on the 'dark' class
   content: [
-    "./index.html",
-    "./src/**/*.{js,jsx,ts,tsx}",
+    './index.html',
+    './src/**/*.{js,jsx,ts,tsx}', // Include all source files
   ],
   theme: {
     extend: {
       colors: {
-        ...colors,
-        black: '#000',
-        gray: {
-          600: '#4b5563',
-        },
-        pink: {
-          600: '#db2777',
-        },
+        lightBackground: '#ffffff', // Background color for light mode
+        darkBackground: '#1a202c', // Background color for dark mode
+        lightText: '#1a202c', // Text color for light mode
+        darkText: '#ffffff', // Text color for dark mode
       },
     },
   },
