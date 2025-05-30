@@ -12,8 +12,7 @@ export const ThemeProvider = ({ children }) => {
 		const root = document.documentElement
 		root.classList.remove('light', 'dark') // Remove existing theme classes
 		root.classList.add(theme) // Add the current theme class
-		console.log(`Theme applied: ${theme}`) // Debugging log
-		console.log(`HTML classes: ${root.className}`) // Check applied classes
+
 	}, [theme])
 
 	const toggleTheme = () => {

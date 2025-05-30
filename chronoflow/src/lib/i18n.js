@@ -122,7 +122,7 @@ i18n
             support: 'Support',
             others: 'Autres',
             items: {
-              name: 'Nom',
+              username: "Nom d'utilisateur",
               email: 'Adresse e-mail',
               password: 'Mot de passe',
               language: 'Langue',
@@ -258,8 +258,8 @@ i18n
             support: 'Support',
             others: 'Others',
             items: {
-              name: 'Name',
-              email: 'Email',
+              username: 'Username',
+              email: 'Email address',
               password: 'Password',
               language: 'Language',
               theme: 'Theme',

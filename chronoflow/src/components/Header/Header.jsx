@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "../../hooks/useTranslation";
-import { supabase } from "../../lib/supabase";
 import logo from "../../assets/logo.png";
 import flagFr from "../../assets/france.png";
 import flagEn from "../../assets/eng.png";
@@ -13,6 +12,14 @@ const navLinks = [
   { to: "/ressources", label: "header.resources" },
 ];
 
+function parseJwt(token) {
+  try {
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch {
+    return null;
+  }
+}
+
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { t, i18n } = useTranslation();
@@ -22,7 +29,6 @@ export default function Header() {
   const navRef = useRef();
   const isDashboard = location.pathname === "/dashboard" || location.pathname === "/en/dashboard";
 
-  // Affiche le drapeau de la langue OPPOSÉE à la langue courante
   const showFlag = i18n.language.startsWith("fr") ? flagEn : flagFr;
   const nextLang = i18n.language.startsWith("fr") ? "en" : "fr";
 
@@ -31,22 +37,19 @@ export default function Header() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data?.session?.user ?? null);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => {
-      listener?.subscription.unsubscribe();
-    };
-  }, []);
+    const token = localStorage.getItem("token");
+    if (token) {
+      const decoded = parseJwt(token);
+      setUser(decoded);
+    } else {
+      setUser(null);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
 
-  // Ferme le menu si on clique en dehors du header/nav
   useEffect(() => {
     if (!menuOpen) return;
     const handleClick = (e) => {
@@ -82,17 +85,14 @@ export default function Header() {
     i18n.changeLanguage(lng);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
     navigate("/");
   };
 
-  const handleLogin = async (provider) => {
-    if (provider === "email") {
-      window.location.href = "/login";
-    } else {
-      await supabase.auth.signInWithOAuth({ provider });
-    }
+  const handleLogin = () => {
+    navigate("/login");
   };
 
   return (
@@ -140,7 +140,7 @@ export default function Header() {
             {!user && (
               <li className="header-login-row">
                 <button
-                  onClick={() => handleLogin("email")}
+                  onClick={handleLogin}
                   className="header-btn header-btn-main"
                 >
                   {t("header.login")}
@@ -158,7 +158,6 @@ export default function Header() {
               </li>
             )}
           </ul>
-          {/* Bouton flag TOUJOURS à droite */}
           <button
             onClick={handleLangSwitch}
             className="header-lang-btn"

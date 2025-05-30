@@ -27,6 +27,7 @@ npm install -D eslint prettier eslint-config-prettier eslint-plugin-react
 npm install i18next react-i18next
 npm install @hookform/resolvers zod
 npm install jspdf jspdf-autotable chart.js
+npm install cookie-parser
 
 
 supabase functions deploy update-task-durations  

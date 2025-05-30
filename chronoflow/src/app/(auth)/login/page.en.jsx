@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { supabase } from '../../../lib/supabase'
 import { useNavigate, Link } from 'react-router-dom'
 
 const passwordRegex =
@@ -35,24 +34,21 @@ export default function LoginPageEn () {
 	const onSubmit = async ({ email, password }) => {
 		setError('')
 		setLoading(true)
-		const { error: signInError } = await supabase.auth.signInWithPassword({
-			email,
-			password,
-		})
-		setLoading(false)
-		if (signInError) {
-			setError(signInError.message)
-		} else {
+		try {
+			const res = await fetch('http://localhost:3001/api/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email, password }),
+			})
+			const data = await res.json()
+			setLoading(false)
+			if (!res.ok) throw new Error(data.message || 'Login failed')
+			localStorage.setItem('token', data.token)
 			navigate('/dashboard')
+		} catch (err) {
+			setLoading(false)
+			setError(err.message)
 		}
-	}
-
-	const handleOAuth = async provider => {
-		setError('')
-		setLoading(true)
-		const { error } = await supabase.auth.signInWithOAuth({ provider })
-		setLoading(false)
-		if (error) setError(error.message)
 	}
 
 	return (
@@ -106,24 +102,6 @@ export default function LoginPageEn () {
 					</button>
 				</form>
 				<div className="flex flex-col gap-4 mb-4">
-					<button
-						type="button"
-						onClick={() => handleOAuth('google')}
-						className="cursor-pointer w-full flex items-center justify-center gap-2  hover:bg-gray-700 hover:text-white bg-white border border-gray-300  text-gray-700 font-semibold py-2 rounded-lg shadow transition disabled:opacity-60"
-						disabled={loading}
-					>
-						<img src="/assets/images/google.png" alt="Google" className="w-5 h-5" />
-						Sign in with Google
-					</button>
-					<button
-						type="button"
-						onClick={() => handleOAuth('github')}
-						className="cursor-pointer w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-rose-800 text-white font-semibold py-2 rounded-lg shadow transition disabled:opacity-60"
-						disabled={loading}
-					>
-						<img src="/assets/images/github.png" alt="GitHub" className="w-5 h-5 bg-white rounded-full p-0.2" />
-						Sign in with GitHub
-					</button>
 				</div>
 				<div className="mt-6 text-center text-sm text-gray-600">
 					Don't have an account?{' '}

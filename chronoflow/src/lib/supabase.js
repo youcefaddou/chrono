@@ -1,3 +1,6 @@
+// Note: Ce fichier ne doit plus être utilisé pour l'authentification.
+// Utilisez vos endpoints backend pour login/signup.
+
 import { createClient } from "@supabase/supabase-js";
 
 // Utilise les variables d'environnement Vite

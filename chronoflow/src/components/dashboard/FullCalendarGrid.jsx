@@ -4,7 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
-import { supabase } from '../../lib/supabase'
+import { api } from '../../lib/api'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import AddTaskModal from './AddTaskModal'
@@ -26,13 +26,10 @@ function FullCalendarGrid ({ user, refreshKey }) {
 	// Fetch tasks from Supabase and map to FullCalendar format
 	const fetchTasks = useCallback(async () => {
 		if (!user) return
-		const { data, error } = await supabase
-			.from('tasks')
-			.select('*')
-			.eq('user_id', user.id)
-		if (!error) {
+		try {
+			const data = await api.getTasks()
 			const mappedEvents = data.map(task => ({
-				id: task.id,
+				id: task._id || task.id,
 				title: task.title,
 				start: task.start ? new Date(task.start) : null,
 				end: task.end ? new Date(task.end) : null,
@@ -42,6 +39,8 @@ function FullCalendarGrid ({ user, refreshKey }) {
 				extendedProps: { ...task },
 			}))
 			setEvents(mappedEvents)
+		} catch (err) {
+			setEvents([])
 		}
 	}, [user])
 
@@ -62,16 +61,16 @@ function FullCalendarGrid ({ user, refreshKey }) {
 	// Handle event drop/resize
 	const handleEventDrop = useCallback(async (changeInfo) => {
 		const { event } = changeInfo
-		await supabase.from('tasks').update({
+		await api.updateTask(event.id, {
 			start: event.start,
 			end: event.end,
-		}).eq('id', event.id)
+		})
 		fetchTasks()
 	}, [fetchTasks])
 
 	// Handle event remove
 	const handleEventRemove = useCallback(async (eventId) => {
-		await supabase.from('tasks').delete().eq('id', eventId)
+		await api.deleteTask(eventId)
 		fetchTasks()
 	}, [fetchTasks])
 
@@ -98,18 +97,16 @@ function FullCalendarGrid ({ user, refreshKey }) {
 	const handleAddTaskSave = async (task) => {
 		if (!user) return
 		try {
-			await supabase.from('tasks').insert([
-				{
-					title: task.title,
-					description: task.desc || '',
-					start: task.start,
-					end: task.end,
-					color: task.color || '#2563eb',
-					user_id: user.id,
-					is_finished: false,
-					duration_seconds: 0,
-				}
-			])
+			await api.createTask({
+				title: task.title,
+				description: task.desc || '',
+				start: task.start,
+				end: task.end,
+				color: task.color || '#2563eb',
+				user_id: user.id,
+				is_finished: false,
+				duration_seconds: 0,
+			})
 			setShowAddTaskModal(false)
 			setDraftTask(null)
 			fetchTasks()
@@ -121,13 +118,13 @@ function FullCalendarGrid ({ user, refreshKey }) {
 	const handleEditTaskSave = async (task) => {
 		if (!user || !selectedEvent) return
 		try {
-			await supabase.from('tasks').update({
+			await api.updateTask(selectedEvent.id, {
 				title: task.title,
 				description: task.desc || '',
 				start: task.start,
 				end: task.end,
 				color: task.color || '#2563eb',
-			}).eq('id', selectedEvent.id)
+			})
 			setShowEditTaskModal(false)
 			setSelectedEvent(null)
 			fetchTasks()
@@ -139,7 +136,7 @@ function FullCalendarGrid ({ user, refreshKey }) {
 	const handleEditTaskDelete = async () => {
 		if (!user || !selectedEvent) return
 		try {
-			await supabase.from('tasks').delete().eq('id', selectedEvent.id)
+			await api.deleteTask(selectedEvent.id)
 			setShowEditTaskModal(false)
 			setSelectedEvent(null)
 			fetchTasks()

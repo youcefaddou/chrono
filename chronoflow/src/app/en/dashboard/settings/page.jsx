@@ -13,74 +13,56 @@ import {
 	FaQuestionCircle,
 	FaTrashAlt,
 } from 'react-icons/fa'
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-	import.meta.env.VITE_SUPABASE_URL,
-	import.meta.env.VITE_SUPABASE_ANON_KEY
-)
+function parseJwt (token) {
+	try {
+		return JSON.parse(atob(token.split('.')[1]))
+	} catch {
+		return null
+	}
+}
 
-export default function EnglishSettingsPage() {
+export default function EnglishSettingsPage () {
 	const { t, i18n } = useTranslation()
 	const [profile, setProfile] = useState({
-		displayName: '',
+		username: '',
 		email: '',
 		createdAt: '',
 		lastSignInAt: '',
 	})
-	const [isEditingName, setIsEditingName] = useState(false)
+	const [isEditingUsername, setIsEditingUsername] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-	// Fetch user profile from auth.users
 	useEffect(() => {
-		const fetchProfile = async () => {
-			const { data: session, error: sessionError } = await supabase.auth.getSession()
-
-			if (sessionError) {
-				console.error('Error fetching user session:', sessionError)
-				return
-			}
-
-			const user = session?.session?.user
-
-			if (!user) {
-				console.error('No user logged in')
-				return
-			}
-
-			// Extract user metadata directly from the session
-			const rawUserMetaData = user.user_metadata || {}
-			const displayName = rawUserMetaData.name || rawUserMetaData.full_name || 'Not defined'
-
-			// Set profile data
-			setProfile({
-				displayName,
-				email: user.email || '',
-				createdAt: new Date(user.created_at).toLocaleDateString(),
-				lastSignInAt: new Date(user.last_sign_in_at).toLocaleDateString(),
-			})
+		const token = localStorage.getItem('token')
+		if (!token) {
+			console.error('No user logged in')
+			return
 		}
-
-		fetchProfile()
+		const decoded = parseJwt(token)
+		if (!decoded || !decoded.email) {
+			console.error('No user logged in')
+			return
+		}
+		setProfile({
+			username: decoded.username || '',
+			email: decoded.email || '',
+			createdAt: decoded.createdAt
+				? new Date(decoded.createdAt).toLocaleDateString('en-GB')
+				: '',
+			lastSignInAt: decoded.lastSignInAt
+				? new Date(decoded.lastSignInAt).toLocaleDateString('en-GB')
+				: '',
+		})
 	}, [])
 
-	const handleNameChange = (e) => {
-		setProfile((prev) => ({ ...prev, displayName: e.target.value }))
+	const handleUsernameChange = (e) => {
+		setProfile((prev) => ({ ...prev, username: e.target.value }))
 	}
 
-	const handleSaveName = async () => {
-		setIsEditingName(false)
-
-		// Update display name in auth.users
-		const { error } = await supabase.auth.updateUser({
-			data: { display_name: profile.displayName },
-		})
-
-		if (error) {
-			console.error('Error saving name:', error)
-		} else {
-			console.log('Name saved successfully!')
-		}
+	const handleSaveUsername = async () => {
+		setIsEditingUsername(false)
+		// TODO: Call your backend to update the username
 	}
 
 	const sections = [
@@ -88,17 +70,17 @@ export default function EnglishSettingsPage() {
 			title: t('settings.userProfile'),
 			items: [
 				{
-					label: t('settings.items.name'),
-					content: isEditingName ? (
+					label: t('settings.items.username'),
+					content: isEditingUsername ? (
 						<div className='flex items-center space-x-2'>
 							<input
 								type='text'
-								value={profile.displayName}
-								onChange={handleNameChange}
+								value={profile.username}
+								onChange={handleUsernameChange}
 								className='border rounded px-2 py-1'
 							/>
 							<button
-								onClick={handleSaveName}
+								onClick={handleSaveUsername}
 								className='bg-blue-500 text-white px-3 py-1 rounded'
 							>
 								{t('settings.items.save')}
@@ -106,9 +88,9 @@ export default function EnglishSettingsPage() {
 						</div>
 					) : (
 						<div className='flex items-center space-x-2'>
-							<span>{profile.displayName}</span>
+							<span>{profile.username}</span>
 							<button
-								onClick={() => setIsEditingName(true)}
+								onClick={() => setIsEditingUsername(true)}
 								className='text-blue-500 underline'
 							>
 								{t('settings.items.edit')}

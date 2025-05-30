@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { supabase } from '../../lib/supabase' // Mise à jour de l'importation
 import Sidebar from '../../components/dashboard/Sidebar'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
 
@@ -15,32 +14,17 @@ export default function DashboardPage () {
 	const { t } = useTranslation()
 
 	useEffect(() => {
-		const getUser = async () => {
-			try {
-				const { data: session, error } = await supabase.auth.getSession()
-
-				if (error) {
-					console.error('Erreur lors de la récupération de la session utilisateur:', error)
-					navigate('/login')
-					return
-				}
-
-				const user = session?.session?.user
-
-				if (!user) {
-					navigate('/login')
-				} else {
-					setUser(user)
-				}
-			} catch (err) {
-				console.error('Erreur inattendue:', err)
+		const fetchUser = async () => {
+			const res = await fetch('http://localhost:3001/api/me', { credentials: 'include' })
+			if (res.ok) {
+				const user = await res.json()
+				setUser(user)
+			} else {
 				navigate('/login')
-			} finally {
-				setLoading(false)
 			}
+			setLoading(false)
 		}
-
-		getUser()
+		fetchUser()
 	}, [navigate])
 
 	if (loading) {
@@ -77,7 +61,6 @@ export default function DashboardPage () {
 					sidebarCollapsed={sidebarCollapsed}
 					setSidebarCollapsed={setSidebarCollapsed}
 				/>
-				{/* La grille est désormais gérée uniquement dans DashboardHeader */}
 			</main>
 		</div>
 	)

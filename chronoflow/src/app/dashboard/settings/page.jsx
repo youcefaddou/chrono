@@ -2,71 +2,56 @@
 
 import { useState, useEffect } from 'react'
 import { FaUser, FaCog, FaShieldAlt, FaPlug, FaQuestionCircle, FaTrashAlt } from 'react-icons/fa'
-import { createClient } from '@supabase/supabase-js'
 import Sidebar from '../../../components/dashboard/Sidebar'
 import ErrorBoundary from '../../../components/ErrorBoundary'
 import { useTranslation } from 'react-i18next'
 
-const supabase = createClient(
-	import.meta.env.VITE_SUPABASE_URL,
-	import.meta.env.VITE_SUPABASE_ANON_KEY
-)
+function parseJwt (token) {
+	try {
+		return JSON.parse(atob(token.split('.')[1]))
+	} catch {
+		return null
+	}
+}
 
 export default function SettingsPage () {
 	const { t, i18n } = useTranslation()
 	const [profile, setProfile] = useState({
-		displayName: '',
+		username: '',
 		email: '',
 		createdAt: '',
 		lastSignInAt: '',
 	})
-	const [isEditingName, setIsEditingName] = useState(false)
+	const [isEditingUsername, setIsEditingUsername] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
 	// Fetch user profile from auth.users
 	useEffect(() => {
 		const fetchProfile = async () => {
-			const { data: session, error: sessionError } = await supabase.auth.getSession()
-
-			if (sessionError) {
-				console.error('Erreur lors de la récupération de la session utilisateur:', sessionError)
-				return
-			}
-
-			const user = session?.session?.user
-
-			if (!user) {
-				console.error('Aucun utilisateur connecté')
-				return
-			}
-
-			// Extraire les métadonnées utilisateur directement depuis la session
-			const rawUserMetaData = user.user_metadata || {}
-			const displayName = rawUserMetaData.name || rawUserMetaData.full_name || 'Non défini'
-
-			// Mettre à jour le profil avec les données récupérées
+			const res = await fetch('http://localhost:3001/api/me', { credentials: 'include' })
+			if (!res.ok) return
+			const user = await res.json()
 			setProfile({
-				displayName,
+				username: user.username || '',
 				email: user.email || '',
-				createdAt: new Date(user.created_at).toLocaleDateString(),
-				lastSignInAt: new Date(user.last_sign_in_at).toLocaleDateString(),
+				createdAt: user.createdAt
+					? new Date(user.createdAt).toLocaleDateString('fr-FR')
+					: '',
+				lastSignInAt: user.lastSignInAt
+					? new Date(user.lastSignInAt).toLocaleDateString('fr-FR')
+					: '',
 			})
 		}
-
 		fetchProfile()
 	}, [])
 
-	const handleNameChange = (e) => {
-		setProfile((prev) => ({ ...prev, displayName: e.target.value }))
+	const handleUsernameChange = (e) => {
+		setProfile((prev) => ({ ...prev, username: e.target.value }))
 	}
 
-	const handleSaveName = async () => {
-		setIsEditingName(false)
-
-		// Update display name in auth.users
-		const { error } = await supabase.auth.updateUser({
-			data: { display_name: profile.displayName },
-		})
+	const handleSaveUsername = async () => {
+		setIsEditingUsername(false)
+		// TODO: Appelle ton backend pour mettre à jour le username
 	}
 
 	const handleLanguageChange = (e) => {
@@ -79,17 +64,17 @@ export default function SettingsPage () {
 			title: 'Profil Utilisateur',
 			items: [
 				{
-					label: 'Nom',
-					content: isEditingName ? (
+					label: 'Nom d\'utilisateur',
+					content: isEditingUsername ? (
 						<div className='flex items-center space-x-2'>
 							<input
 								type='text'
-								value={profile.displayName}
-								onChange={handleNameChange}
+								value={profile.username}
+								onChange={handleUsernameChange}
 								className='border rounded px-2 py-1'
 							/>
 							<button
-								onClick={handleSaveName}
+								onClick={handleSaveUsername}
 								className='bg-blue-500 text-white px-3 py-1 rounded cursor-pointer'
 							>
 								Sauvegarder
@@ -97,9 +82,9 @@ export default function SettingsPage () {
 						</div>
 					) : (
 						<div className='flex items-center space-x-2'>
-							<span>{profile.displayName}</span>
+							<span>{profile.username}</span>
 							<button
-								onClick={() => setIsEditingName(true)}
+								onClick={() => setIsEditingUsername(true)}
 								className='text-blue-500 underline cursor-pointer'
 							>
 								Modifier
@@ -109,7 +94,7 @@ export default function SettingsPage () {
 				},
 				{
 					label: 'Adresse e-mail',
-					content: <span className='ml-8'>{profile.email}</span>, // Added spacing
+					content: <span className='ml-8'>{profile.email}</span>,
 				},
 				{ label: 'Date de création', content: <span>{profile.createdAt}</span> },
 				{ label: 'Dernière connexion', content: <span>{profile.lastSignInAt}</span> },
