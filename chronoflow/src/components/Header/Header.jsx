@@ -5,6 +5,7 @@ import logo from "../../assets/logo.png";
 import flagFr from "../../assets/france.png";
 import flagEn from "../../assets/eng.png";
 import "./Header.css";
+import { api } from "../../lib/api"; // <-- Ajout import API
 
 const navLinks = [
   { to: "/product", label: "header.product" },
@@ -24,6 +25,7 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   const navRef = useRef();
@@ -36,14 +38,21 @@ export default function Header() {
     handleLang(nextLang);
   };
 
+  // Remplace l'effet localStorage par un appel API
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const decoded = parseJwt(token);
-      setUser(decoded);
-    } else {
-      setUser(null);
-    }
+    let isMounted = true;
+    setIsLoadingUser(true);
+    api.getMe()
+      .then(data => {
+        if (isMounted) setUser(data);
+      })
+      .catch(() => {
+        if (isMounted) setUser(null);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingUser(false);
+      });
+    return () => { isMounted = false; };
   }, [location.pathname]);
 
   useEffect(() => {
@@ -85,9 +94,19 @@ export default function Header() {
     i18n.changeLanguage(lng);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch (err) {
+      // ignore error
+    }
     setUser(null);
+    setIsLoadingUser(true);
+    // Revérifie l'état utilisateur après logout
+    api.getMe()
+      .then(data => setUser(data))
+      .catch(() => setUser(null))
+      .finally(() => setIsLoadingUser(false));
     navigate("/");
   };
 
@@ -127,7 +146,7 @@ export default function Header() {
                 </Link>
               </li>
             ))}
-            {user && (
+            {!isLoadingUser && user && (
               <li>
                 <Link
                   to="/dashboard"
@@ -137,7 +156,7 @@ export default function Header() {
                 </Link>
               </li>
             )}
-            {!user && (
+            {!isLoadingUser && !user && (
               <li className="header-login-row">
                 <button
                   onClick={handleLogin}
@@ -147,7 +166,7 @@ export default function Header() {
                 </button>
               </li>
             )}
-            {user && (
+            {!isLoadingUser && user && (
               <li>
                 <button
                   onClick={handleLogout}
