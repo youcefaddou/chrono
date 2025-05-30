@@ -22,5 +22,7 @@ export const api = {
 	createTask: (body) => apiFetch('/tasks', { method: 'POST', body: JSON.stringify(body) }),
 	updateTask: (id, body) => apiFetch(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
 	deleteTask: (id) => apiFetch(`/tasks/${id}`, { method: 'DELETE' }),
+	getDevices: () => apiFetch('/devices'),
+	getLoginHistory: () => apiFetch('/login-history'),
 	// Ajoute ici d'autres endpoints (projects, user, etc.)
 }

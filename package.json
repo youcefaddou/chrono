@@ -5,7 +5,11 @@
 		"@fullcalendar/list": "^6.1.17",
 		"@fullcalendar/react": "^6.1.17",
 		"@fullcalendar/timegrid": "^6.1.17",
-		"@supabase/supabase-js": "^2.39.7"
+		"@supabase/supabase-js": "^2.39.7",
+		"express-session": "^1.18.1",
+		"passport": "^0.7.0",
+		"passport-github2": "^0.1.12",
+		"passport-google-oauth20": "^2.0.0"
 	},
 	"type": "module"
 }

@@ -5,22 +5,10 @@ import { useTranslation } from 'react-i18next'
 import Sidebar from '../../../../components/dashboard/Sidebar'
 import ErrorBoundary from '../../../../components/ErrorBoundary'
 import ThemeToggle from '../../../../components/theme-toggle'
-import {
-	FaUser,
-	FaCog,
-	FaShieldAlt,
-	FaPlug,
-	FaQuestionCircle,
-	FaTrashAlt,
-} from 'react-icons/fa'
-
-function parseJwt (token) {
-	try {
-		return JSON.parse(atob(token.split('.')[1]))
-	} catch {
-		return null
-	}
-}
+import { FaUser, FaCog, FaShieldAlt, FaPlug, FaQuestionCircle, FaTrashAlt } from 'react-icons/fa'
+import PasswordChangeEn from '../../../passwordchange/password-change-en'
+import ConnectedDevicesEn from '../../../../components/ConnectedDevicesEn'
+import LoginHistoryEn from '../../../../components/LoginHistoryEn'
 
 export default function EnglishSettingsPage () {
 	const { t, i18n } = useTranslation()
@@ -32,28 +20,25 @@ export default function EnglishSettingsPage () {
 	})
 	const [isEditingUsername, setIsEditingUsername] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+	const [showPasswordChange, setShowPasswordChange] = useState(false)
 
 	useEffect(() => {
-		const token = localStorage.getItem('token')
-		if (!token) {
-			console.error('No user logged in')
-			return
+		const fetchProfile = async () => {
+			const res = await fetch('http://localhost:3001/api/me', { credentials: 'include' })
+			if (!res.ok) return
+			const user = await res.json()
+			setProfile({
+				username: user.username || '',
+				email: user.email || '',
+				createdAt: user.createdAt
+					? new Date(user.createdAt).toLocaleDateString('en-GB')
+					: '',
+				lastSignInAt: user.lastSignInAt
+					? new Date(user.lastSignInAt).toLocaleDateString('en-GB')
+					: '',
+			})
 		}
-		const decoded = parseJwt(token)
-		if (!decoded || !decoded.email) {
-			console.error('No user logged in')
-			return
-		}
-		setProfile({
-			username: decoded.username || '',
-			email: decoded.email || '',
-			createdAt: decoded.createdAt
-				? new Date(decoded.createdAt).toLocaleDateString('en-GB')
-				: '',
-			lastSignInAt: decoded.lastSignInAt
-				? new Date(decoded.lastSignInAt).toLocaleDateString('en-GB')
-				: '',
-		})
+		fetchProfile()
 	}, [])
 
 	const handleUsernameChange = (e) => {
@@ -120,7 +105,7 @@ export default function EnglishSettingsPage () {
 								id='language-select'
 								value={i18n.language}
 								onChange={(e) => i18n.changeLanguage(e.target.value)}
-								className='border rounded px-4 py-2 w-full sm:w-48 cursor-pointer'
+								className='border rounded px-4 py-2 w-full sm:w-40 cursor-pointer'
 							>
 								<option value='en'>English</option>
 								<option value='fr'>Français</option>
@@ -135,9 +120,25 @@ export default function EnglishSettingsPage () {
 		{
 			title: t('settings.security'),
 			items: [
-				{ label: t('settings.items.twoFactorAuth') },
-				{ label: t('settings.items.connectedDevices') },
-				{ label: t('settings.items.loginHistory') },
+				{
+					label: '',
+					content: (
+						<button
+							className='text-blue-500 underline cursor-pointer'
+							onClick={() => setShowPasswordChange(true)}
+						>
+							{t('settings.items.changePassword')}
+						</button>
+					),
+				},
+				{
+					label: '',
+					content: <ConnectedDevicesEn />,
+				},
+				{
+					label: '',
+					content: <LoginHistoryEn />,
+				},
 			],
 			icon: <FaShieldAlt className='text-red-500' />,
 		},
@@ -169,6 +170,10 @@ export default function EnglishSettingsPage () {
 		},
 	]
 
+	if (showPasswordChange) {
+		return <PasswordChangeEn />
+	}
+
 	return (
 		<ErrorBoundary>
 			<div className='flex min-h-auto bg-gray-100'>
@@ -191,8 +196,17 @@ export default function EnglishSettingsPage () {
 								<ul className='space-y-2'>
 									{section.items.map((item, idx) => (
 										<li key={idx} className='text-gray-600 flex justify-between'>
-											<span>{item.label}</span>
-											<span>{item.content}</span>
+											{item.label
+												? (
+													<>
+														<span>{item.label}</span>
+														<span>{item.content}</span>
+													</>
+												)
+												: (
+													<span className='w-full'>{item.content}</span>
+												)
+											}
 										</li>
 									))}
 								</ul>

@@ -109,6 +109,15 @@ export default function LoginPage () {
 						{loading ? 'Connexion...' : 'Se connecter'}
 					</button>
 				</form>
+				<div className="flex flex-col gap-2 mt-4">
+					<button
+						type="button"
+						onClick={() => window.location.href = 'http://localhost:3001/api/auth/google'}
+						className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition"
+					>
+						{t('header.login')} avec Google
+					</button>
+				</div>
 				<div className="mt-6 text-center text-sm text-gray-600">
 					Pas encore de compte ?{' '}
 					<Link to="/signup" className="text-rose-600 hover:underline">

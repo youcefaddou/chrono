@@ -101,7 +101,14 @@ export default function LoginPageEn () {
 						{loading ? 'Signing in...' : 'Sign in'}
 					</button>
 				</form>
-				<div className="flex flex-col gap-4 mb-4">
+				<div className="flex flex-col gap-2 mt-4">
+					<button
+						type="button"
+						onClick={() => window.location.href = 'http://localhost:3001/api/auth/google'}
+						className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition"
+					>
+						Sign in with Google
+					</button>
 				</div>
 				<div className="mt-6 text-center text-sm text-gray-600">
 					Don't have an account?{' '}

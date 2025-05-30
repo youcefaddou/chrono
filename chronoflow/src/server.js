@@ -4,9 +4,15 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import rateLimit from 'express-rate-limit' // Ajout du rate limiter
 import { connectMongo } from './lib/mongoose.js'
 import User from './models/user.js'
 import Task from './models/task.js'
+import Session from './models/session.js'
+import LoginLog from './models/login-log.js'
+import passport from 'passport'
+import session from 'express-session'
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 
 const app = express()
 app.use(cookieParser())
@@ -16,11 +22,43 @@ app.use(cors({
 }))
 app.use(express.json())
 
+// Ajoute ceci AVANT passport.initialize()
+app.use(session({
+	secret: process.env.SESSION_SECRET || 'your-secret',
+	resave: false,
+	saveUninitialized: false,
+	cookie: { secure: process.env.NODE_ENV === 'production' },
+}))
+app.use(passport.initialize())
+app.use(passport.session())
+
 // Middleware global pour connecter MongoDB une seule fois
 app.use(async (req, res, next) => {
 	await connectMongo()
 	next()
 })
+
+// Rate limiting global (1000 requêtes / 15 min par IP en dev, 100 en prod)
+if (process.env.NODE_ENV === 'production') {
+	const limiter = rateLimit({
+		windowMs: 15 * 60 * 1000,
+		max: 1000,
+		standardHeaders: true,
+		legacyHeaders: false,
+		message: { message: 'Too many requests, please try again later.' },
+	})
+	app.use(limiter)
+}
+
+// Forcer HTTPS en production
+if (process.env.NODE_ENV === 'production') {
+	app.use((req, res, next) => {
+		if (req.headers['x-forwarded-proto'] !== 'https') {
+			return res.redirect('https://' + req.headers.host + req.url)
+		}
+		next()
+	})
+}
 
 // Signup
 app.post('/api/signup', async (req, res) => {
@@ -56,14 +94,33 @@ app.post('/api/login', async (req, res) => {
 	try {
 		const { email, password } = req.body
 		const user = await User.findOne({ email })
-		if (!user) return res.status(401).json({ message: 'Invalid credentials' })
-		const valid = await bcrypt.compare(password, user.password)
-		if (!valid) return res.status(401).json({ message: 'Invalid credentials' })
+		const valid = user ? await bcrypt.compare(password, user.password) : false
+		const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+		const userAgent = req.headers['user-agent'] || ''
+		const device = userAgent
+
+		// Log de connexion (succès ou échec)
+		await LoginLog.create({
+			userId: user ? user._id : undefined,
+			ip,
+			device,
+			success: !!user && valid,
+		})
+
+		if (!user || !valid) return res.status(401).json({ message: 'Invalid credentials' })
+
 		const now = new Date()
-		// Pour les anciens users, initialise lastSignInAt si absent
-		if (!user.lastSignInAt) user.lastSignInAt = now
-		else user.lastSignInAt = now
+		user.lastSignInAt = now
 		await user.save()
+
+		// Session (appareil connecté)
+		await Session.create({
+			userId: user._id,
+			device,
+			browser: device,
+			ip,
+		})
+
 		const token = jwt.sign(
 			{
 				id: user._id,
@@ -112,15 +169,13 @@ app.post('/api/logout', (req, res) => {
 function auth (req, res, next) {
 	const token = req.cookies.token
 	if (!token) {
-		console.log('No token in cookies')
 		return res.status(401).json({ message: 'No token' })
 	}
 	try {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET)
 		req.user = decoded
 		next()
-	} catch (err) {
-		console.error('JWT verification failed:', err)
+	} catch {
 		res.status(401).json({ message: 'Invalid token' })
 	}
 }
@@ -176,10 +231,133 @@ app.delete('/api/tasks/:id', auth, async (req, res) => {
 	res.json({ success: true })
 })
 
+// Appareils connectés
+app.get('/api/devices', auth, async (req, res) => {
+	const sessions = await Session.find({ userId: req.user.id }).sort({ createdAt: -1 })
+	res.json(sessions)
+})
+
+// Historique des connexions
+app.get('/api/login-history', auth, async (req, res) => {
+	const logs = await LoginLog.find({ userId: req.user.id }).sort({ date: -1 }).limit(20)
+	res.json(logs)
+})
+
+// Change password
+app.post('/api/change-password', async (req, res) => {
+	try {
+		const token = req.cookies.token
+		if (!token) return res.status(401).json({ message: 'Not authenticated' })
+		let decoded
+		try {
+			decoded = jwt.verify(token, process.env.JWT_SECRET)
+		} catch (err) {
+			return res.status(401).json({ message: 'Invalid token' })
+		}
+		const { oldPassword, newPassword } = req.body
+		if (!oldPassword || !newPassword) {
+			return res.status(400).json({ message: 'Missing fields' })
+		}
+
+		const user = await User.findById(decoded.id)
+		if (!user) return res.status(404).json({ message: 'User not found' })
+
+		const valid = await bcrypt.compare(oldPassword, user.password)
+		if (!valid) return res.status(401).json({ message: 'Old password incorrect' })
+		const hash = await bcrypt.hash(newPassword, 10)
+		user.password = hash
+		await user.save()
+
+		// Invalider le token courant (déconnexion)
+		res.clearCookie('token', {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+			path: '/',
+		})
+
+		return res.json({ success: true, message: 'Password changed, please log in again.' })
+	} catch (err) {
+		res.status(500).json({ message: err.message })
+	}
+})
+
+// Google OAuth
+passport.use(new GoogleStrategy({
+	clientID: process.env.GOOGLE_CLIENT_ID,
+	clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+	callbackURL: '/api/auth/google/callback',
+}, async (accessToken, refreshToken, profile, done) => {
+	try {
+		let user = await User.findOne({ provider: 'google', providerId: profile.id })
+		if (!user) {
+			// Vérifie si un utilisateur existe déjà avec ce mail (créé via signup classique ou autre OAuth)
+			user = await User.findOne({ email: profile.emails[0].value })
+			if (user) {
+				// Mets à jour le provider et providerId si besoin
+				user.provider = 'google'
+				user.providerId = profile.id
+				await user.save()
+			} else {
+				user = await User.create({
+					provider: 'google',
+					providerId: profile.id,
+					username: profile.displayName,
+					email: profile.emails[0].value,
+					createdAt: new Date(),
+					lastSignInAt: new Date(),
+				})
+			}
+		}
+		done(null, user)
+	} catch (err) {
+		done(err)
+	}
+}))
+
+// Ajoute ou corrige la sérialisation Passport (juste après la config des stratégies)
+passport.serializeUser((user, done) => {
+	done(null, user._id ? user._id.toString() : user.id)
+})
+
+passport.deserializeUser(async (id, done) => {
+	try {
+		const user = await User.findById(id)
+		done(null, user)
+	} catch (err) {
+		done(err)
+	}
+})
+
+app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
+app.get('/api/auth/google/callback',
+	passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login' }),
+	(req, res) => {
+		const token = jwt.sign(
+			{
+				id: req.user._id,
+				email: req.user.email,
+				username: req.user.username,
+				createdAt: req.user.createdAt,
+				lastSignInAt: req.user.lastSignInAt,
+			},
+			process.env.JWT_SECRET,
+			{ expiresIn: '7d' }
+		)
+		res.cookie('token', token, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+			maxAge: 7 * 24 * 60 * 60 * 1000,
+			path: '/',
+		})
+		res.redirect('http://localhost:5173/dashboard')
+	}
+)
+
 app.get('/', (req, res) => {
 	res.send('API is running')
 })
-
 const port = process.env.PORT || 3001
 app.listen(port, () => {
 	console.log('Server started on port', port)

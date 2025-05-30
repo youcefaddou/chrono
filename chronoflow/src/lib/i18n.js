@@ -145,6 +145,7 @@ i18n
               lastSignInAt: 'Dernière connexion',
               light: 'Clair',
               dark: 'Sombre',
+              changePassword: 'Changer le mot de passe',
             },
           },
           themeToggle: {
@@ -281,6 +282,7 @@ i18n
               lastSignInAt: 'Last Sign-In At',
               light: 'Light',
               dark: 'Dark',
+              changePassword: 'Change password',
             },
           },
           themeToggle: {

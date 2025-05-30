@@ -5,8 +5,11 @@ import { FaUser, FaCog, FaShieldAlt, FaPlug, FaQuestionCircle, FaTrashAlt } from
 import Sidebar from '../../../components/dashboard/Sidebar'
 import ErrorBoundary from '../../../components/ErrorBoundary'
 import { useTranslation } from 'react-i18next'
+import PasswordChangeFr from '../../passwordchange/password-change-fr'
+import ConnectedDevices from '../../../components/ConnectedDevices'
+import LoginHistory from '../../../components/LoginHistory'
 
-function parseJwt (token) {
+function parseJwt(token) {
 	try {
 		return JSON.parse(atob(token.split('.')[1]))
 	} catch {
@@ -14,7 +17,7 @@ function parseJwt (token) {
 	}
 }
 
-export default function SettingsPage () {
+export default function SettingsPage() {
 	const { t, i18n } = useTranslation()
 	const [profile, setProfile] = useState({
 		username: '',
@@ -24,6 +27,7 @@ export default function SettingsPage () {
 	})
 	const [isEditingUsername, setIsEditingUsername] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+	const [showPasswordChange, setShowPasswordChange] = useState(false)
 
 	// Fetch user profile from auth.users
 	useEffect(() => {
@@ -114,7 +118,7 @@ export default function SettingsPage () {
 								id='language-select'
 								value={i18n.language}
 								onChange={handleLanguageChange}
-								className='border rounded px-4 py-2 w-48 cursor-pointer'
+								className='border rounded px-4 py-2 w-40 cursor-pointer'
 							>
 								<option value='fr'>Français</option>
 								<option value='en'>English</option>
@@ -128,9 +132,25 @@ export default function SettingsPage () {
 		{
 			title: 'Sécurité',
 			items: [
-				{ label: 'Authentification à deux facteurs' },
-				{ label: 'Appareils connectés' },
-				{ label: 'Historique des connexions' },
+				{
+					label: '',
+					content: (
+						<button
+							className='text-blue-500 underline cursor-pointer'
+							onClick={() => setShowPasswordChange(true)}
+						>
+							Changer le mot de passe
+						</button>
+					),
+				},
+				{
+					label: '',
+					content: <ConnectedDevices />,
+				},
+				{
+					label: '',
+					content: <LoginHistory />,
+				},
 			],
 			icon: <FaShieldAlt className='text-red-500' />,
 		},
@@ -162,6 +182,10 @@ export default function SettingsPage () {
 		},
 	]
 
+	if (showPasswordChange) {
+		return <PasswordChangeFr />
+	}
+
 	return (
 		<ErrorBoundary>
 			<div className='flex min-h-auto bg-gray-100'>
@@ -184,8 +208,17 @@ export default function SettingsPage () {
 								<ul className='space-y-2'>
 									{section.items.map((item, idx) => (
 										<li key={idx} className='text-gray-600 flex justify-between'>
-											<span>{item.label}</span>
-											<span>{item.content}</span>
+											{item.label
+												? (
+													<>
+														<span>{item.label}</span>
+														<span>{item.content}</span>
+													</>
+												)
+												: (
+													<span className='w-full'>{item.content}</span>
+												)
+											}
 										</li>
 									))}
 								</ul>
