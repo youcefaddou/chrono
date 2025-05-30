@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { api } from '../../lib/api'
 
 function CalendarEventTimerButton ({ event, timer, lang, disabled, onTaskUpdate }) {
 	const [saving, setSaving] = useState(false)
@@ -31,19 +30,30 @@ function CalendarEventTimerButton ({ event, timer, lang, disabled, onTaskUpdate 
 	}
 
 	const handleStop = async e => {
-		e.stopPropagation()
-		e.preventDefault()
+		e.stopPropagation();
+		e.preventDefault(); // Ajouter preventDefault pour éviter les comportements par défaut
 		if (!isRunning) return
 		setSaving(true)
+		
 		let elapsed = 0
 		if (timer.getElapsedSeconds) {
 			elapsed = timer.getElapsedSeconds()
 		}
+		
+		// Calculer et stocker la nouvelle durée localement avant de l'envoyer à la BD
 		const newDuration = (event.duration_seconds || 0) + (elapsed || 0)
 		setLocalDuration(newDuration)
-		await api.updateTask(event.id, { durationSeconds: newDuration })
+		
+		// Mettre à jour la BD
+		await supabase
+			.from('tasks')
+			.update({ duration_seconds: newDuration })
+			.eq('id', event.id)
+		
 		timer.stop()
 		setSaving(false)
+		
+		// Notifier le parent de la mise à jour pour rafraîchir la liste des tâches
 		if (onTaskUpdate) onTaskUpdate(event.id, newDuration)
 	}
 

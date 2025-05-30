@@ -2,65 +2,75 @@
 
 import { useState, useEffect } from 'react'
 import { FaUser, FaCog, FaShieldAlt, FaPlug, FaQuestionCircle, FaTrashAlt } from 'react-icons/fa'
+import { createClient } from '@supabase/supabase-js'
 import Sidebar from '../../../components/dashboard/Sidebar'
 import ErrorBoundary from '../../../components/ErrorBoundary'
-import { useTranslation } from 'react-i18next'
-import PasswordChangeFr from '../../passwordchange/password-change-fr'
-import ConnectedDevices from '../../../components/ConnectedDevices'
-import LoginHistory from '../../../components/LoginHistory'
 
-function parseJwt(token) {
-	try {
-		return JSON.parse(atob(token.split('.')[1]))
-	} catch {
-		return null
-	}
-}
+const supabase = createClient(
+	import.meta.env.VITE_SUPABASE_URL,
+	import.meta.env.VITE_SUPABASE_ANON_KEY
+)
 
-export default function SettingsPage() {
-	const { t, i18n } = useTranslation()
+export default function SettingsPage () {
 	const [profile, setProfile] = useState({
-		username: '',
+		displayName: '',
 		email: '',
 		createdAt: '',
 		lastSignInAt: '',
 	})
-	const [isEditingUsername, setIsEditingUsername] = useState(false)
+	const [isEditingName, setIsEditingName] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-	const [showPasswordChange, setShowPasswordChange] = useState(false)
 
 	// Fetch user profile from auth.users
 	useEffect(() => {
 		const fetchProfile = async () => {
-			const res = await fetch('http://localhost:3001/api/me', { credentials: 'include' })
-			if (!res.ok) return
-			const user = await res.json()
+			const { data: session, error: sessionError } = await supabase.auth.getSession()
+
+			if (sessionError) {
+				console.error('Erreur lors de la récupération de la session utilisateur:', sessionError)
+				return
+			}
+
+			const user = session?.session?.user
+
+			if (!user) {
+				console.error('Aucun utilisateur connecté')
+				return
+			}
+
+			// Extraire les métadonnées utilisateur directement depuis la session
+			const rawUserMetaData = user.user_metadata || {}
+			const displayName = rawUserMetaData.name || rawUserMetaData.full_name || 'Non défini'
+
+			// Mettre à jour le profil avec les données récupérées
 			setProfile({
-				username: user.username || '',
+				displayName,
 				email: user.email || '',
-				createdAt: user.createdAt
-					? new Date(user.createdAt).toLocaleDateString('fr-FR')
-					: '',
-				lastSignInAt: user.lastSignInAt
-					? new Date(user.lastSignInAt).toLocaleDateString('fr-FR')
-					: '',
+				createdAt: new Date(user.created_at).toLocaleDateString(),
+				lastSignInAt: new Date(user.last_sign_in_at).toLocaleDateString(),
 			})
 		}
+
 		fetchProfile()
 	}, [])
 
-	const handleUsernameChange = (e) => {
-		setProfile((prev) => ({ ...prev, username: e.target.value }))
+	const handleNameChange = (e) => {
+		setProfile((prev) => ({ ...prev, displayName: e.target.value }))
 	}
 
-	const handleSaveUsername = async () => {
-		setIsEditingUsername(false)
-		// TODO: Appelle ton backend pour mettre à jour le username
-	}
+	const handleSaveName = async () => {
+		setIsEditingName(false)
 
-	const handleLanguageChange = (e) => {
-		const selectedLanguage = e.target.value
-		i18n.changeLanguage(selectedLanguage)
+		// Update display name in auth.users
+		const { error } = await supabase.auth.updateUser({
+			data: { display_name: profile.displayName },
+		})
+
+		if (error) {
+			console.error('Erreur lors de la sauvegarde du nom:', error)
+		} else {
+			console.log('Nom sauvegardé avec succès !')
+		}
 	}
 
 	const sections = [
@@ -68,28 +78,28 @@ export default function SettingsPage() {
 			title: 'Profil Utilisateur',
 			items: [
 				{
-					label: 'Nom d\'utilisateur',
-					content: isEditingUsername ? (
+					label: 'Nom',
+					content: isEditingName ? (
 						<div className='flex items-center space-x-2'>
 							<input
 								type='text'
-								value={profile.username}
-								onChange={handleUsernameChange}
+								value={profile.displayName}
+								onChange={handleNameChange}
 								className='border rounded px-2 py-1'
 							/>
 							<button
-								onClick={handleSaveUsername}
-								className='bg-blue-500 text-white px-3 py-1 rounded cursor-pointer'
+								onClick={handleSaveName}
+								className='bg-blue-500 text-white px-3 py-1 rounded'
 							>
 								Sauvegarder
 							</button>
 						</div>
 					) : (
 						<div className='flex items-center space-x-2'>
-							<span>{profile.username}</span>
+							<span>{profile.displayName}</span>
 							<button
-								onClick={() => setIsEditingUsername(true)}
-								className='text-blue-500 underline cursor-pointer'
+								onClick={() => setIsEditingName(true)}
+								className='text-blue-500 underline'
 							>
 								Modifier
 							</button>
@@ -98,7 +108,7 @@ export default function SettingsPage() {
 				},
 				{
 					label: 'Adresse e-mail',
-					content: <span className='ml-8'>{profile.email}</span>,
+					content: <span className='ml-8'>{profile.email}</span>, // Added spacing
 				},
 				{ label: 'Date de création', content: <span>{profile.createdAt}</span> },
 				{ label: 'Dernière connexion', content: <span>{profile.lastSignInAt}</span> },
@@ -108,49 +118,18 @@ export default function SettingsPage() {
 		{
 			title: 'Préférences',
 			items: [
-				{
-					content: (
-						<div className='flex items-center space-x-6'>
-							<label htmlFor='language-select' className='font-medium w-24'>
-								Langue
-							</label>
-							<select
-								id='language-select'
-								value={i18n.language}
-								onChange={handleLanguageChange}
-								className='border rounded px-4 py-2 w-40 cursor-pointer'
-							>
-								<option value='fr'>Français</option>
-								<option value='en'>English</option>
-							</select>
-						</div>
-					),
-				},
+				{ label: 'Langue' },
+				{ label: 'Thème' },
+				{ label: 'Notifications' },
 			],
 			icon: <FaCog className='text-green-500' />,
 		},
 		{
 			title: 'Sécurité',
 			items: [
-				{
-					label: '',
-					content: (
-						<button
-							className='text-blue-500 underline cursor-pointer'
-							onClick={() => setShowPasswordChange(true)}
-						>
-							Changer le mot de passe
-						</button>
-					),
-				},
-				{
-					label: '',
-					content: <ConnectedDevices />,
-				},
-				{
-					label: '',
-					content: <LoginHistory />,
-				},
+				{ label: 'Authentification à deux facteurs' },
+				{ label: 'Appareils connectés' },
+				{ label: 'Historique des connexions' },
 			],
 			icon: <FaShieldAlt className='text-red-500' />,
 		},
@@ -182,10 +161,6 @@ export default function SettingsPage() {
 		},
 	]
 
-	if (showPasswordChange) {
-		return <PasswordChangeFr />
-	}
-
 	return (
 		<ErrorBoundary>
 			<div className='flex min-h-auto bg-gray-100'>
@@ -193,8 +168,8 @@ export default function SettingsPage() {
 					collapsed={sidebarCollapsed}
 					onToggle={() => setSidebarCollapsed((prev) => !prev)}
 				/>
-				<main className={`flex-1 p-6 transition-all ${sidebarCollapsed ? 'ml-16' : 'ml-5'} h-auto`}>
-					<h1 className='text-3xl font-bold text-blue-700 mb-6'>{t('settings.title')}</h1>
+				<main className={`flex-1 p-6 transition-all ${sidebarCollapsed ? 'ml-16' : 'ml-0'} h-auto`}>
+					<h1 className='text-3xl font-bold text-blue-700 mb-6'>Paramètres</h1>
 					<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
 						{sections.map((section, index) => (
 							<div
@@ -208,17 +183,8 @@ export default function SettingsPage() {
 								<ul className='space-y-2'>
 									{section.items.map((item, idx) => (
 										<li key={idx} className='text-gray-600 flex justify-between'>
-											{item.label
-												? (
-													<>
-														<span>{item.label}</span>
-														<span>{item.content}</span>
-													</>
-												)
-												: (
-													<span className='w-full'>{item.content}</span>
-												)
-											}
+											<span>{item.label}</span>
+											<span>{item.content}</span>
 										</li>
 									))}
 								</ul>

@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
-import { api } from '../../lib/api'
+import { supabase } from '../../lib/supabase'
 import { useTranslation } from '../../hooks/useTranslation'
 import CalendarEventTimerButton from './CalendarEventTimerButton'
 import AddTaskModal from './AddTaskModal' // Ajout de la modale d'édition
@@ -39,10 +39,10 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 			timer.stop()
 		}
 		const newDuration = (task.duration_seconds || 0) + elapsed
-		await api.updateTask(task.id, {
+		await supabase.from('tasks').update({
 			duration_seconds: newDuration,
 			is_finished: true,
-		})
+		}).eq('id', task.id)
 		onTaskUpdate && onTaskUpdate()
 	}
 
@@ -74,13 +74,13 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 	}
 
 	const handleEditSave = async (updatedTask) => {
-		await api.updateTask(editTask.id, {
+		await supabase.from('tasks').update({
 			title: updatedTask.title,
 			description: updatedTask.desc || '',
 			start: updatedTask.start,
 			end: updatedTask.end,
 			color: updatedTask.color || '#2563eb',
-		})
+		}).eq('id', editTask.id)
 		setEditTask(null)
 		onTaskUpdate && onTaskUpdate()
 	}
@@ -91,24 +91,36 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 	
 	const handleAddTaskSave = async (newTask) => {
 		try {
-			const token = localStorage.getItem('token')
-			if (!token) {
+			// Vérifier si un utilisateur est connecté
+			const { data: { user: authUser } } = await supabase.auth.getUser()
+			
+			if (!authUser) {
 				alert(lang === 'fr' 
 					? 'Vous devez être connecté pour ajouter une tâche' 
 					: 'You must be logged in to add a task')
 				return
 			}
-			await api.createTask({
+			
+			const { error } = await supabase.from('tasks').insert([{
 				title: newTask.title,
 				description: newTask.desc || '',
 				start: newTask.start,
 				end: newTask.end,
 				color: newTask.color || '#2563eb',
-				durationSeconds: 0,
-				isFinished: false,
-			})
-			onTaskUpdate && onTaskUpdate()
-			setShowAddTaskModal(false)
+				user_id: authUser.id,  // Utiliser l'ID de l'utilisateur authentifié
+				duration_seconds: 0,
+				is_finished: false
+			}])
+			
+			if (error) {
+				console.error('Error adding task:', error)
+				alert(lang === 'fr' 
+					? `Erreur lors de l'ajout de la tâche: ${error.message}` 
+					: `Error adding task: ${error.message}`)
+			} else {
+				onTaskUpdate && onTaskUpdate()
+				setShowAddTaskModal(false)
+			}
 		} catch (err) {
 			console.error('Error saving task:', err)
 			alert(lang === 'fr' 
@@ -249,7 +261,7 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 					onClose={handleEditClose}
 					onSave={handleEditSave}
 					onDelete={async () => {
-						await api.deleteTask(editTask.id)
+						await supabase.from('tasks').delete().eq('id', editTask.id)
 						setEditTask(null)
 						onTaskUpdate && onTaskUpdate()
 					}}

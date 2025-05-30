@@ -1,6 +1,6 @@
 import React from 'react'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
-import { api } from '../../lib/api'
+import { supabase } from '../../lib/supabase'
 import { useTranslation } from '../../hooks/useTranslation'
 import './CalendarEventWithPlay.css'
 import '../Timer/timer-styles.css'
@@ -47,7 +47,11 @@ function CalendarEventWithPlay({
 		let isMounted = true;
 		
 		// Vérifier d'abord si la tâche existe avant de commencer le polling
-		api.getTasks({ id: event.id })
+		supabase
+			.from('tasks')
+			.select('id')
+			.eq('id', event.id)
+			.single()
 			.then(({ data, error }) => {
 				if (error || !data) {
 					deletedTasksCache.add(event.id);
@@ -61,7 +65,11 @@ function CalendarEventWithPlay({
 				function fetchDuration() {
 					if (!isMounted || deletedTasksCache.has(event.id)) return;
 					
-					api.getTasks({ id: event.id })
+					supabase
+						.from('tasks')
+						.select('duration_seconds')
+						.eq('id', event.id)
+						.single()
 						.then(({ data, error }) => {
 							if (!isMounted) return;
 							
@@ -123,7 +131,10 @@ function CalendarEventWithPlay({
 		const newDuration = localDuration + (elapsed || 0)
 		setLocalDuration(newDuration)
 		setSaving(true)
-		await api.updateTask({ id: event.id, duration_seconds: newDuration })
+		await supabase
+			.from('tasks')
+			.update({ duration_seconds: newDuration })
+			.eq('id', event.id)
 		setSaving(false)
 	}
 
@@ -155,7 +166,10 @@ function CalendarEventWithPlay({
 		const newDuration = localDuration + (elapsed || 0)
 		setLocalDuration(newDuration)
 		setSaving(true)
-		await api.updateTask({ id: event.id, is_finished: true, duration_seconds: newDuration })
+		await supabase
+			.from('tasks')
+			.update({ is_finished: true, duration_seconds: newDuration })
+			.eq('id', event.id)
 		setSaving(false)
 		if (typeof event.onFinish === 'function') {
 			event.onFinish(event.id)

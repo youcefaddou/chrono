@@ -5,17 +5,14 @@ import './index.css'
 import './lib/i18n'
 import App from './App.jsx'
 import { GlobalTimerProvider } from './components/Timer/GlobalTimerProvider'
-import { ThemeProvider } from './context/theme-context'
 
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <ThemeProvider>
-        <GlobalTimerProvider>
-          <App />
-        </GlobalTimerProvider>
-      </ThemeProvider>
+      <GlobalTimerProvider>
+        <App />
+      </GlobalTimerProvider>
     </BrowserRouter>
   </StrictMode>,
 )

@@ -4,50 +4,82 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Sidebar from '../../../../components/dashboard/Sidebar'
 import ErrorBoundary from '../../../../components/ErrorBoundary'
-import ThemeToggle from '../../../../components/theme-toggle'
-import { FaUser, FaCog, FaShieldAlt, FaPlug, FaQuestionCircle, FaTrashAlt } from 'react-icons/fa'
-import PasswordChangeEn from '../../../passwordchange/password-change-en'
-import ConnectedDevicesEn from '../../../../components/ConnectedDevicesEn'
-import LoginHistoryEn from '../../../../components/LoginHistoryEn'
+import {
+	FaUser,
+	FaCog,
+	FaShieldAlt,
+	FaPlug,
+	FaQuestionCircle,
+	FaTrashAlt,
+} from 'react-icons/fa'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+	import.meta.env.VITE_SUPABASE_URL,
+	import.meta.env.VITE_SUPABASE_ANON_KEY
+)
 
 export default function EnglishSettingsPage () {
-	const { t, i18n } = useTranslation()
+	const { t } = useTranslation()
 	const [profile, setProfile] = useState({
-		username: '',
+		displayName: '',
 		email: '',
 		createdAt: '',
 		lastSignInAt: '',
 	})
-	const [isEditingUsername, setIsEditingUsername] = useState(false)
+	const [isEditingName, setIsEditingName] = useState(false)
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-	const [showPasswordChange, setShowPasswordChange] = useState(false)
 
+	// Fetch user profile from auth.users
 	useEffect(() => {
 		const fetchProfile = async () => {
-			const res = await fetch('http://localhost:3001/api/me', { credentials: 'include' })
-			if (!res.ok) return
-			const user = await res.json()
+			const { data: session, error: sessionError } = await supabase.auth.getSession()
+
+			if (sessionError) {
+				console.error('Error fetching user session:', sessionError)
+				return
+			}
+
+			const user = session?.session?.user
+
+			if (!user) {
+				console.error('No user logged in')
+				return
+			}
+
+			// Extract user metadata directly from the session
+			const rawUserMetaData = user.user_metadata || {}
+			const displayName = rawUserMetaData.name || rawUserMetaData.full_name || 'Not defined'
+
+			// Set profile data
 			setProfile({
-				username: user.username || '',
+				displayName,
 				email: user.email || '',
-				createdAt: user.createdAt
-					? new Date(user.createdAt).toLocaleDateString('en-GB')
-					: '',
-				lastSignInAt: user.lastSignInAt
-					? new Date(user.lastSignInAt).toLocaleDateString('en-GB')
-					: '',
+				createdAt: new Date(user.created_at).toLocaleDateString(),
+				lastSignInAt: new Date(user.last_sign_in_at).toLocaleDateString(),
 			})
 		}
+
 		fetchProfile()
 	}, [])
 
-	const handleUsernameChange = (e) => {
-		setProfile((prev) => ({ ...prev, username: e.target.value }))
+	const handleNameChange = (e) => {
+		setProfile((prev) => ({ ...prev, displayName: e.target.value }))
 	}
 
-	const handleSaveUsername = async () => {
-		setIsEditingUsername(false)
-		// TODO: Call your backend to update the username
+	const handleSaveName = async () => {
+		setIsEditingName(false)
+
+		// Update display name in auth.users
+		const { error } = await supabase.auth.updateUser({
+			data: { display_name: profile.displayName },
+		})
+
+		if (error) {
+			console.error('Error saving name:', error)
+		} else {
+			console.log('Name saved successfully!')
+		}
 	}
 
 	const sections = [
@@ -55,17 +87,17 @@ export default function EnglishSettingsPage () {
 			title: t('settings.userProfile'),
 			items: [
 				{
-					label: t('settings.items.username'),
-					content: isEditingUsername ? (
+					label: t('settings.items.name'),
+					content: isEditingName ? (
 						<div className='flex items-center space-x-2'>
 							<input
 								type='text'
-								value={profile.username}
-								onChange={handleUsernameChange}
+								value={profile.displayName}
+								onChange={handleNameChange}
 								className='border rounded px-2 py-1'
 							/>
 							<button
-								onClick={handleSaveUsername}
+								onClick={handleSaveName}
 								className='bg-blue-500 text-white px-3 py-1 rounded'
 							>
 								{t('settings.items.save')}
@@ -73,9 +105,9 @@ export default function EnglishSettingsPage () {
 						</div>
 					) : (
 						<div className='flex items-center space-x-2'>
-							<span>{profile.username}</span>
+							<span>{profile.displayName}</span>
 							<button
-								onClick={() => setIsEditingUsername(true)}
+								onClick={() => setIsEditingName(true)}
 								className='text-blue-500 underline'
 							>
 								{t('settings.items.edit')}
@@ -95,50 +127,18 @@ export default function EnglishSettingsPage () {
 		{
 			title: t('settings.preferences'),
 			items: [
-				{
-					content: (
-						<div className='flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-2 sm:space-y-0'>
-							<label htmlFor='language-select' className='font-medium w-full sm:w-24'>
-								{t('settings.items.language')}
-							</label>
-							<select
-								id='language-select'
-								value={i18n.language}
-								onChange={(e) => i18n.changeLanguage(e.target.value)}
-								className='border rounded px-4 py-2 w-full sm:w-40 cursor-pointer'
-							>
-								<option value='en'>English</option>
-								<option value='fr'>Français</option>
-							</select>
-						</div>
-					),
-				},
-				
+				{ label: t('settings.items.language') },
+				{ label: t('settings.items.theme') },
+				{ label: t('settings.items.notifications') },
 			],
 			icon: <FaCog className='text-green-500' />,
 		},
 		{
 			title: t('settings.security'),
 			items: [
-				{
-					label: '',
-					content: (
-						<button
-							className='text-blue-500 underline cursor-pointer'
-							onClick={() => setShowPasswordChange(true)}
-						>
-							{t('settings.items.changePassword')}
-						</button>
-					),
-				},
-				{
-					label: '',
-					content: <ConnectedDevicesEn />,
-				},
-				{
-					label: '',
-					content: <LoginHistoryEn />,
-				},
+				{ label: t('settings.items.twoFactorAuth') },
+				{ label: t('settings.items.connectedDevices') },
+				{ label: t('settings.items.loginHistory') },
 			],
 			icon: <FaShieldAlt className='text-red-500' />,
 		},
@@ -170,10 +170,6 @@ export default function EnglishSettingsPage () {
 		},
 	]
 
-	if (showPasswordChange) {
-		return <PasswordChangeEn />
-	}
-
 	return (
 		<ErrorBoundary>
 			<div className='flex min-h-auto bg-gray-100'>
@@ -196,17 +192,8 @@ export default function EnglishSettingsPage () {
 								<ul className='space-y-2'>
 									{section.items.map((item, idx) => (
 										<li key={idx} className='text-gray-600 flex justify-between'>
-											{item.label
-												? (
-													<>
-														<span>{item.label}</span>
-														<span>{item.content}</span>
-													</>
-												)
-												: (
-													<span className='w-full'>{item.content}</span>
-												)
-											}
+											<span>{item.label}</span>
+											<span>{item.content}</span>
 										</li>
 									))}
 								</ul>
