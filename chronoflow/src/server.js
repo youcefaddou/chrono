@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
-import rateLimit from 'express-rate-limit' // Ajout du rate limiter
+import rateLimit from 'express-rate-limit'
 import { connectMongo } from './lib/mongoose.js'
 import User from './models/user.js'
 import Task from './models/task.js'
@@ -22,7 +22,6 @@ app.use(cors({
 }))
 app.use(express.json())
 
-// Ajoute ceci AVANT passport.initialize()
 app.use(session({
 	secret: process.env.SESSION_SECRET || 'your-secret',
 	resave: false,
@@ -32,7 +31,6 @@ app.use(session({
 app.use(passport.initialize())
 app.use(passport.session())
 
-// Middleware global pour connecter MongoDB une seule fois
 app.use(async (req, res, next) => {
 	await connectMongo()
 	next()
@@ -291,10 +289,8 @@ passport.use(new GoogleStrategy({
 	try {
 		let user = await User.findOne({ provider: 'google', providerId: profile.id })
 		if (!user) {
-			// Vérifie si un utilisateur existe déjà avec ce mail (créé via signup classique ou autre OAuth)
 			user = await User.findOne({ email: profile.emails[0].value })
 			if (user) {
-				// Mets à jour le provider et providerId si besoin
 				user.provider = 'google'
 				user.providerId = profile.id
 				await user.save()
@@ -315,7 +311,6 @@ passport.use(new GoogleStrategy({
 	}
 }))
 
-// Ajoute ou corrige la sérialisation Passport (juste après la config des stratégies)
 passport.serializeUser((user, done) => {
 	done(null, user._id ? user._id.toString() : user.id)
 })
