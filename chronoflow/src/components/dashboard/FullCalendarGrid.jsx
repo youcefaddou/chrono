@@ -274,6 +274,7 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 									}}
 									timer={timer}
 									lang={lang}
+									onTaskUpdate={fetchTasks}
 								/>
 							</div>
 						)

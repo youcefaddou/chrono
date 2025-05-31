@@ -277,7 +277,7 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 										timer={timer} 
 										lang={lang}
 										disabled={task.is_finished} 
-										onTaskUpdate={handleTaskTimerUpdate}
+										onTaskUpdate={onTaskUpdate}
 									/>
 								</div>
 								<div className="task-timer-buttons z-10 relative">
