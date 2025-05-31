@@ -1,9 +1,8 @@
 import React, { useMemo, useEffect, useState } from 'react'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
-import { supabase } from '../../lib/supabase'
 import { useTranslation } from '../../hooks/useTranslation'
 import CalendarEventTimerButton from './CalendarEventTimerButton'
-import AddTaskModal from './AddTaskModal' // Ajout de la modale d'édition
+import AddTaskModal from './AddTaskModal'
 import TaskExporterModal, { exportTask } from '../export/TaskExporter'
 
 function formatDuration (seconds) {
@@ -14,18 +13,41 @@ function formatDuration (seconds) {
 	return [h, m, s].map(v => String(v).padStart(2, '0')).join(':')
 }
 
-function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
+function mapTaskFromApi (task) {
+	if (!task) return task
+	return {
+		id: task.id || task._id,
+		title: task.title,
+		description: task.description,
+		start: typeof task.start === 'string' || task.start instanceof Date ? task.start : (task.start ? new Date(task.start) : null),
+		end: typeof task.end === 'string' || task.end instanceof Date ? task.end : (task.end ? new Date(task.end) : null),
+		color: task.color || '#2563eb',
+		userId: task.userId,
+		isFinished: typeof task.isFinished === 'boolean' ? task.isFinished : (task.is_finished ?? false),
+		is_finished: typeof task.is_finished === 'boolean' ? task.is_finished : (task.isFinished ?? false),
+		durationSeconds: typeof task.durationSeconds === 'number' ? task.durationSeconds : (task.duration_seconds ?? 0),
+		// Ajoute tous les autres champs éventuels
+		...task,
+	}
+}
+
+function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSavedDuration, refreshKey }) {
 	const timer = useGlobalTimer()
 	const { t, i18n } = useTranslation()
 	const lang = i18n.language.startsWith('en') ? 'en' : 'fr'
 	const [, setTick] = useState(0)
-	const [editTask, setEditTask] = useState(null) // Pour la modale d'édition
+	const [editTask, setEditTask] = useState(null)
 	const [localTaskDurations, setLocalTaskDurations] = useState({})
-	const [showAddTaskModal, setShowAddTaskModal] = useState(false) // Pour la modale d'ajout
+	const [showAddTaskModal, setShowAddTaskModal] = useState(false)
 	const [showExportModal, setShowExportModal] = useState(false)
 	const [taskToExport, setTaskToExport] = useState(null)
-	
-	// Force re-render every second if a timer is running
+	const [taskList, setTaskList] = useState(tasks.map(mapTaskFromApi))
+
+	// Keep local taskList in sync with tasks prop
+	useEffect(() => {
+		setTaskList(tasks.map(mapTaskFromApi))
+	}, [tasks])
+
 	useEffect(() => {
 		if (!timer.running) return
 		const interval = setInterval(() => setTick(t => t + 1), 1000)
@@ -38,23 +60,40 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 			elapsed = timer.getElapsedSeconds()
 			timer.stop()
 		}
-		const newDuration = (task.duration_seconds || 0) + elapsed
-		await supabase.from('tasks').update({
-			duration_seconds: newDuration,
-			is_finished: true,
-		}).eq('id', task.id)
-		onTaskUpdate && onTaskUpdate()
+		const newDuration = (task.durationSeconds || 0) + elapsed
+		try {
+			const res = await fetch(`http://localhost:3001/api/tasks/${task.id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					durationSeconds: newDuration,
+					isFinished: true,
+				}),
+			})
+			const contentType = res.headers.get('content-type')
+			if (!res.ok || !contentType || !contentType.includes('application/json')) {
+				const text = await res.text()
+				console.error('Erreur lors de la mise à jour de la tâche:', text)
+				alert('Erreur lors de la mise à jour de la tâche: ' + text.slice(0, 200))
+				return
+			}
+			setLocalTaskDurations(prev => ({
+				...prev,
+				[task.id]: newDuration,
+			}))
+			onTaskUpdate && onTaskUpdate()
+		} catch (err) {
+			console.error('Erreur lors de la mise à jour de la tâche:', err)
+		}
 	}
 
-	// Modification: utiliser toutes les tâches pour l'export plutôt qu'une seule
 	const handleExport = () => {
-		setTaskToExport(tasks) // Passer toutes les tâches, pas juste une
+		setTaskToExport(taskList)
 		setShowExportModal(true)
 	}
 
-	// Amélioration de la détection des clics sur les éléments interactifs
 	const handleTaskClick = (task, e) => {
-		// Utiliser closest pour détecter les clics dans n'importe quel élément de bouton/conteneur
 		if (e.target.closest('.task-timer-buttons') || 
 			e.target.closest('button') || 
 			e.target.tagName === 'BUTTON' || 
@@ -65,24 +104,49 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 			e.target.tagName === 'polygon' ||
 			e.target.closest('svg')
 		) {
-			// Ne pas ouvrir la modale si l'élément est interactif
 			return;
 		}
-		
-		// Si on arrive ici, c'est qu'on a cliqué sur la zone de texte de la tâche
 		setEditTask(task);
 	}
 
 	const handleEditSave = async (updatedTask) => {
-		await supabase.from('tasks').update({
-			title: updatedTask.title,
-			description: updatedTask.desc || '',
-			start: updatedTask.start,
-			end: updatedTask.end,
-			color: updatedTask.color || '#2563eb',
-		}).eq('id', editTask.id)
-		setEditTask(null)
-		onTaskUpdate && onTaskUpdate()
+		const id = editTask?.id || editTask?._id
+		if (!id) {
+			console.error('handleEditSave: missing task id')
+			setEditTask(null)
+			return
+		}
+		try {
+			const res = await fetch(`http://localhost:3001/api/tasks/${id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					title: updatedTask.title,
+					description: updatedTask.desc || '',
+					start: updatedTask.start,
+					end: updatedTask.end,
+					color: updatedTask.color || '#2563eb',
+				}),
+			})
+			const contentType = res.headers.get('content-type')
+			if (!res.ok || !contentType || !contentType.includes('application/json')) {
+				const text = await res.text()
+				console.error('Erreur lors de la modification de la tâche:', text)
+				setEditTask(null)
+				onTaskUpdate && onTaskUpdate()
+				return
+			}
+			// Mettre à jour la liste locale pour éviter la disparition de la tâche
+			const updated = await res.json()
+			setTaskList(prev => prev.map(t => (t.id === id || t._id === id) ? { ...t, ...updated } : t))
+			setEditTask(null)
+			onTaskUpdate && onTaskUpdate()
+		} catch (err) {
+			console.error('Erreur lors de la modification de la tâche:', err)
+			setEditTask(null)
+			onTaskUpdate && onTaskUpdate()
+		}
 	}
 
 	const handleEditClose = () => setEditTask(null)
@@ -91,57 +155,55 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 	
 	const handleAddTaskSave = async (newTask) => {
 		try {
-			// Vérifier si un utilisateur est connecté
-			const { data: { user: authUser } } = await supabase.auth.getUser()
-			
-			if (!authUser) {
-				alert(lang === 'fr' 
-					? 'Vous devez être connecté pour ajouter une tâche' 
-					: 'You must be logged in to add a task')
+			const res = await fetch('http://localhost:3001/api/tasks', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					title: newTask.title,
+					description: newTask.desc || '',
+					start: newTask.start,
+					end: newTask.end,
+					color: newTask.color || '#2563eb',
+					durationSeconds: 0,
+					isFinished: false,
+				}),
+			})
+			const contentType = res.headers.get('content-type')
+			if (!res.ok || !contentType || !contentType.includes('application/json')) {
+				const text = await res.text()
+				console.error('Erreur lors de l\'ajout de la tâche:', text)
+				alert(lang === 'fr'
+					? `Erreur lors de l'ajout de la tâche: ${text.slice(0, 200)}`
+					: `Error adding task: ${text.slice(0, 200)}`)
 				return
 			}
-			
-			const { error } = await supabase.from('tasks').insert([{
-				title: newTask.title,
-				description: newTask.desc || '',
-				start: newTask.start,
-				end: newTask.end,
-				color: newTask.color || '#2563eb',
-				user_id: authUser.id,  // Utiliser l'ID de l'utilisateur authentifié
-				duration_seconds: 0,
-				is_finished: false
-			}])
-			
-			if (error) {
-				console.error('Error adding task:', error)
-				alert(lang === 'fr' 
-					? `Erreur lors de l'ajout de la tâche: ${error.message}` 
-					: `Error adding task: ${error.message}`)
-			} else {
-				onTaskUpdate && onTaskUpdate()
-				setShowAddTaskModal(false)
-			}
+			onTaskUpdate && onTaskUpdate()
+			setShowAddTaskModal(false)
 		} catch (err) {
 			console.error('Error saving task:', err)
-			alert(lang === 'fr' 
-				? `Erreur lors de l'ajout de la tâche: ${err.message}` 
+			alert(lang === 'fr'
+				? `Erreur lors de l'ajout de la tâche: ${err.message}`
 				: `Error adding task: ${err.message}`)
 		}
 	}
 
-	// Cette fonction sera appelée quand un timer est arrêté pour mettre à jour localement la durée
 	const handleTaskTimerUpdate = (taskId, newDuration) => {
 		setLocalTaskDurations(prev => ({
 			...prev,
 			[taskId]: newDuration
 		}))
-		
-		// Déclencher également le refresh général des tâches
 		onTaskUpdate && onTaskUpdate()
 	}
 
-	// S'assurer que l'utilisateur est toujours un objet
 	const safeUser = user || {}
+
+	const getTaskDuration = (task) => {
+		if (typeof task.durationSeconds === 'number') {
+			return task.durationSeconds
+		}
+		return 0
+	}
 
 	return (
 		<>
@@ -154,8 +216,8 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 					{/* Ajouter un bouton Rapport global */}
 					<button
 						onClick={handleExport}
-						disabled={tasks.length === 0}
-						className={`px-4 py-2 ${tasks.length === 0 ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white font-medium rounded-md flex items-center gap-2 transition-colors`}
+						disabled={taskList.length === 0}
+						className={`px-4 py-2 ${taskList.length === 0 ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white font-medium rounded-md flex items-center gap-2 transition-colors`}
 						aria-label={lang === 'fr' ? 'Générer un rapport' : 'Generate report'}
 					>
 						<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -183,38 +245,32 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 			</div>
 
 			<div className='divide-y'>
-				{tasks.length === 0 ? (
+				{taskList.length === 0 ? (
 					<div className='py-8 text-center text-gray-400 text-lg'>
 						{lang === 'fr'
 							? 'Aucune tâche à afficher.'
 							: 'No tasks to display.'}
 					</div>
 				) : (
-					tasks.map(task => {
+					taskList.map(task => {
 						const isRunning = timer.running && timer.task?.id === task.id
 						const elapsed = isRunning && timer.getElapsedSeconds ? timer.getElapsedSeconds() : 0
-						
-						// Utiliser la durée locale si disponible, sinon utiliser celle de la tâche
-						const taskDuration = localTaskDurations[task.id] !== undefined 
-							? localTaskDurations[task.id]
-							: task.duration_seconds || 0
-							
-						const totalSeconds = taskDuration + (isRunning ? elapsed : 0)
-						
+						const taskDuration = getTaskDuration(task)
+						const totalSeconds = isRunning ? elapsed : taskDuration
+
 						return (
 							<div
-								key={task.id}
+								key={task.id || task._id}
 								className='flex items-center gap-3 py-2 cursor-pointer hover:bg-gray-50 transition'
 								onClick={(e) => handleTaskClick(task, e)}
 								role="button"
 								tabIndex={0}
 								style={{ position: 'relative' }}
 							>
-								{/* Span non-interactif pour le titre */}
 								<span className='flex-1 truncate z-10 relative'>{task.title}</span>
-								<span className='font-mono text-2xl text-blue-700 min-w-[70px] text-center z-10 relative'>{formatDuration(totalSeconds)}</span>
-								
-								{/* Wrapper pour tous les boutons avec classe spécifique */}
+								<span className='font-mono text-2xl text-blue-700 min-w-[70px] text-center z-10 relative'>
+									{formatDuration(totalSeconds)}
+								</span>
 								<div className="task-timer-buttons z-10 relative">
 									<CalendarEventTimerButton 
 										event={task} 
@@ -224,8 +280,6 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 										onTaskUpdate={handleTaskTimerUpdate}
 									/>
 								</div>
-								
-								{/* Bouton terminer */}
 								<div className="task-timer-buttons z-10 relative">
 									<button
 										onClick={e => { e.stopPropagation(); handleFinish(task) }}
@@ -261,8 +315,28 @@ function TaskListView ({ tasks, onTaskUpdate, user }) {  // Ajout du prop user
 					onClose={handleEditClose}
 					onSave={handleEditSave}
 					onDelete={async () => {
-						await supabase.from('tasks').delete().eq('id', editTask.id)
+						// Si l'id est manquant, on ferme la modale et on synchronise, mais sans alert
+						if (!editTask || !(editTask.id || editTask._id)) {
+							setEditTask(null)
+							onTaskUpdate && onTaskUpdate()
+							return
+						}
+						try {
+							const id = editTask.id || editTask._id
+							const res = await fetch(`http://localhost:3001/api/tasks/${id}`, {
+								method: 'DELETE',
+								credentials: 'include',
+							})
+							if (!res.ok) {
+								const text = await res.text()
+								console.error('Erreur lors de la suppression:', text)
+							}
+						} catch (err) {
+							console.error('Erreur lors de la suppression:', err)
+						}
 						setEditTask(null)
+						// On synchronise la liste locale immédiatement sans attendre le fetch
+						setTaskList(prev => prev.filter(t => (t.id || t._id) !== (editTask.id || editTask._id)))
 						onTaskUpdate && onTaskUpdate()
 					}}
 					lang={lang}

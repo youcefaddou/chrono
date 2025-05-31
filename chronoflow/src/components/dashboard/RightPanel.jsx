@@ -5,7 +5,6 @@ import { GlobalTimerContext } from '../Timer/GlobalTimerProvider'
 // import FavoriteModal from './FavoriteModal' // Favoris désactivés
 // import GoalEditModal from './GoalEditModal' // Objectifs désactivés
 import './RightPanel.css'
-import { supabase } from '../../lib/supabase'
 
 function RightPanel () {
 	const { t } = useTranslation()
@@ -21,16 +20,6 @@ function RightPanel () {
 	const [user, setUser] = useState(null)
 	const [pendingGlobalTimerAction, setPendingGlobalTimerAction] = useState(null)
 	// const prevFavoriteTimersRef = useRef([]) // Favoris désactivés
-
-	useEffect(() => {
-		supabase.auth.getUser().then(({ data }) => {
-			if (data?.user) {
-				setUser(data.user)
-				// fetchGoals(data.user.id) // Objectifs désactivés
-				// fetchFavorites(data.user.id) // Favoris désactivés
-			}
-		})
-	}, [])
 
 	useEffect(() => {
 		if (!globalTimer) return

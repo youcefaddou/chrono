@@ -8,6 +8,13 @@ const userSchema = new mongoose.Schema({
 	lastSignInAt: { type: Date },
 	provider: { type: String }, // pour OAuth
 	providerId: { type: String }, // pour OAuth
+	googleCalendarTokens: {
+		access_token: { type: String },
+		refresh_token: { type: String },
+		scope: { type: String },
+		token_type: { type: String },
+		expiry_date: { type: Number },
+	},
 })
 
 export default mongoose.models.User || mongoose.model('User', userSchema)

@@ -4,14 +4,14 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import listPlugin from '@fullcalendar/list'
-import { supabase } from '../../lib/supabase'
+
 import { useTranslation } from '../../hooks/useTranslation'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import AddTaskModal from './AddTaskModal'
 import CalendarEventTimerButton from './CalendarEventTimerButton'
 import TaskListView from './TaskListView'
 
-function FullCalendarGrid ({ user, refreshKey }) {
+function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuration }) {
 	const { t, i18n } = useTranslation()
 	const lang = i18n.language.startsWith('en') ? 'en' : 'fr'
 	const [events, setEvents] = useState([])
@@ -20,32 +20,54 @@ function FullCalendarGrid ({ user, refreshKey }) {
 	const [showEditTaskModal, setShowEditTaskModal] = useState(false)
 	const [draftTask, setDraftTask] = useState(null)
 	const [errorMessage, setErrorMessage] = useState('')
-	const [viewMode, setViewMode] = useState('calendar') // 'calendar' or 'list'
+	const [viewMode, setViewMode] = useState('calendar')
 	const timer = useGlobalTimer()
 
-	// Fetch tasks from Supabase and map to FullCalendar format
+	// Error messages with i18n
+	const getErrorMessage = useCallback((key) => {
+		const messages = {
+			fetch: {
+				fr: 'Erreur lors du chargement des tâches',
+				en: 'Error loading tasks',
+			},
+			create: {
+				fr: 'Erreur lors de la création de la tâche',
+				en: 'Error creating task',
+			},
+			update: {
+				fr: 'Erreur lors de la modification de la tâche',
+				en: 'Error updating task',
+			},
+			delete: {
+				fr: 'Erreur lors de la suppression de la tâche',
+				en: 'Error deleting task',
+			},
+		}
+		return messages[key]?.[lang] || messages[key]?.fr
+	}, [lang])
+
+	// Fetch tasks from MongoDB API and map to FullCalendar format
 	const fetchTasks = useCallback(async () => {
-		if (!user) return
-		const { data, error } = await supabase
-			.from('tasks')
-			.select('*')
-			.eq('user_id', user.id)
-		if (!error) {
-			const mappedEvents = data.map(task => ({
-				id: task.id,
-				title: task.title,
-				start: task.start ? new Date(task.start) : null,
-				end: task.end ? new Date(task.end) : null,
-				backgroundColor: task.color || '#2563eb',
-				borderColor: task.color || '#2563eb',
-				allDay: false,
-				extendedProps: { ...task },
-			}))
+		try {
+			const res = await fetch('http://localhost:3001/api/tasks', { credentials: 'include' })
+			if (!res.ok) throw new Error('Erreur lors du chargement des tâches')
+			const data = await res.json()
+			const mappedEvents = data.map(mapTaskForCalendar)
+			setEvents(mappedEvents)
+		} catch (err) {
+			setErrorMessage(getErrorMessage('fetch'))
+		}
+	}, [getErrorMessage])
+
+	useEffect(() => {
+		async function fetchAndMapTasks () {
+			const res = await fetch('http://localhost:3001/api/tasks', { credentials: 'include' })
+			const data = await res.json()
+			const mappedEvents = data.map(mapTaskForCalendar)
 			setEvents(mappedEvents)
 		}
-	}, [user])
-
-	useEffect(() => { fetchTasks() }, [user, fetchTasks, refreshKey])
+		fetchAndMapTasks()
+	}, [refreshKey])
 
 	// Handle event click (edit)
 	const handleEventClick = useCallback((info) => {
@@ -62,54 +84,60 @@ function FullCalendarGrid ({ user, refreshKey }) {
 	// Handle event drop/resize
 	const handleEventDrop = useCallback(async (changeInfo) => {
 		const { event } = changeInfo
-		await supabase.from('tasks').update({
-			start: event.start,
-			end: event.end,
-		}).eq('id', event.id)
-		fetchTasks()
-	}, [fetchTasks])
+		try {
+			await fetch(`http://localhost:3001/api/tasks/${event.id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					start: event.start,
+					end: event.end,
+				}),
+			})
+			fetchTasks()
+		} catch (err) {
+			setErrorMessage(getErrorMessage('update'))
+		}
+	}, [fetchTasks, getErrorMessage])
 
 	// Handle event remove
 	const handleEventRemove = useCallback(async (eventId) => {
-		await supabase.from('tasks').delete().eq('id', eventId)
-		fetchTasks()
-	}, [fetchTasks])
-
-	// Error messages with i18n
-	const getErrorMessage = (key) => {
-		const messages = {
-			create: {
-				fr: 'Erreur lors de la création de la tâche',
-				en: 'Error creating task',
-			},
-			update: {
-				fr: 'Erreur lors de la modification de la tâche',
-				en: 'Error updating task',
-			},
-			delete: {
-				fr: 'Erreur lors de la suppression de la tâche',
-				en: 'Error deleting task',
-			},
+		try {
+			await fetch(`http://localhost:3001/api/tasks/${eventId}`, {
+				method: 'DELETE',
+				credentials: 'include',
+			})
+			fetchTasks()
+		} catch (err) {
+			setErrorMessage(getErrorMessage('delete'))
 		}
-		return messages[key]?.[lang] || messages[key]?.fr
-	}
+	}, [fetchTasks, getErrorMessage])
+
+	
 
 	// Handle add/edit task modal save
 	const handleAddTaskSave = async (task) => {
-		if (!user) return
 		try {
-			await supabase.from('tasks').insert([
-				{
+			const res = await fetch('http://localhost:3001/api/tasks', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
 					title: task.title,
 					description: task.desc || '',
 					start: task.start,
 					end: task.end,
 					color: task.color || '#2563eb',
-					user_id: user.id,
-					is_finished: false,
-					duration_seconds: 0,
-				}
-			])
+					durationSeconds: 0,
+					isFinished: false,
+				}),
+			})
+			const contentType = res.headers.get('content-type')
+			if (!res.ok || !contentType || !contentType.includes('application/json')) {
+				const text = await res.text()
+				setErrorMessage(getErrorMessage('create') + ': ' + text.slice(0, 200))
+				return
+			}
 			setShowAddTaskModal(false)
 			setDraftTask(null)
 			fetchTasks()
@@ -119,15 +147,26 @@ function FullCalendarGrid ({ user, refreshKey }) {
 	}
 
 	const handleEditTaskSave = async (task) => {
-		if (!user || !selectedEvent) return
+		if (!selectedEvent) return
 		try {
-			await supabase.from('tasks').update({
-				title: task.title,
-				description: task.desc || '',
-				start: task.start,
-				end: task.end,
-				color: task.color || '#2563eb',
-			}).eq('id', selectedEvent.id)
+			const res = await fetch(`http://localhost:3001/api/tasks/${selectedEvent.id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					title: task.title,
+					description: task.desc || '',
+					start: task.start,
+					end: task.end,
+					color: task.color || '#2563eb',
+				}),
+			})
+			const contentType = res.headers.get('content-type')
+			if (!res.ok || !contentType || !contentType.includes('application/json')) {
+				const text = await res.text()
+				setErrorMessage(getErrorMessage('update') + ': ' + text.slice(0, 200))
+				return
+			}
 			setShowEditTaskModal(false)
 			setSelectedEvent(null)
 			fetchTasks()
@@ -137,9 +176,12 @@ function FullCalendarGrid ({ user, refreshKey }) {
 	}
 
 	const handleEditTaskDelete = async () => {
-		if (!user || !selectedEvent) return
+		if (!selectedEvent) return
 		try {
-			await supabase.from('tasks').delete().eq('id', selectedEvent.id)
+			await fetch(`http://localhost:3001/api/tasks/${selectedEvent.id}`, {
+				method: 'DELETE',
+				credentials: 'include',
+			})
 			setShowEditTaskModal(false)
 			setSelectedEvent(null)
 			fetchTasks()
@@ -149,8 +191,7 @@ function FullCalendarGrid ({ user, refreshKey }) {
 	}
 
 	const handleStartTimerForTask = event => {
-		if (!user) return
-		if (timer.running && !timer.paused) return // Ne pas relancer si déjà en cours
+		if (timer.running && !timer.paused) return
 		timer.start({ taskId: event.id })
 	}
 
@@ -162,6 +203,26 @@ function FullCalendarGrid ({ user, refreshKey }) {
 		day: lang === 'fr' ? 'Jour' : 'Day',
 		list: lang === 'fr' ? 'Liste' : 'List',
 	}), [lang])
+
+	function mapTaskForCalendar (task) {
+		if (!task) return task
+		return {
+			id: task.id || task._id,
+			title: task.title,
+			start: typeof task.start === 'string' || task.start instanceof Date ? task.start : (task.start ? new Date(task.start) : null),
+			end: typeof task.end === 'string' || task.end instanceof Date ? task.end : (task.end ? new Date(task.end) : null),
+			backgroundColor: task.color || '#2563eb',
+			borderColor: task.color || '#2563eb',
+			allDay: false,
+			extendedProps: {
+				...task,
+				id: task.id || task._id,
+				durationSeconds: typeof task.durationSeconds === 'number' ? task.durationSeconds : (task.duration_seconds ?? 0),
+				isFinished: typeof task.isFinished === 'boolean' ? task.isFinished : (task.is_finished ?? false),
+				is_finished: typeof task.is_finished === 'boolean' ? task.is_finished : (task.isFinished ?? false),
+			},
+		}
+	}
 
 	return (
 		<div className='bg-white rounded-xl shadow p-2 md:p-4'>
@@ -186,7 +247,7 @@ function FullCalendarGrid ({ user, refreshKey }) {
 					headerToolbar={{
 						left: 'prev,next today',
 						center: 'title',
-						right: 'dayGridMonth,timeGridWeek,timeGridDay' // 'listWeek' retiré
+						right: 'dayGridMonth,timeGridWeek,timeGridDay'
 					}}
 					locale={lang}
 					buttonText={calendarButtonText}
@@ -199,15 +260,33 @@ function FullCalendarGrid ({ user, refreshKey }) {
 					eventResize={handleEventDrop}
 					dayMaxEvents={true}
 					height='auto'
-					eventContent={arg => (
-						<div className='flex items-center gap-2'>
-							<span className='truncate'>{arg.event.title}</span>
-							<CalendarEventTimerButton event={arg.event} timer={timer} lang={lang} />
-						</div>
-					)}
+					eventContent={arg => {
+						const eventProps = arg.event.extendedProps || {}
+						return (
+							<div className='flex items-center gap-2'>
+								<span className='truncate'>{arg.event.title}</span>
+								<CalendarEventTimerButton
+									event={{
+										...eventProps,
+										id: arg.event.id,
+										title: arg.event.title,
+										durationSeconds: eventProps.durationSeconds ?? 0,
+									}}
+									timer={timer}
+									lang={lang}
+								/>
+							</div>
+						)
+					}}
 				/>
 			) : (
-				<TaskListView tasks={events.map(e => e.extendedProps ? { ...e.extendedProps, id: e.id } : e)} onTaskUpdate={fetchTasks} />
+				<TaskListView
+					tasks={events.map(e => e.extendedProps ? { ...e.extendedProps, id: e.id } : e)}
+					onTaskUpdate={fetchTasks}
+					user={user}
+					lastSavedTaskId={lastSavedTaskId}
+					lastSavedDuration={lastSavedDuration}
+				/>
 			)}
 			<AddTaskModal
 				open={showAddTaskModal}

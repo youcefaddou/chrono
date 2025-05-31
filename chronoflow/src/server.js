@@ -11,8 +11,8 @@ import Task from './models/task.js'
 import Session from './models/session.js'
 import LoginLog from './models/login-log.js'
 import passport from 'passport'
-import session from 'express-session'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
+import integrationsRouter from '../server/routes/integrations.js' 
 
 const app = express()
 app.use(cookieParser())
@@ -22,15 +22,7 @@ app.use(cors({
 }))
 app.use(express.json())
 
-// Ajoute ceci AVANT passport.initialize()
-app.use(session({
-	secret: process.env.SESSION_SECRET || 'your-secret',
-	resave: false,
-	saveUninitialized: false,
-	cookie: { secure: process.env.NODE_ENV === 'production' },
-}))
 app.use(passport.initialize())
-app.use(passport.session())
 
 // Middleware global pour connecter MongoDB une seule fois
 app.use(async (req, res, next) => {
@@ -196,12 +188,25 @@ app.get('/api/me', auth, async (req, res) => {
 // Tasks CRUD
 app.get('/api/tasks', auth, async (req, res) => {
 	const tasks = await Task.find({ userId: req.user.id })
-	res.json(tasks)
+	const mapped = tasks.map(task => ({
+		id: task._id.toString(),
+		title: task.title,
+		description: task.description,
+		start: task.start ? task.start.toISOString() : null,
+		end: task.end ? task.end.toISOString() : null,
+		color: task.color,
+		userId: task.userId,
+		isFinished: task.isFinished,
+		durationSeconds: task.durationSeconds,
+		// Pour compatibilité, expose aussi _id
+		_id: task._id.toString(),
+	}))
+	res.json(mapped)
 })
 
 app.post('/api/tasks', auth, async (req, res) => {
 	try {
-		const { title, description, start, end, color } = req.body
+		const { title, description, start, end, color, durationSeconds, isFinished } = req.body
 		const task = await Task.create({
 			title,
 			description,
@@ -209,8 +214,8 @@ app.post('/api/tasks', auth, async (req, res) => {
 			end,
 			color,
 			userId: req.user.id,
-			isFinished: false,
-			durationSeconds: 0,
+			isFinished: isFinished === true,
+			durationSeconds: typeof durationSeconds === 'number' ? durationSeconds : 0,
 		})
 		res.status(201).json(task)
 	} catch (err) {
@@ -221,6 +226,10 @@ app.post('/api/tasks', auth, async (req, res) => {
 app.put('/api/tasks/:id', auth, async (req, res) => {
 	const { id } = req.params
 	const update = req.body
+	// Forcer la clé camelCase pour la durée
+	if ('durationSeconds' in update && typeof update.durationSeconds !== 'number') {
+		update.durationSeconds = Number(update.durationSeconds) || 0
+	}
 	const task = await Task.findOneAndUpdate({ _id: id, userId: req.user.id }, update, { new: true })
 	res.json(task)
 })
@@ -315,23 +324,10 @@ passport.use(new GoogleStrategy({
 	}
 }))
 
-// Ajoute ou corrige la sérialisation Passport (juste après la config des stratégies)
-passport.serializeUser((user, done) => {
-	done(null, user._id ? user._id.toString() : user.id)
-})
+app.get('/api/auth/google', passport.authenticate('google', { scope: ['email', 'profile'] }))
 
-passport.deserializeUser(async (id, done) => {
-	try {
-		const user = await User.findById(id)
-		done(null, user)
-	} catch (err) {
-		done(err)
-	}
-})
-
-app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }))
 app.get('/api/auth/google/callback',
-	passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login' }),
+	passport.authenticate('google', { session: false, failureRedirect: 'http://localhost:5173/login' }),
 	(req, res) => {
 		const token = jwt.sign(
 			{
@@ -346,19 +342,18 @@ app.get('/api/auth/google/callback',
 		)
 		res.cookie('token', token, {
 			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'strict',
+			secure: false, // en dev, doit être false
+			sameSite: 'lax', // 'lax' pour dev multi-port
 			maxAge: 7 * 24 * 60 * 60 * 1000,
 			path: '/',
+			// PAS de domain ici !
 		})
 		res.redirect('http://localhost:5173/dashboard')
 	}
 )
 
-app.get('/', (req, res) => {
-	res.send('API is running')
-})
-const port = process.env.PORT || 3001
-app.listen(port, () => {
-	console.log('Server started on port', port)
+app.use('/api/integrations', integrationsRouter)
+
+app.listen(3001, () => {
+	console.log('Server running on http://localhost:3001')
 })

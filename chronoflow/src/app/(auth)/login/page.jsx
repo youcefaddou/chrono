@@ -46,13 +46,7 @@ export default function LoginPage () {
 			const data = await res.json()
 			setLoading(false)
 			if (!res.ok) throw new Error(data.message || data.error || 'Login failed')
-			const meRes = await fetch('http://localhost:3001/api/me', { credentials: 'include' })
-			const meData = await meRes.json()
-			if (meRes.ok) {
-				navigate('/dashboard')
-			} else {
-				setError('Erreur d’authentification après connexion')
-			}
+			navigate('/dashboard')
 		} catch (err) {
 			setLoading(false)
 			setError(err.message)
@@ -112,7 +106,9 @@ export default function LoginPage () {
 				<div className="flex flex-col gap-2 mt-4">
 					<button
 						type="button"
-						onClick={() => window.location.href = 'http://localhost:3001/api/auth/google'}
+						onClick={() => {
+							window.location.assign('http://localhost:3001/api/auth/google')
+						}}
 						className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition"
 					>
 						{t('header.login')} avec Google

@@ -46,13 +46,13 @@ export default function SignupPageEn () {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ email, username, password }),
+				credentials: 'include',
 			})
 			const data = await res.json()
 			setLoading(false)
 			if (!res.ok) throw new Error(data.message || 'Signup failed')
 			setSuccess(true)
 			setTimeout(() => {
-				localStorage.setItem('token', data.token)
 				navigate('/dashboard')
 			}, 1200)
 		} catch (err) {

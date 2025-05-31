@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -20,7 +20,7 @@ const loginSchema = z.object({
 
 export default function LoginPageEn () {
 	const [error, setError] = useState('')
-	const [loading, setLoading] = useState(false)
+	const [loading, setLoading] = useState(true)
 	const navigate = useNavigate()
 	const {
 		register,
@@ -31,6 +31,21 @@ export default function LoginPageEn () {
 		mode: 'onChange',
 	})
 
+	// Auto-check session after Google login
+	useEffect(() => {
+		const checkSession = async () => {
+			try {
+				const res = await fetch('http://localhost:3001/api/me', { credentials: 'include' })
+				if (res.ok) {
+					navigate('/dashboard')
+				}
+			} finally {
+				setLoading(false)
+			}
+		}
+		checkSession()
+	}, [navigate])
+
 	const onSubmit = async ({ email, password }) => {
 		setError('')
 		setLoading(true)
@@ -39,16 +54,24 @@ export default function LoginPageEn () {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ email, password }),
+				credentials: 'include',
 			})
 			const data = await res.json()
 			setLoading(false)
 			if (!res.ok) throw new Error(data.message || 'Login failed')
-			localStorage.setItem('token', data.token)
 			navigate('/dashboard')
 		} catch (err) {
 			setLoading(false)
 			setError(err.message)
 		}
+	}
+
+	if (loading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen">
+				<div className="text-lg text-gray-600">Loading...</div>
+			</div>
+		)
 	}
 
 	return (
@@ -104,7 +127,7 @@ export default function LoginPageEn () {
 				<div className="flex flex-col gap-2 mt-4">
 					<button
 						type="button"
-						onClick={() => window.location.href = 'http://localhost:3001/api/auth/google'}
+						onClick={() => window.location.assign('http://localhost:3001/api/auth/google')}
 						className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition"
 					>
 						Sign in with Google

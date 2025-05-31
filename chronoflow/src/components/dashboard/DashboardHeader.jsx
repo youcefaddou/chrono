@@ -6,7 +6,7 @@ import CalendarSelectorModal from './CalendarSelectorModal'
 // import CalendarGrid from './CalendarGrid'
 import FullCalendarGrid from './FullCalendarGrid'
 import SaveTimerModal from './SaveTimerModal'
-import { supabase } from '../../lib/supabase'
+import TaskListView from './TaskListView'
 import flagFr from '../../assets/france.png'
 import flagEn from '../../assets/eng.png'
 import styles from './DashboardHeader.module.css'
@@ -40,6 +40,8 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 	const [selectedRange, setSelectedRange] = useState('this-week')
 	const [externalDate, setExternalDate] = useState(null) // Pour synchronisation externe
 	const [refreshKey, setRefreshKey] = useState(0)
+	const [lastSavedTaskId, setLastSavedTaskId] = useState(null)
+	const [lastSavedDuration, setLastSavedDuration] = useState(0)
 
 	const weekNumber = getWeekNumber(selectedDate)
 	const year = selectedDate.getFullYear()
@@ -55,10 +57,31 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 			timer.pause()
 		}
 	}
-	const handleStop = () => {
-		// Toujours reset le timer et le compteur, même si non running
-		timer.stop()
-		setSeconds(0)
+	const handleStop = async () => {
+		if ((timer.running || safeSeconds > 0) && timer.task && timer.task.id) {
+			try {
+				await fetch(`http://localhost:3001/api/tasks/${timer.task.id}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({
+						durationSeconds: safeSeconds, // camelCase pour la DB
+					}),
+				})
+			} catch (err) {
+				console.error('Erreur lors de la sauvegarde du temps:', err)
+			}
+			setElapsedSecondsToSave(safeSeconds)
+			setShowSaveTimer(true)
+		} else {
+			// Sécurise : si pas de tâche associée, on stoppe le timer sans requête
+			if (!timer.task || !timer.task.id) {
+				console.warn('Aucune tâche associée au timer lors du stop. Pas de sauvegarde envoyée.')
+			}
+			timer.stop()
+			setSeconds(0)
+		}
+		setRefreshKey(k => k + 1) // force le refresh des tâches dans FullCalendarGrid et TaskListView
 	}
 	const handleSaveTimer = async (taskData) => {
 		if (!user || !user.id) {
@@ -66,31 +89,33 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 			return
 		}
 		try {
-			const { data, error } = await supabase
-				.from('tasks')
-				.insert([
-					{
-						title: taskData.title,
-						description: taskData.desc || '',
-						start: taskData.start.toISOString(),
-						end: taskData.end.toISOString(),
-						color: taskData.color || '#2563eb',
-						user_id: user.id,
-						duration_seconds: taskData.duration_seconds || 0,
-						is_finished: true
-					}
-				])
-				.select()
-			if (error) {
-				console.error('Erreur lors de l\'enregistrement:', error)
-				alert('Erreur lors de l\'enregistrement: ' + error.message)
+			const res = await fetch('http://localhost:3001/api/tasks', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					title: taskData.title,
+					description: taskData.desc || '',
+					start: taskData.start.toISOString(),
+					end: taskData.end.toISOString(),
+					color: taskData.color || '#2563eb',
+					durationSeconds: taskData.durationSeconds || lastSavedDuration || 0,
+					is_finished: true,
+				}),
+			})
+			const data = await res.json()
+			if (!res.ok) {
+				console.error('Erreur lors de l\'enregistrement:', data.message || data.error)
+				alert('Erreur lors de l\'enregistrement: ' + (data.message || data.error))
 				return
 			}
 			setShowSaveTimer(false)
 			setElapsedSecondsToSave(0)
 			timer.stop()
 			setSeconds(0)
-			setRefreshKey(k => k + 1) // Ajoute cette ligne pour rafraîchir FullCalendarGrid
+			setLastSavedTaskId(null)
+			setLastSavedDuration(0)
+			setRefreshKey(k => k + 1) // force le refresh des tâches dans FullCalendarGrid et TaskListView
 		} catch (err) {
 			console.error('Erreur lors de l\'enregistrement (exception):', err)
 			alert('Erreur lors de l\'enregistrement: ' + err.message)
@@ -133,10 +158,6 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 
 	// Live update seconds from timer
 	useEffect(() => {
-		if (!timer.running && !timer.paused) {
-			setSeconds(0)
-			return
-		}
 		const update = () => setSeconds(timer.getElapsedSeconds ? timer.getElapsedSeconds() : 0)
 		update()
 		const interval = setInterval(update, 1000)
@@ -167,8 +188,8 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 			<header className='flex flex-col md:flex-row md:items-center md:justify-between px-6 py-4 border-b border-gray-200 bg-white'>
 				<div className='flex items-center gap-4 mb-2 md:mb-0'>
 					<span className='font-mono text-3xl text-blue-700 w-24 text-center'>
-						{String(Math.floor(safeSeconds / 60)).padStart(2, '0')}:
-						{String(safeSeconds % 60).padStart(2, '0')}
+						{String(Math.floor(seconds / 60)).padStart(2, '0')}:
+						{String(seconds % 60).padStart(2, '0')}
 					</span>
 					<button
 						onClick={handleStartPause}
@@ -242,7 +263,7 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 					onClose={() => {
 						setShowSaveTimer(false)
 						setElapsedSecondsToSave(0)
-						timer.stop() // Remet à zéro si annulation
+						timer.stop()
 						setSeconds(0)
 					}}
 					onSave={handleSaveTimer}
@@ -256,7 +277,17 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 						selectedDate={selectedDate}
 						onExternalDateChange={handleExternalDateChange}
 					/> */}
-					<FullCalendarGrid user={user} refreshKey={refreshKey} />
+					<FullCalendarGrid
+						user={user}
+						refreshKey={refreshKey}
+						lastSavedTaskId={lastSavedTaskId}
+						lastSavedDuration={lastSavedDuration}
+					/>
+					{/* Supprimer ce TaskListView pour éviter le doublon */}
+					{/* <TaskListView
+						refreshKey={refreshKey}
+						// ...other props...
+					/> */}
 				</div>
 			</div>
 		</>

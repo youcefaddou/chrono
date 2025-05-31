@@ -1,4 +1,4 @@
-import React, { useContext, useRef, useState, useEffect } from 'react'
+import React, { useContext, useRef, useState, useEffect, useCallback } from 'react'
 import { GlobalTimerContext } from './GlobalTimerContext'
 
 export function GlobalTimerProvider ({ children }) {
@@ -6,9 +6,9 @@ export function GlobalTimerProvider ({ children }) {
 	const [running, setRunning] = useState(false)
 	const [paused, setPaused] = useState(false)
 	const [task, setTask] = useState(null)
-	const [projectId, setProjectId] = useState(null)
 	const [startTimestamp, setStartTimestamp] = useState(null) // ms since epoch
 	const intervalRef = useRef(null)
+	const [onSave, setOnSave] = useState(null) // callback pour notifier la sauvegarde
 
 	// Tick for UI update
 	const [, setTick] = useState(0)
@@ -31,21 +31,12 @@ export function GlobalTimerProvider ({ children }) {
 		}
 	}, [running, paused])
 
-	const start = (newTask = null, reset = true) => {
+	const start = (newTask = null, initialSeconds = 0) => {
+		setTask(newTask)
+		setAccumulated(initialSeconds)
 		setRunning(true)
 		setPaused(false)
 		setStartTimestamp(Date.now())
-		if (reset) setAccumulated(0)
-		if (newTask && newTask.projectId) {
-			setProjectId(newTask.projectId)
-			setTask({ projectId: newTask.projectId, name: newTask.name, id: newTask.id })
-		} else if (newTask) {
-			setTask(newTask)
-			setProjectId(null)
-		} else {
-			setTask(null)
-			setProjectId(null)
-		}
 	}
 
 	const pause = () => {
@@ -64,20 +55,38 @@ export function GlobalTimerProvider ({ children }) {
 		}
 	}
 
-	const stop = () => {
+	const stop = useCallback(async () => {
+		let total = accumulated
 		if (running && startTimestamp) {
 			const elapsed = Math.floor((Date.now() - startTimestamp) / 1000)
-			setAccumulated(a => a + elapsed)
+			total += elapsed
+		}
+		// Use id || _id for MongoDB compatibility
+		const taskId = task?.id || task?._id
+		if (task && taskId) {
+			try {
+				await fetch(`http://localhost:3001/api/tasks/${taskId}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({ durationSeconds: total }),
+				})
+				if (typeof onSave === 'function') onSave(taskId, total)
+			} catch (err) {
+				console.error('GlobalTimerProvider.stop: Failed to save timer', err)
+			}
+		} else {
+			console.warn('GlobalTimerProvider.stop: No valid task id or _id, skipping save', task)
 		}
 		setRunning(false)
 		setPaused(false)
 		setStartTimestamp(null)
 		setTask(null)
-		setProjectId(null)
-		setAccumulated(0) // Toujours remettre à zéro
-	}
+		setAccumulated(0)
+	}, [accumulated, running, startTimestamp, task, onSave])
 
 	const setTime = s => setAccumulated(s)
+	const setOnSaveCallback = cb => setOnSave(() => cb)
 
 	const getElapsedSeconds = () => {
 		if (!running) return 0
@@ -91,7 +100,6 @@ export function GlobalTimerProvider ({ children }) {
 				running,
 				paused,
 				task,
-				projectId,
 				start,
 				pause,
 				resume,
@@ -99,6 +107,7 @@ export function GlobalTimerProvider ({ children }) {
 				setTime,
 				setTask,
 				getElapsedSeconds,
+				setOnSaveCallback,
 			}}
 		>
 			{children}

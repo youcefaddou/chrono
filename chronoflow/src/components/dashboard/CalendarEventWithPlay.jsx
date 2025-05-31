@@ -1,6 +1,5 @@
 import React from 'react'
 import { useGlobalTimer } from '../Timer/useGlobalTimer'
-import { supabase } from '../../lib/supabase'
 import { useTranslation } from '../../hooks/useTranslation'
 import './CalendarEventWithPlay.css'
 import '../Timer/timer-styles.css'
@@ -25,7 +24,7 @@ function CalendarEventWithPlay({
 	const isRunning = React.useMemo(() => timer.running && runningTaskId === event.id, [timer.running, runningTaskId, event.id])
 	const isPaused = React.useMemo(() => isRunning && timer.paused, [isRunning, timer.paused])
 	const getElapsedSeconds = React.useMemo(() => (isRunning && typeof timer.getElapsedSeconds === 'function') ? timer.getElapsedSeconds : undefined, [isRunning, timer.getElapsedSeconds])
-	const [localDuration, setLocalDuration] = React.useState(event.duration_seconds || 0)
+	const [localDuration, setLocalDuration] = React.useState(event.durationSeconds || 0)
 	const [saving, setSaving] = React.useState(false)
 	const [pollingInterval, setPollingInterval] = React.useState(null)
 	const [taskExists, setTaskExists] = React.useState(true)
@@ -47,34 +46,32 @@ function CalendarEventWithPlay({
 		let isMounted = true;
 		
 		// Vérifier d'abord si la tâche existe avant de commencer le polling
-		supabase
-			.from('tasks')
-			.select('id')
-			.eq('id', event.id)
-			.single()
-			.then(({ data, error }) => {
-				if (error || !data) {
+		fetch(`http://localhost:3001/api/tasks/${event.id}`, {
+			credentials: 'include',
+		})
+			.then(response => {
+				if (!response.ok) {
 					deletedTasksCache.add(event.id);
 					if (isMounted) setTaskExists(false);
 					return;
 				}
-				
+				return response.json();
+			})
+			.then(data => {
 				// La tâche existe, configurer le polling pour la durée
 				if (!isMounted) return;
 				
 				function fetchDuration() {
 					if (!isMounted || deletedTasksCache.has(event.id)) return;
 					
-					supabase
-						.from('tasks')
-						.select('duration_seconds')
-						.eq('id', event.id)
-						.single()
-						.then(({ data, error }) => {
+					fetch(`http://localhost:3001/api/tasks/${event.id}`, {
+						credentials: 'include',
+					})
+						.then(response => {
 							if (!isMounted) return;
 							
-							if (error) {
-								if (error.code === '406') {
+							if (!response.ok) {
+								if (response.status === 404) {
 									deletedTasksCache.add(event.id);
 									setTaskExists(false);
 									if (pollingInterval) {
@@ -85,6 +82,9 @@ function CalendarEventWithPlay({
 								return;
 							}
 							
+							return response.json();
+						})
+						.then(data => {
 							if (data && typeof data.duration_seconds === 'number') {
 								setLocalDuration(data.duration_seconds);
 							}
@@ -118,8 +118,8 @@ function CalendarEventWithPlay({
 
 	// Update local duration when event changes
 	React.useEffect(() => {
-		setLocalDuration(event.duration_seconds || 0)
-	}, [event.duration_seconds])
+		setLocalDuration(event.durationSeconds || 0)
+	}, [event.durationSeconds])
 	// When timer stops, update duration in DB
 	const handleStop = async e => {
 		e.stopPropagation()
@@ -128,29 +128,31 @@ function CalendarEventWithPlay({
 			elapsed = timer.getElapsedSeconds()
 		}
 		timer.stop()
-		const newDuration = localDuration + (elapsed || 0)
+		const newDuration = (event.durationSeconds || 0) + (elapsed || 0)
 		setLocalDuration(newDuration)
 		setSaving(true)
-		await supabase
-			.from('tasks')
-			.update({ duration_seconds: newDuration })
-			.eq('id', event.id)
+		await fetch(`http://localhost:3001/api/tasks/${event.id}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ durationSeconds: newDuration }),
+		})
 		setSaving(false)
+		// Déclenche le refresh des tâches pour synchroniser toutes les vues
+		if (typeof event.onFinish === 'function') {
+			event.onFinish(event.id)
+		}
 	}
 
 	const handlePlayPause = e => {
 		e.stopPropagation()
 		if (!isRunning) {
-			// Démarrer le timer sans reset pour conserver la continuité
-			timer.start({
-				id: event.id,
-				title: event.title,
-				desc: event.desc,
-				start: event.start,
-				end: event.end,
-				color: event.color,
-				duration_seconds: localDuration,
-			}, false) // false = ne pas réinitialiser le timer		} else if (isPaused) {
+			if (typeof timer.startFrom === 'function') {
+				timer.startFrom(event.durationSeconds || 0, event)
+			} else if (typeof timer.start === 'function') {
+				timer.start(event, event.durationSeconds || 0)
+			}
+		} else if (isPaused) {
 			timer.resume()
 		} else {
 			timer.pause()
@@ -166,10 +168,12 @@ function CalendarEventWithPlay({
 		const newDuration = localDuration + (elapsed || 0)
 		setLocalDuration(newDuration)
 		setSaving(true)
-		await supabase
-			.from('tasks')
-			.update({ is_finished: true, duration_seconds: newDuration })
-			.eq('id', event.id)
+		await fetch(`http://localhost:3001/api/tasks/${event.id}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ is_finished: true, duration_seconds: newDuration }),
+		})
 		setSaving(false)
 		if (typeof event.onFinish === 'function') {
 			event.onFinish(event.id)

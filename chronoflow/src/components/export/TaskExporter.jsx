@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { supabase } from '../../lib/supabase'
 import chronoflowLogo from '../../../src/assets/logo.png' 
 import { Chart } from 'chart.js/auto'
 
