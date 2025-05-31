@@ -61,7 +61,7 @@ export default function EnglishSettingsPage () {
 	}
 
 	const handleConnectGoogle = () => {
-		window.location.href = '/api/integrations/google-calendar/auth'
+		window.location.href = 'http://localhost:3001/api/integrations/google-calendar/auth'
 	}
 
 	const handleLanguageChange = (e) => {

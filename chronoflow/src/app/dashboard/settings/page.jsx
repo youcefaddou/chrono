@@ -57,7 +57,7 @@ export default function SettingsPage () {
 	}
 
 	const handleConnectGoogle = () => {
-		window.location.href = '/api/integrations/google-calendar/auth'
+		window.location.href = 'http://localhost:3001/api/integrations/google-calendar/auth'
 	}
 
 	const sections = [

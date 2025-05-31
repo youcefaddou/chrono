@@ -2,6 +2,7 @@ import express from 'express'
 import { google } from 'googleapis'
 import User from '../../src/models/user.js'
 import Task from '../../src/models/task.js'
+import { auth } from '../../src/middlewares/auth.js'
 
 const router = express.Router()
 
@@ -28,21 +29,6 @@ const SCOPES = [
 	'https://www.googleapis.com/auth/calendar',
 	'https://www.googleapis.com/auth/userinfo.email',
 ]
-
-// Middleware d'auth à appliquer sur les routes qui nécessitent req.user
-function auth (req, res, next) {
-	if (req.isAuthenticated && req.isAuthenticated()) {
-		return next()
-	}
-	if (req.user && req.user.id) {
-		return next()
-	}
-	// JWT : req.user déjà injecté par un middleware global ?
-	if (!req.user) {
-		return res.status(401).send('Utilisateur non authentifié')
-	}
-	next()
-}
 
 // Redirige l'utilisateur vers Google pour consentement
 router.get('/google-calendar/auth', auth, (req, res) => {
@@ -75,10 +61,12 @@ router.get('/google-calendar/callback', auth, async (req, res) => {
 			{ _id: req.user.id },
 			{ $set: { googleCalendarTokens: tokens } }
 		)
-		res.redirect('/dashboard/integrations?google=success')
+		// Redirection vers le frontend après succès
+		res.redirect('http://localhost:5173/dashboard/integrations?google=success')
 	} catch (err) {
 		console.error('[Google Calendar][Callback] Erreur échange token:', err)
-		res.redirect('/dashboard/integrations?google=error')
+		// Redirection vers le frontend après erreur
+		res.redirect('http://localhost:5173/dashboard/integrations?google=error')
 	}
 })
 

@@ -13,6 +13,7 @@ import LoginLog from './models/login-log.js'
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 import integrationsRouter from '../server/routes/integrations.js' 
+import { auth } from './middlewares/auth.js'
 
 const app = express()
 app.use(cookieParser())
@@ -156,21 +157,6 @@ app.post('/api/logout', (req, res) => {
 	})
 	res.json({ success: true })
 })
-
-// Auth middleware
-function auth (req, res, next) {
-	const token = req.cookies.token
-	if (!token) {
-		return res.status(401).json({ message: 'No token' })
-	}
-	try {
-		const decoded = jwt.verify(token, process.env.JWT_SECRET)
-		req.user = decoded
-		next()
-	} catch {
-		res.status(401).json({ message: 'Invalid token' })
-	}
-}
 
 // Get current user
 app.get('/api/me', auth, async (req, res) => {
