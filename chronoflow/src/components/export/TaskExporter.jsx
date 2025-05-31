@@ -58,30 +58,25 @@ function exportToCsv(tasks, lang) {
 	const headers = lang === 'fr' 
 		? 'Titre,Description,Durée (s),Durée (hh:mm:ss),Terminé,Date de début,Date de fin\n'
 		: 'Title,Description,Duration (s),Duration (hh:mm:ss),Finished,Start Date,End Date\n'
-		
 	const csvContent = tasks.map(task => {
+		const duration = typeof task.durationSeconds === 'number' ? task.durationSeconds : (task.duration_seconds ?? 0)
 		return [
 			`"${task.title || ''}"`,
 			`"${task.description || ''}"`,
-			task.duration_seconds || 0,
-			formatDuration(task.duration_seconds),
+			duration,
+			formatDuration(duration),
 			task.is_finished ? (lang === 'fr' ? 'Oui' : 'Yes') : (lang === 'fr' ? 'Non' : 'No'),
 			task.start ? new Date(task.start).toLocaleString() : '',
 			task.end ? new Date(task.end).toLocaleString() : '',
 		].join(',')
 	}).join('\n')
-	
 	const fullCsv = headers + csvContent
 	const blob = new Blob([fullCsv], { type: 'text/csv' })
 	const url = URL.createObjectURL(blob)
-	
-	// Déclencher le téléchargement
 	const filename = tasks.length === 1 
 		? `${tasks[0].title || 'task'}.csv` 
 		: 'tasks-export.csv'
-	
 	triggerDownload(url, filename)
-	
 	return url
 }
 
@@ -133,14 +128,16 @@ function exportToPdf(tasks, lang) {
 		lang === 'fr' ? 'Date de début' : 'Start Date',
 	]
 	
-	const data = tasks.map(task => [
-		task.title || '',
-		formatDuration(task.duration_seconds),
-		task.is_finished ? 'YES' : 'NO',
-		task.start ? new Date(task.start).toLocaleDateString() : '-',
-	])
+	const data = tasks.map(task => {
+		const duration = typeof task.durationSeconds === 'number' ? task.durationSeconds : (task.duration_seconds ?? 0)
+		return [
+			task.title || '',
+			formatDuration(duration),
+			task.is_finished ? 'YES' : 'NO',
+			task.start ? new Date(task.start).toLocaleDateString() : '-',
+		]
+	})
 	
-	// Utiliser la fonction autoTable directement, et non comme méthode de doc
 	autoTable(doc, {
 		head: [headers],
 		body: data,
@@ -151,7 +148,7 @@ function exportToPdf(tasks, lang) {
 	})
 	
 	// Résumé
-	const totalDuration = tasks.reduce((sum, task) => sum + (task.duration_seconds || 0), 0)
+	const totalDuration = tasks.reduce((sum, task) => sum + (typeof task.durationSeconds === 'number' ? task.durationSeconds : (task.duration_seconds ?? 0)), 0)
 	const completedTasks = tasks.filter(task => task.is_finished).length
 	
 	doc.setFontSize(12)
@@ -213,7 +210,7 @@ async function exportProductivityReport(tasks, lang, user) {
 	doc.setTextColor(40, 99, 175)
 	doc.text(lang === 'fr' ? 'Statistiques générales' : 'General Statistics', 14, 20)
 
-	const totalDuration = tasks.reduce((sum, task) => sum + (task.duration_seconds || 0), 0)
+	const totalDuration = tasks.reduce((sum, task) => sum + (typeof task.durationSeconds === 'number' ? task.durationSeconds : (task.duration_seconds ?? 0)), 0)
 	const completedTasks = tasks.filter(task => task.is_finished).length
 	const pendingTasks = tasks.length - completedTasks
 	const completionRate = tasks.length > 0 ? (completedTasks / tasks.length * 100).toFixed(1) : 0
@@ -284,15 +281,17 @@ async function exportProductivityReport(tasks, lang, user) {
 		lang === 'fr' ? 'Statut' : 'Status',
 		lang === 'fr' ? 'Créé le' : 'Created',
 	]
-
-	const taskData = tasks.map(task => [
-		task.title || '',
-		formatDuration(task.duration_seconds),
-		task.is_finished
-			? (lang === 'fr' ? 'Terminé' : 'Completed')
-			: (lang === 'fr' ? 'En cours' : 'In progress'),
-		task.start ? new Date(task.start).toLocaleDateString() : '-',
-	])
+	const taskData = tasks.map(task => {
+		const duration = typeof task.durationSeconds === 'number' ? task.durationSeconds : (task.duration_seconds ?? 0)
+		return [
+			task.title || '',
+			formatDuration(duration),
+			task.is_finished
+				? (lang === 'fr' ? 'Terminé' : 'Completed')
+				: (lang === 'fr' ? 'En cours' : 'In progress'),
+			task.start ? new Date(task.start).toLocaleDateString() : '-',
+		]
+	})
 
 	autoTable(doc, {
 		head: [taskHeaders],
