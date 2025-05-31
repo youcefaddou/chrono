@@ -86,15 +86,15 @@ function exportToCsv(tasks, lang) {
  */
 function addLogo(doc) {
 	try {
-		// Ajuster les dimensions pour conserver le ratio d'aspect naturel
-		const logoWidth = 50 // Largeur du logo
+		// Décaler le logo plus à gauche (x = 4)
+		const logoWidth = 55 // Largeur du logo
 		const logoHeight = 15 // Hauteur du logo
-		doc.addImage(chronoflowLogo, 'PNG', 14, 10, logoWidth, logoHeight)
+		doc.addImage(chronoflowLogo, 'PNG', 4, 10, logoWidth, logoHeight)
 	} catch (error) {
 		// Fallback au logo en base64 si l'import échoue
 		const fallbackWidth = 40
 		const fallbackHeight = 15
-		doc.addImage(LOGO_BASE64, 'PNG', 14, 10, fallbackWidth, fallbackHeight)
+		doc.addImage(LOGO_BASE64, 'PNG', 4, 10, fallbackWidth, fallbackHeight)
 	}
 }
 
@@ -118,7 +118,7 @@ function exportToPdf(tasks, lang) {
 	// Information de date
 	doc.setFontSize(10)
 	doc.setTextColor(100, 100, 100)
-	doc.text(new Date().toLocaleString(), 50, 30)
+	doc.text(new Date().toLocaleString(), 80, 30)
 	
 	// Tableau des tâches
 	const headers = [
@@ -184,97 +184,229 @@ function exportToPdf(tasks, lang) {
  */
 async function exportProductivityReport(tasks, lang, user) {
 	const doc = new jsPDF()
-
-	// Ajouter le logo
 	addLogo(doc)
 
-	// Page de couverture
+	// Placement du titre et des sous-titres sans chevauchement
 	doc.setFontSize(24)
-	doc.setTextColor(40, 99, 175) // bleu
-	doc.text(lang === 'fr' ? 'Rapport de productivité' : 'Productivity Report', doc.internal.pageSize.getWidth() / 2, 40, { align: 'center' })
-
-	// Utiliser directement les informations de l'utilisateur connecté
+	doc.setTextColor(40, 99, 175)
+	doc.text(
+		lang === 'fr' ? 'Rapport de productivité' : 'Productivity Report',
+		doc.internal.pageSize.getWidth() / 2,
+		22,
+		{ align: 'center' }
+	)
 	doc.setFontSize(12)
 	doc.setTextColor(80, 80, 80)
 	doc.text(
 		lang === 'fr' ? `Généré pour: ${user.email || user.name}` : `Generated for: ${user.email || user.name}`,
 		doc.internal.pageSize.getWidth() / 2,
-		55,
+		32,
 		{ align: 'center' }
 	)
-	doc.text(new Date().toLocaleDateString(), doc.internal.pageSize.getWidth() / 2, 62, { align: 'center' })
+	doc.text(new Date().toLocaleDateString(), doc.internal.pageSize.getWidth() / 5, 39, { align: 'center' })
 
-	// Statistiques générales
-	doc.addPage()
-	doc.setFontSize(18)
-	doc.setTextColor(40, 99, 175)
-	doc.text(lang === 'fr' ? 'Statistiques générales' : 'General Statistics', 14, 20)
-
-	const totalDuration = tasks.reduce((sum, task) => sum + (typeof task.durationSeconds === 'number' ? task.durationSeconds : (task.duration_seconds ?? 0)), 0)
+	// Extraction des durées et dates
+	const durations = tasks.map(task => (typeof task.durationSeconds === 'number' ? task.durationSeconds : (task.duration_seconds ?? 0)))
+	const totalDuration = durations.reduce((sum, d) => sum + d, 0)
+	const avgDuration = durations.length ? Math.round(totalDuration / durations.length) : 0
+	const maxDuration = durations.length ? Math.max(...durations) : 0
+	const minDuration = durations.length ? Math.min(...durations) : 0
 	const completedTasks = tasks.filter(task => task.is_finished).length
 	const pendingTasks = tasks.length - completedTasks
 	const completionRate = tasks.length > 0 ? (completedTasks / tasks.length * 100).toFixed(1) : 0
 
-	// Tableau de statistiques
+	// Regroupement par période (auto : jour, semaine, ou mois selon l’étendue et le nombre de barres)
+	const parseDate = d => d ? new Date(d) : null
+	const allDates = tasks.map(t => parseDate(t.start)).filter(Boolean).sort((a, b) => a - b)
+	let periodType = 'day'
+	if (allDates.length > 1) {
+		const first = allDates[0], last = allDates[allDates.length - 1]
+		const diffDays = (last - first) / (1000 * 60 * 60 * 24)
+		// Générer les périodes par jour pour compter le nombre de barres
+		const dayLabels = []
+		for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
+			dayLabels.push(d.toISOString().slice(0, 10))
+		}
+		if (dayLabels.length > 30) {
+			// Trop de jours, on passe à la semaine
+			periodType = 'week'
+			// Compter le nombre de semaines
+			const weekLabels = []
+			let d = new Date(first)
+			d.setDate(d.getDate() - d.getDay())
+			while (d <= last) {
+				weekLabels.push(`${d.getFullYear()}-W${String(getWeekNumber(d)).padStart(2, '0')}`)
+				d.setDate(d.getDate() + 7)
+			}
+			if (weekLabels.length > 18) {
+				// Encore trop, on passe au mois
+				periodType = 'month'
+			}
+		}
+	}
+	function getWeekNumber(date) {
+		const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+		const dayNum = d.getUTCDay() || 7
+		d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+		const yearStart = new Date(Date.UTC(d.getFullYear(),0,1))
+		return Math.ceil((((d - yearStart) / 86400000) + 1)/7)
+	}
+	// Correction de la clé de regroupement pour garantir une addition correcte par période
+	// Correction : regrouper par date locale (getFullYear, getMonth, getDate)
+	const formatPeriod = date => {
+		if (!date) return '-'
+		const d = new Date(date)
+		if (periodType === 'month') {
+			return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+		}
+		if (periodType === 'week') {
+			return `${d.getFullYear()}-W${String(getWeekNumber(d)).padStart(2, '0')}`
+		}
+		// Par défaut, jour au format YYYY-MM-DD (locale)
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+	}
+	const periodMap = {}
+	tasks.forEach(task => {
+		const period = formatPeriod(task.start)
+		const duration = typeof task.durationSeconds === 'number' ? task.durationSeconds : (task.duration_seconds ?? 0)
+		if (!periodMap[period]) periodMap[period] = 0
+		periodMap[period] += duration
+	})
+	// Générer toutes les périodes entre la première et la dernière date, même vides
+	let fullPeriodLabels = []
+	if (allDates.length > 0) {
+		const first = allDates[0]
+		const last = allDates[allDates.length - 1]
+		if (periodType === 'day') {
+			let d = new Date(first)
+			while (d <= last) {
+				fullPeriodLabels.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+				d.setDate(d.getDate() + 1)
+			}
+		} else if (periodType === 'week') {
+			let d = new Date(first)
+			d.setDate(d.getDate() - d.getDay())
+			while (d <= last) {
+				fullPeriodLabels.push(`${d.getFullYear()}-W${String(getWeekNumber(d)).padStart(2, '0')}`)
+				d.setDate(d.getDate() + 7)
+			}
+		} else if (periodType === 'month') {
+			let d = new Date(first.getFullYear(), first.getMonth(), 1)
+			while (d <= last) {
+				fullPeriodLabels.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+				d.setMonth(d.getMonth() + 1)
+			}
+		}
+	}
+	// Remplir les périodes vides à zéro
+	const periodLabels = fullPeriodLabels.length ? fullPeriodLabels : Object.keys(periodMap)
+	const periodDurations = periodLabels.map(label => periodMap[label] || 0)
+
+	// Statistiques générales avancées
+	doc.setFontSize(18)
+	doc.setTextColor(40, 99, 175)
+	doc.text(lang === 'fr' ? 'Statistiques générales' : 'General Statistics', 14, 49)
 	const statsHeaders = [[
 		lang === 'fr' ? 'Métrique' : 'Metric',
-		lang === 'fr' ? 'Valeur' : 'Value'
+		lang === 'fr' ? 'Valeur' : 'Value',
 	]]
-
 	const statsData = [
 		[lang === 'fr' ? 'Nombre total de tâches' : 'Total tasks', tasks.length.toString()],
 		[lang === 'fr' ? 'Tâches terminées' : 'Completed tasks', completedTasks.toString()],
 		[lang === 'fr' ? 'Tâches en cours' : 'Pending tasks', pendingTasks.toString()],
 		[lang === 'fr' ? 'Taux de complétion' : 'Completion rate', `${completionRate}%`],
 		[lang === 'fr' ? 'Temps total travaillé' : 'Total time worked', formatDuration(totalDuration)],
+		[lang === 'fr' ? 'Durée moyenne' : 'Average duration', formatDuration(avgDuration)],
+		[lang === 'fr' ? 'Durée max' : 'Max duration', formatDuration(maxDuration)],
+		[lang === 'fr' ? 'Durée min' : 'Min duration', formatDuration(minDuration)],
 	]
 
 	autoTable(doc, {
 		head: statsHeaders,
 		body: statsData,
-		startY: 30,
+		startY: 55,
 		styles: { fontSize: 11 },
 		headStyles: { fillColor: [66, 133, 244], textColor: 255 },
 		alternateRowStyles: { fillColor: [240, 240, 240] },
 	})
 
-	// Ajouter un graphique camembert
-	const chartCanvas = document.createElement('canvas')
-	const chartContext = chartCanvas.getContext('2d')
-
-	new Chart(chartContext, {
-		type: 'pie',
-		data: {
-			labels: [
-				lang === 'fr' ? 'Tâches terminées' : 'Completed tasks',
-				lang === 'fr' ? 'Tâches en cours' : 'Pending tasks',
-			],
-			datasets: [{
-				data: [completedTasks, pendingTasks],
-				backgroundColor: ['#4CAF50', '#FFC107'],
-			}],
-		},
-		options: {
-			responsive: false,
-			plugins: {
-				legend: {
-					display: true,
-					position: 'bottom',
+	// Positionner le graphique juste après le tableau de stats
+	const afterStatsY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 8 : 100
+	// Calcul dynamique de l'axe Y du graphique (max = total max par période, sans arrondi)
+	const maxPeriodTotal = Math.max(...periodDurations, 1)
+	let chartImage = null
+	try {
+		const chartCanvas = document.createElement('canvas')
+		chartCanvas.width = 400
+		chartCanvas.height = 250
+		chartCanvas.style.padding = '0'
+		const chartContext = chartCanvas.getContext('2d')
+		// Nouvelle logique : axe Y strictement de 0 à max, ticks uniquement 0 et max, aucune division
+		new Chart(chartContext, {
+			type: 'bar',
+			data: {
+				labels: periodLabels,
+				datasets: [{
+					label: lang === 'fr' ? 'Temps passé (s)' : 'Time spent (s)',
+					data: periodDurations,
+					backgroundColor: '#4285F4',
+					barPercentage: 1,
+					categoryPercentage: 1,
+					borderRadius: 0,
+					borderSkipped: false,
+					borderWidth: 0,
+					clip: false,
+				}],
+			},
+			options: {
+				responsive: false,
+				maintainAspectRatio: false,
+				layout: { padding: 0 },
+				scales: {
+					y: {
+						type: 'linear',
+						beginAtZero: true,
+						min: 0,
+						max: maxPeriodTotal,
+						grace: 0,
+						offset: false,
+						ticks: {
+							stepSize: undefined,
+							callback: v => formatDuration(v),
+							count: 2,
+							padding: 0,
+						},
+						grid: { drawBorder: true, drawTicks: true, drawOnChartArea: true },
+					},
+					x: {
+						grid: { drawBorder: true, drawTicks: true, drawOnChartArea: false },
+					},
+				},
+				plugins: {
+					legend: { display: false },
+					chartArea: { backgroundColor: null, padding: { top: 0, bottom: 0 } },
 				},
 			},
-		},
-	})
+		})
+		await new Promise(r => setTimeout(r, 150))
+		chartImage = chartCanvas.toDataURL('image/png')
+	} catch (err) {
+		console.error('Graphique non généré (canvas non dispo)', err)
+	}
+	// Titre du graphique
+	const chartTitle = lang === 'fr' ? 'Évolution du temps total par période' : 'Total Time Spent per Period'
+	if (chartImage) {
+		doc.setFontSize(15)
+		doc.setTextColor(40, 99, 175)
+		doc.text(chartTitle, 14, afterStatsY + 8)
+		doc.addImage(chartImage, 'PNG', 14, afterStatsY + 14, 180, 72) // Ratio fidèle à la hauteur du canvas
+	}
 
-	// Convertir le graphique en image et l'ajouter au PDF
-	const chartImage = chartCanvas.toDataURL('image/png')
-	doc.addImage(chartImage, 'PNG', 14, doc.lastAutoTable.finalY + 10, 180, 90)
-
-	// Détails des tâches
-	doc.addPage()
+	// Décaler la section Détails des tâches plus bas (décalage +30px)
+	const afterChartY = afterStatsY + 104
 	doc.setFontSize(18)
 	doc.setTextColor(40, 99, 175)
-	doc.text(lang === 'fr' ? 'Détails des tâches' : 'Task Details', 14, 20)
-
+	doc.text(lang === 'fr' ? 'Détails des tâches' : 'Task Details', 14, afterChartY)
 	const taskHeaders = [
 		lang === 'fr' ? 'Titre' : 'Title',
 		lang === 'fr' ? 'Durée' : 'Duration',
@@ -296,19 +428,17 @@ async function exportProductivityReport(tasks, lang, user) {
 	autoTable(doc, {
 		head: [taskHeaders],
 		body: taskData,
-		startY: 30,
+		startY: afterChartY + 5,
 		styles: { fontSize: 10 },
 		headStyles: { fillColor: [66, 133, 244], textColor: 255 },
 		alternateRowStyles: { fillColor: [240, 240, 240] },
+		margin: { left: 14, right: 14 },
 	})
 
-	// Génération du blob
 	const blob = doc.output('blob')
 	const url = URL.createObjectURL(blob)
-
-	const filename = `productivity-report-${new Date().toISOString().slice(0, 10)}.pdf`
+	const filename = 'productivity-report.pdf'
 	triggerDownload(url, filename)
-
 	return url
 }
 
