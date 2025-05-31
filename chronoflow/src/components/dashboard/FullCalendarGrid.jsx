@@ -71,6 +71,15 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 
 	// Handle event click (edit)
 	const handleEventClick = useCallback((info) => {
+		// Empêche l'ouverture de la modale d'édition si clic sur un bouton du timer
+		const target = info.jsEvent?.target
+		if (
+			target?.closest('.task-timer-buttons') ||
+			target?.tagName === 'BUTTON' ||
+			target?.closest('button')
+		) {
+			return
+		}
 		setSelectedEvent(info.event)
 		setShowEditTaskModal(true)
 	}, [])
@@ -128,7 +137,7 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 					start: task.start,
 					end: task.end,
 					color: task.color || '#2563eb',
-					durationSeconds: 0,
+					durationSeconds: task.duration_seconds || 0,
 					isFinished: false,
 				}),
 			})
@@ -274,6 +283,7 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 									}}
 									timer={timer}
 									lang={lang}
+									disabled={eventProps.is_finished}
 									onTaskUpdate={fetchTasks}
 								/>
 							</div>

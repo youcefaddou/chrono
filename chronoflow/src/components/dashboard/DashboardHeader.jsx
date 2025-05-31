@@ -101,7 +101,7 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 					start: taskData.start.toISOString(),
 					end: taskData.end.toISOString(),
 					color: taskData.color || '#2563eb',
-					durationSeconds: taskData.durationSeconds || lastSavedDuration || 0,
+					durationSeconds: taskData.duration_seconds || 0,
 					is_finished: true,
 				}),
 			})
@@ -115,8 +115,8 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 			setElapsedSecondsToSave(0)
 			timer.stop()
 			setSeconds(0)
-			setLastSavedTaskId(null)
-			setLastSavedDuration(0)
+			setLastSavedTaskId(data.id || data._id)
+			setLastSavedDuration(taskData.duration_seconds || 0)
 			setRefreshKey(k => k + 1) // force le refresh des tâches dans FullCalendarGrid et TaskListView
 		} catch (err) {
 			console.error('Erreur lors de l\'enregistrement (exception):', err)
@@ -182,6 +182,17 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 			document.removeEventListener('contextmenu', preventCopyPaste, true)
 		}
 	}, [])
+
+	// Reset lastSavedTaskId/lastSavedDuration après un refresh pour éviter le redémarrage en boucle
+	useEffect(() => {
+		if (lastSavedTaskId || lastSavedDuration) {
+			const timeout = setTimeout(() => {
+				setLastSavedTaskId(null)
+				setLastSavedDuration(0)
+			}, 2000)
+			return () => clearTimeout(timeout)
+		}
+	}, [lastSavedTaskId, lastSavedDuration])
 
 	const safeSeconds = Number.isFinite(seconds) && seconds >= 0 ? seconds : 0
 

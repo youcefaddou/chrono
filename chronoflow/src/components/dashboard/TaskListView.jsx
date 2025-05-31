@@ -205,6 +205,21 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 		return 0
 	}
 
+	// Démarrage automatique du timer sur la tâche nouvellement créée (depuis SaveTimerModal)
+	useEffect(() => {
+		if (lastSavedTaskId && lastSavedDuration && taskList.length > 0) {
+			const justCreated = taskList.find(t => t.id === lastSavedTaskId)
+			if (justCreated && (!timer.running || timer.task?.id !== lastSavedTaskId)) {
+				if (typeof timer.startFrom === 'function') {
+					timer.startFrom(lastSavedDuration, justCreated)
+				} else if (typeof timer.start === 'function') {
+					timer.start(justCreated, lastSavedDuration)
+				}
+			}
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [lastSavedTaskId, lastSavedDuration, taskList])
+
 	return (
 		<>
 			{/* En-tête avec bouton d'ajout et rapport */}
