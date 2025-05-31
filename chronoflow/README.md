@@ -26,7 +26,10 @@ npm install react-hook-form zod
 npm install -D eslint prettier eslint-config-prettier eslint-plugin-react
 npm install i18next react-i18next
 npm install @hookform/resolvers zod
+npm install jspdf jspdf-autotable chart.js
 
+
+supabase functions deploy update-task-durations  
 
 docker build -t chronoflow .
 

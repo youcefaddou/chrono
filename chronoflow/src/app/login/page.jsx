@@ -21,25 +21,12 @@ export default function LoginPage () {
 		})
 	}, [router])
 
-	const handleGoogleLogin = async () => {
-		// Utilise la redirection vers /login pour le flux OAuth
-		const { error } = await supabase.auth.signInWithOAuth({
-			provider: 'google',
-			options: {
-				redirectTo: `${window.location.origin}/login`,
-			},
-		})
-		if (error) setError(error.message)
+	const handleGoogleLogin = () => {
+		window.location.href = 'http://localhost:3001/api/auth/google'
 	}
 
-	const handleGithubLogin = async () => {
-		const { error } = await supabase.auth.signInWithOAuth({
-			provider: 'github',
-			options: {
-				redirectTo: `${window.location.origin}/login`,
-			},
-		})
-		if (error) setError(error.message)
+	const handleGithubLogin = () => {
+		window.location.href = 'http://localhost:3001/api/auth/github'
 	}
 
 	return (

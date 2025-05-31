@@ -1,0 +1,17 @@
+.dashboardMain {
+	min-height: 90vh;
+	display: flex;
+	flex-direction: row;
+	background: #fff;
+	border-radius: 0.75rem;
+	box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
+	padding-top: 1rem;
+	padding-right: 1rem;
+	padding-bottom: 0;
+	padding-left: 1rem;
+}
+.calendarPanel {
+	flex: 1;
+	height: 100%;
+	overflow: auto;
+}

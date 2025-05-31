@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { supabase } from '../../../lib/supabase'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -37,29 +36,21 @@ export default function LoginPage () {
 	const onSubmit = async ({ email, password }) => {
 		setError('')
 		setLoading(true)
-		const { error: signInError } = await supabase.auth.signInWithPassword({
-			email,
-			password,
-		})
-		setLoading(false)
-		if (signInError) {
-			setError(signInError.message)
-		} else {
+		try {
+			const res = await fetch('http://localhost:3001/api/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email, password }),
+				credentials: 'include',
+			})
+			const data = await res.json()
+			setLoading(false)
+			if (!res.ok) throw new Error(data.message || data.error || 'Login failed')
 			navigate('/dashboard')
+		} catch (err) {
+			setLoading(false)
+			setError(err.message)
 		}
-	}
-
-	const handleOAuth = async provider => {
-		setError('')
-		setLoading(true)
-		const { error } = await supabase.auth.signInWithOAuth({
-			provider,
-			options: {
-				redirectTo: window.location.origin + '/dashboard'
-			}
-		})
-		setLoading(false)
-		if (error) setError(error.message)
 	}
 
 	return (
@@ -112,24 +103,15 @@ export default function LoginPage () {
 						{loading ? 'Connexion...' : 'Se connecter'}
 					</button>
 				</form>
-				<div className="flex flex-col gap-4 mb-4">
+				<div className="flex flex-col gap-2 mt-4">
 					<button
 						type="button"
-						onClick={() => handleOAuth('google')}
-						className="cursor-pointer w-full flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-700 hover:text-white text-gray-700 font-semibold py-2 rounded-lg shadow transition disabled:opacity-60"
-						disabled={loading}
+						onClick={() => {
+							window.location.assign('http://localhost:3001/api/auth/google')
+						}}
+						className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition"
 					>
-						<img src="/assets/images/google.png" alt="Google" className="w-5 h-5" />
-						Se connecter avec Google
-					</button>
-					<button
-						type="button"
-						onClick={() => handleOAuth('github')}
-						className="cursor-pointer w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-rose-800 text-white font-semibold py-2 rounded-lg shadow transition disabled:opacity-60"
-						disabled={loading}
-					>
-						<img src="/assets/images/github.png" alt="GitHub" className="w-5 h-5 bg-white rounded-full p-0.2" />
-						Se connecter avec GitHub
+						{t('header.login')} avec Google
 					</button>
 				</div>
 				<div className="mt-6 text-center text-sm text-gray-600">

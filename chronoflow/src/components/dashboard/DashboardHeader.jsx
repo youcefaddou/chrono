@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useGlobalTimer } from '../Timer/GlobalTimerProvider'
+import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import FocusZoneModal from './FocusZoneModal'
 import CalendarSelectorModal from './CalendarSelectorModal'
-import CalendarGrid from './CalendarGrid'
-import RightPanel from './RightPanel'
+// import CalendarGrid from './CalendarGrid'
+import FullCalendarGrid from './FullCalendarGrid'
+import SaveTimerModal from './SaveTimerModal'
+import TaskListView from './TaskListView'
 import flagFr from '../../assets/france.png'
 import flagEn from '../../assets/eng.png'
+import styles from './DashboardHeader.module.css'
+import { useRef } from 'react'
 
 function getWeekNumber (date) {
 	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -24,30 +28,102 @@ function getMondayOfWeek (date) {
 	return d
 }
 
-function DashboardHeader ({ user }) {
+function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 	const { t, i18n } = useTranslation()
-	const { seconds, running, paused, start, pause, resume, stop } = useGlobalTimer()
+	const timer = useGlobalTimer()
+	const [seconds, setSeconds] = useState(0)
 	const [showZone, setShowZone] = useState(false)
 	const [showCalendar, setShowCalendar] = useState(false)
+	const [showSaveTimer, setShowSaveTimer] = useState(false)
+	const [elapsedSecondsToSave, setElapsedSecondsToSave] = useState(0)
 	const [selectedDate, setSelectedDate] = useState(getMondayOfWeek(new Date()))
 	const [selectedRange, setSelectedRange] = useState('this-week')
 	const [externalDate, setExternalDate] = useState(null) // Pour synchronisation externe
+	const [refreshKey, setRefreshKey] = useState(0)
+	const [lastSavedTaskId, setLastSavedTaskId] = useState(null)
+	const [lastSavedDuration, setLastSavedDuration] = useState(0)
 
 	const weekNumber = getWeekNumber(selectedDate)
 	const year = selectedDate.getFullYear()
-
 	const currentFlag = i18n.language.startsWith("en") ? flagEn : flagFr
 	const nextLang = i18n.language.startsWith("en") ? "fr" : "en"
 	const handleLangSwitch = () => i18n.changeLanguage(nextLang)
-
 	const handleStartPause = () => {
-		if (!running) start()
-		else if (paused) resume()
-		else pause()
+		if (!timer.running) {
+			timer.start()
+		} else if (timer.paused) {
+			timer.resume()
+		} else {
+			timer.pause()
+		}
 	}
-	const handleStop = () => stop()
+	const handleStop = async () => {
+		if ((timer.running || safeSeconds > 0) && timer.task && timer.task.id) {
+			// Cas 1 : Timer associé à une tâche → sauvegarde directe
+			try {
+				await fetch(`http://localhost:3001/api/tasks/${timer.task.id}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({
+						durationSeconds: safeSeconds, // camelCase pour la DB
+					}),
+				})
+			} catch (err) {
+				console.error('Erreur lors de la sauvegarde du temps:', err)
+			}
+			timer.stop()
+			setSeconds(0)
+			setRefreshKey(k => k + 1)
+		} else if (timer.running || safeSeconds > 0) {
+			// Cas 2 : Timer SANS tâche → ouvrir la modale de création
+			setElapsedSecondsToSave(safeSeconds)
+			setShowSaveTimer(true)
+		} else {
+			// Sécurise : si timer déjà arrêté
+			timer.stop()
+			setSeconds(0)
+		}
+	}
+	const handleSaveTimer = async (taskData) => {
+		if (!user || !user.id) {
+			alert('Utilisateur non authentifié')
+			return
+		}
+		try {
+			const res = await fetch('http://localhost:3001/api/tasks', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					title: taskData.title,
+					description: taskData.desc || '',
+					start: taskData.start.toISOString(),
+					end: taskData.end.toISOString(),
+					color: taskData.color || '#2563eb',
+					durationSeconds: taskData.duration_seconds || 0,
+					is_finished: true,
+				}),
+			})
+			const data = await res.json()
+			if (!res.ok) {
+				console.error('Erreur lors de l\'enregistrement:', data.message || data.error)
+				alert('Erreur lors de l\'enregistrement: ' + (data.message || data.error))
+				return
+			}
+			setShowSaveTimer(false)
+			setElapsedSecondsToSave(0)
+			timer.stop()
+			setSeconds(0)
+			setLastSavedTaskId(data.id || data._id)
+			setLastSavedDuration(taskData.duration_seconds || 0)
+			setRefreshKey(k => k + 1) // force le refresh des tâches dans FullCalendarGrid et TaskListView
+		} catch (err) {
+			console.error('Erreur lors de l\'enregistrement (exception):', err)
+			alert('Erreur lors de l\'enregistrement: ' + err.message)
+		}
+	}
 	const handleZone = () => setShowZone(true)
-	const handleAdd = () => alert('Add task/project')
 	const handleCloseZone = () => setShowZone(false)
 	const handleOpenCalendar = () => setShowCalendar(true)
 	const handleCloseCalendar = () => setShowCalendar(false)
@@ -82,26 +158,64 @@ function DashboardHeader ({ user }) {
 		setExternalDate(date)
 	}
 
+	// Live update seconds from timer
+	useEffect(() => {
+		const update = () => setSeconds(timer.getElapsedSeconds ? timer.getElapsedSeconds() : 0)
+		update()
+		const interval = setInterval(update, 1000)
+		return () => clearInterval(interval)
+	}, [timer, timer.running, timer.paused])
+
+	useEffect(() => {
+		function preventCopyPaste (e) {
+			e.preventDefault()
+			return false
+		}
+		document.addEventListener('copy', preventCopyPaste, true)
+		document.addEventListener('cut', preventCopyPaste, true)
+		document.addEventListener('paste', preventCopyPaste, true)
+		document.addEventListener('contextmenu', preventCopyPaste, true)
+		return () => {
+			document.removeEventListener('copy', preventCopyPaste, true)
+			document.removeEventListener('cut', preventCopyPaste, true)
+			document.removeEventListener('paste', preventCopyPaste, true)
+			document.removeEventListener('contextmenu', preventCopyPaste, true)
+		}
+	}, [])
+
+	// Reset lastSavedTaskId/lastSavedDuration après un refresh pour éviter le redémarrage en boucle
+	useEffect(() => {
+		if (lastSavedTaskId || lastSavedDuration) {
+			const timeout = setTimeout(() => {
+				setLastSavedTaskId(null)
+				setLastSavedDuration(0)
+			}, 2000)
+			return () => clearTimeout(timeout)
+		}
+	}, [lastSavedTaskId, lastSavedDuration])
+
+	const safeSeconds = Number.isFinite(seconds) && seconds >= 0 ? seconds : 0
+
 	return (
 		<>
 			<header className='flex flex-col md:flex-row md:items-center md:justify-between px-6 py-4 border-b border-gray-200 bg-white'>
 				<div className='flex items-center gap-4 mb-2 md:mb-0'>
-					<span className='font-mono text-lg text-blue-700 w-20 text-center'>
+					<span className='font-mono text-3xl text-blue-700 w-24 text-center'>
 						{String(Math.floor(seconds / 60)).padStart(2, '0')}:
 						{String(seconds % 60).padStart(2, '0')}
 					</span>
 					<button
 						onClick={handleStartPause}
 						className={`p-2 rounded-full border flex items-center ${
-							!running
+							!timer.running
 								? 'bg-blue-100 hover:bg-blue-200 border-blue-200'
-								: paused
+								: timer.paused
 									? 'bg-blue-100 hover:bg-blue-200 border-blue-200'
 									: 'bg-yellow-100 hover:bg-yellow-200 border-yellow-200'
 						}`}
-						aria-label={!running ? 'Start timer' : paused ? 'Resume timer' : 'Pause timer'}
+						aria-label={!timer.running ? 'Start timer' : timer.paused ? 'Resume timer' : 'Pause timer'}
 					>
-						{!running || paused ? (
+						{!timer.running || timer.paused ? (
 							<svg width='20' height='20' fill='none' viewBox='0 0 20 20'>
 								<polygon points='6,4 16,10 6,16' fill='#2563eb'/>
 							</svg>
@@ -114,8 +228,8 @@ function DashboardHeader ({ user }) {
 					</button>
 					<button
 						onClick={handleStop}
-						disabled={!running && seconds === 0}
-						className={`p-2 rounded-full border flex items-center ${running || seconds > 0 ? 'bg-rose-100 hover:bg-rose-200 border-rose-200' : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'}`}
+						disabled={!timer.running && safeSeconds === 0}
+						className={`p-2 rounded-full border flex items-center ${timer.running || safeSeconds > 0 ? 'bg-rose-100 hover:bg-rose-200 border-rose-200' : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'}`}
 						aria-label='Stop timer'
 					>
 						<svg width='20' height='20' fill='none' viewBox='0 0 20 20'>
@@ -135,30 +249,19 @@ function DashboardHeader ({ user }) {
 							{ i18n.language.startsWith('fr')
 								? 'Active le mode focus : le timer démarre et toutes les distractions sont masquées.'
 								: 'Enable focus mode: timer starts and all distractions are hidden.' }
-						</span>
-					</button>
-					<button
-						onClick={handleAdd}
-						className='p-2 rounded-full bg-blue-100 hover:bg-blue-200 border border-blue-200 flex items-center'
-						aria-label='Add task/project'
-					>
-						<svg width='20' height='20' fill='none' viewBox='0 0 20 20'>
-							<rect x='9' y='4' width='2' height='12' rx='1' fill='#2563eb'/>
-							<rect x='4' y='9' width='12' height='2' rx='1' fill='#2563eb'/>
-						</svg>
-					</button>
+						</span>					</button>
 				</div>
 			</header>
 			{showZone && (
 				<FocusZoneModal
 					seconds={seconds}
-					running={running}
-					isPaused={paused}
+					running={timer.running}
+					isPaused={timer.paused}
 					onStartPause={handleStartPause}
 					onStop={handleStop}
 					onClose={handleCloseZone}
-				/>
-			)}
+					lang={i18n.language}
+				/>			)}
 			{showCalendar && (
 				<CalendarSelectorModal
 					onClose={handleCloseCalendar}
@@ -166,17 +269,39 @@ function DashboardHeader ({ user }) {
 					selectedRange={selectedRange}
 					selectedDate={selectedDate}
 				/>
+			)}			{showSaveTimer && (
+				<SaveTimerModal
+					open={showSaveTimer}
+					elapsedSeconds={elapsedSecondsToSave}
+					onClose={() => {
+						setShowSaveTimer(false)
+						setElapsedSecondsToSave(0)
+						timer.stop()
+						setSeconds(0)
+					}}
+					onSave={handleSaveTimer}
+				/>
 			)}
-			<div className='flex flex-1'>
-				<div className='flex-1 overflow-auto'>
-					<CalendarGrid
+			<div className={styles.dashboardMain}>
+				<div className={styles.calendarPanel}>
+					{/* <CalendarGrid
 						user={user}
 						selectedRange={selectedRange}
 						selectedDate={selectedDate}
 						onExternalDateChange={handleExternalDateChange}
+					/> */}
+					<FullCalendarGrid
+						user={user}
+						refreshKey={refreshKey}
+						lastSavedTaskId={lastSavedTaskId}
+						lastSavedDuration={lastSavedDuration}
 					/>
+					{/* Supprimer ce TaskListView pour éviter le doublon */}
+					{/* <TaskListView
+						refreshKey={refreshKey}
+						// ...other props...
+					/> */}
 				</div>
-				<RightPanel />
 			</div>
 		</>
 	)
