@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -10,11 +10,11 @@ import { useGlobalTimer } from '../Timer/useGlobalTimer'
 import AddTaskModal from './AddTaskModal'
 import CalendarEventTimerButton from './CalendarEventTimerButton'
 import TaskListView from './TaskListView'
+import useMergedEvents from './useMergedEvents'
 
 function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuration }) {
 	const { t, i18n } = useTranslation()
 	const lang = i18n.language.startsWith('en') ? 'en' : 'fr'
-	const [events, setEvents] = useState([])
 	const [selectedEvent, setSelectedEvent] = useState(null)
 	const [showAddTaskModal, setShowAddTaskModal] = useState(false)
 	const [showEditTaskModal, setShowEditTaskModal] = useState(false)
@@ -22,6 +22,8 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 	const [errorMessage, setErrorMessage] = useState('')
 	const [viewMode, setViewMode] = useState('calendar')
 	const timer = useGlobalTimer()
+
+	const { events: mergedEvents, loading: eventsLoading, error: eventsError, refetch: refetchEvents } = useMergedEvents()
 
 	// Error messages with i18n
 	const getErrorMessage = useCallback((key) => {
@@ -46,37 +48,13 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 		return messages[key]?.[lang] || messages[key]?.fr
 	}, [lang])
 
-	// Fetch tasks from MongoDB API and map to FullCalendar format
-	const fetchTasks = useCallback(async () => {
-		try {
-			const res = await fetch('http://localhost:3001/api/tasks', { credentials: 'include' })
-			if (!res.ok) throw new Error('Erreur lors du chargement des tâches')
-			const data = await res.json()
-			const mappedEvents = data.map(mapTaskForCalendar)
-			setEvents(mappedEvents)
-		} catch (err) {
-			setErrorMessage(getErrorMessage('fetch'))
-		}
-	}, [getErrorMessage])
-
-	useEffect(() => {
-		async function fetchAndMapTasks () {
-			const res = await fetch('http://localhost:3001/api/tasks', { credentials: 'include' })
-			const data = await res.json()
-			const mappedEvents = data.map(mapTaskForCalendar)
-			setEvents(mappedEvents)
-		}
-		fetchAndMapTasks()
-	}, [refreshKey])
-
 	// Handle event click (edit)
 	const handleEventClick = useCallback((info) => {
-		// Empêche l'ouverture de la modale d'édition si clic sur un bouton du timer
 		const target = info.jsEvent?.target
 		if (
 			target?.closest('.task-timer-buttons') ||
-			target?.tagName === 'BUTTON' ||
-			target?.closest('button')
+			target?.dataset?.timerButton === 'true' ||
+			target?.parentElement?.dataset?.timerButton === 'true'
 		) {
 			return
 		}
@@ -93,6 +71,10 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 	// Handle event drop/resize
 	const handleEventDrop = useCallback(async (changeInfo) => {
 		const { event } = changeInfo
+		if (String(event.id).startsWith('gcal-')) {
+			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+			return
+		}
 		try {
 			await fetch(`http://localhost:3001/api/tasks/${event.id}`, {
 				method: 'PUT',
@@ -103,26 +85,28 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 					end: event.end,
 				}),
 			})
-			fetchTasks()
+			refetchEvents()
 		} catch (err) {
 			setErrorMessage(getErrorMessage('update'))
 		}
-	}, [fetchTasks, getErrorMessage])
+	}, [refetchEvents, getErrorMessage])
 
 	// Handle event remove
 	const handleEventRemove = useCallback(async (eventId) => {
+		if (String(eventId).startsWith('gcal-')) {
+			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+			return
+		}
 		try {
 			await fetch(`http://localhost:3001/api/tasks/${eventId}`, {
 				method: 'DELETE',
 				credentials: 'include',
 			})
-			fetchTasks()
+			refetchEvents()
 		} catch (err) {
 			setErrorMessage(getErrorMessage('delete'))
 		}
-	}, [fetchTasks, getErrorMessage])
-
-	
+	}, [refetchEvents, getErrorMessage])
 
 	// Handle add/edit task modal save
 	const handleAddTaskSave = async (task) => {
@@ -149,7 +133,7 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 			}
 			setShowAddTaskModal(false)
 			setDraftTask(null)
-			fetchTasks()
+			refetchEvents()
 		} catch (error) {
 			setErrorMessage(getErrorMessage('create'))
 		}
@@ -157,6 +141,10 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 
 	const handleEditTaskSave = async (task) => {
 		if (!selectedEvent) return
+		if (String(selectedEvent.id).startsWith('gcal-')) {
+			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+			return
+		}
 		try {
 			const res = await fetch(`http://localhost:3001/api/tasks/${selectedEvent.id}`, {
 				method: 'PUT',
@@ -178,7 +166,7 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 			}
 			setShowEditTaskModal(false)
 			setSelectedEvent(null)
-			fetchTasks()
+			refetchEvents()
 		} catch (error) {
 			setErrorMessage(getErrorMessage('update'))
 		}
@@ -186,6 +174,10 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 
 	const handleEditTaskDelete = async () => {
 		if (!selectedEvent) return
+		if (String(selectedEvent.id).startsWith('gcal-')) {
+			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+			return
+		}
 		try {
 			await fetch(`http://localhost:3001/api/tasks/${selectedEvent.id}`, {
 				method: 'DELETE',
@@ -193,7 +185,7 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 			})
 			setShowEditTaskModal(false)
 			setSelectedEvent(null)
-			fetchTasks()
+			refetchEvents()
 		} catch (error) {
 			setErrorMessage(getErrorMessage('delete'))
 		}
@@ -233,6 +225,30 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 		}
 	}
 
+	function mapGoogleEventForCalendar (event) {
+		return {
+			id: 'gcal-' + event.id,
+			title: event.summary || event.title || '(Google event)',
+			start: event.start ? new Date(event.start) : null,
+			end: event.end ? new Date(event.end) : null,
+			backgroundColor: '#34a853',
+			borderColor: '#34a853',
+			allDay: false,
+			editable: false,
+			classNames: ['google-calendar-event'],
+			extendedProps: {
+				...event,
+				id: 'gcal-' + event.id,
+				title: event.summary || event.title || '(Google event)',
+				isGoogle: true,
+				readOnly: true,
+				durationSeconds: typeof event.durationSeconds === 'number' ? event.durationSeconds : 0,
+				is_finished: !!event.is_finished,
+				isFinished: !!event.isFinished,
+			},
+		}
+	}
+
 	return (
 		<div className='bg-white rounded-xl shadow p-2 md:p-4'>
 			<div className='flex gap-2 mb-4'>
@@ -260,7 +276,7 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 					}}
 					locale={lang}
 					buttonText={calendarButtonText}
-					events={events}
+					events={mergedEvents.map(e => e.isGoogle ? mapGoogleEventForCalendar(e) : mapTaskForCalendar(e))}
 					selectable
 					editable
 					select={handleDateSelect}
@@ -271,20 +287,29 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 					height='auto'
 					eventContent={arg => {
 						const eventProps = arg.event.extendedProps || {}
+						const eventId = String(arg.event.id)
+						// Uniformiser l'objet event pour le bouton chrono (id string, tous les champs utiles)
+						const eventForTimer = {
+							...eventProps,
+							id: eventId,
+							title: arg.event.title,
+							durationSeconds: typeof eventProps.durationSeconds === 'number' ? eventProps.durationSeconds : 0,
+							isGoogle: !!eventProps.isGoogle,
+							is_finished: !!eventProps.is_finished,
+							isFinished: !!eventProps.isFinished,
+						}
 						return (
 							<div className='flex items-center gap-2'>
 								<span className='truncate'>{arg.event.title}</span>
+								{arg.event.classNames?.includes('google-calendar-event') && (
+									<span className='ml-1 px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs font-semibold'>Google</span>
+								)}
 								<CalendarEventTimerButton
-									event={{
-										...eventProps,
-										id: arg.event.id,
-										title: arg.event.title,
-										durationSeconds: eventProps.durationSeconds ?? 0,
-									}}
+									event={eventForTimer}
 									timer={timer}
 									lang={lang}
-									disabled={eventProps.is_finished}
-									onTaskUpdate={fetchTasks}
+									disabled={eventForTimer.is_finished}
+									onTaskUpdate={refetchEvents}
 								/>
 							</div>
 						)
@@ -292,8 +317,8 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 				/>
 			) : (
 				<TaskListView
-					tasks={events.map(e => e.extendedProps ? { ...e.extendedProps, id: e.id } : e)}
-					onTaskUpdate={fetchTasks}
+					tasks={mergedEvents}
+					onTaskUpdate={refetchEvents}
 					user={user}
 					lastSavedTaskId={lastSavedTaskId}
 					lastSavedDuration={lastSavedDuration}

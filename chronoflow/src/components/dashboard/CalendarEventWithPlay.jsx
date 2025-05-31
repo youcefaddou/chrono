@@ -16,111 +16,63 @@ function CalendarEventWithPlay({
 	// Nouvelle prop pour désactiver le polling dans certains contextes
 	disablePolling = false 
 }) {
-	// Ajoutez une valeur par défaut pour `event` pour éviter les erreurs
 	const timer = useGlobalTimer()
 	const { t } = useTranslation()
-	// Optimisation : extraire uniquement les infos nécessaires du timer pour éviter les re-renders globaux
-	const runningTaskId = React.useMemo(() => timer.task?.id, [timer.task?.id])
-	const isRunning = React.useMemo(() => timer.running && runningTaskId === event.id, [timer.running, runningTaskId, event.id])
+	const runningTaskId = React.useMemo(() => String(timer.task?.id), [timer.task?.id])
+	const eventId = String(event.id)
+	const isRunning = React.useMemo(() => timer.running && runningTaskId === eventId, [timer.running, runningTaskId, eventId])
 	const isPaused = React.useMemo(() => isRunning && timer.paused, [isRunning, timer.paused])
-	const getElapsedSeconds = React.useMemo(() => (isRunning && typeof timer.getElapsedSeconds === 'function') ? timer.getElapsedSeconds : undefined, [isRunning, timer.getElapsedSeconds])
 	const [localDuration, setLocalDuration] = React.useState(event.durationSeconds || 0)
 	const [saving, setSaving] = React.useState(false)
-	const [pollingInterval, setPollingInterval] = React.useState(null)
 	const [taskExists, setTaskExists] = React.useState(true)
-	const taskIdRef = React.useRef(event.id)
 	const [displayedDuration, setDisplayedDuration] = React.useState(localDuration)
-	
-	// Poll la DB pour avoir le temps réel (toutes les 30s), mais uniquement si nécessaire
+	const isGoogleEvent = !!event.isGoogle || String(event.id).startsWith('gcal-')
+
+	// --- POLLING ---
 	React.useEffect(() => {
-		// Ne pas faire de polling si explicitement désactivé
-		if (disablePolling) return;
-		
-		// Ne rien faire si l'ID est dans le cache des tâches supprimées
+		if (disablePolling) return
 		if (!event.id || deletedTasksCache.has(event.id)) {
-			setTaskExists(false);
-			return;
+			setTaskExists(false)
+			return
 		}
-
-		// Référence pour composant monté
-		let isMounted = true;
-		
-		// Vérifier d'abord si la tâche existe avant de commencer le polling
-		fetch(`http://localhost:3001/api/tasks/${event.id}`, {
-			credentials: 'include',
-		})
-			.then(response => {
-				if (!response.ok) {
-					deletedTasksCache.add(event.id);
-					if (isMounted) setTaskExists(false);
-					return;
+		let isMounted = true
+		const fetchDuration = async () => {
+			if (!isMounted || deletedTasksCache.has(event.id)) return
+			try {
+				if (isGoogleEvent) {
+					const res = await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times?eventId=${String(event.id).replace(/^gcal-/, '')}`, { credentials: 'include' })
+					if (!res.ok) return
+					const data = await res.json()
+					if (typeof data.durationSeconds === 'number') setLocalDuration(data.durationSeconds)
+				} else {
+					const res = await fetch(`http://localhost:3001/api/tasks/${event.id}`, { credentials: 'include' })
+					if (!res.ok) {
+						if (res.status === 404) {
+							deletedTasksCache.add(event.id)
+							setTaskExists(false)
+						}
+						return
+					}
+					const data = await res.json()
+					if (typeof data.duration_seconds === 'number') setLocalDuration(data.duration_seconds)
 				}
-				return response.json();
-			})
-			.then(data => {
-				// La tâche existe, configurer le polling pour la durée
-				if (!isMounted) return;
-				
-				function fetchDuration() {
-					if (!isMounted || deletedTasksCache.has(event.id)) return;
-					
-					fetch(`http://localhost:3001/api/tasks/${event.id}`, {
-						credentials: 'include',
-					})
-						.then(response => {
-							if (!isMounted) return;
-							
-							if (!response.ok) {
-								if (response.status === 404) {
-									deletedTasksCache.add(event.id);
-									setTaskExists(false);
-									if (pollingInterval) {
-										clearInterval(pollingInterval);
-										setPollingInterval(null);
-									}
-								}
-								return;
-							}
-							
-							return response.json();
-						})
-						.then(data => {
-							if (data && typeof data.duration_seconds === 'number') {
-								setLocalDuration(data.duration_seconds);
-							}
-						});
-				}
-				
-				fetchDuration();
-				const interval = setInterval(fetchDuration, 30000);
-				setPollingInterval(interval);
-			})
-			.catch(err => {
-				console.error("Error checking task existence:", err);
-			});
-		
-		return () => {
-			isMounted = false;
-			if (pollingInterval) {
-				clearInterval(pollingInterval);
+			} catch (err) {
+				console.error('Polling error:', err)
 			}
-		};
-	}, [event.id, disablePolling, pollingInterval])
-
-	// Nettoyer l'intervalle au démontage
-	React.useEffect(() => {
+		}
+		fetchDuration()
+		const interval = setInterval(fetchDuration, 30000)
 		return () => {
-			if (pollingInterval) {
-				clearInterval(pollingInterval);
-			}
-		};
-	}, [pollingInterval])
+			isMounted = false
+			if (interval) clearInterval(interval)
+		}
+	}, [event.id, disablePolling, isGoogleEvent])
 
 	// Update local duration when event changes
 	React.useEffect(() => {
 		setLocalDuration(event.durationSeconds || 0)
 	}, [event.durationSeconds])
-	// When timer stops, update duration in DB
+	// --- STOP ---
 	const handleStop = async e => {
 		e.stopPropagation()
 		let elapsed = 0
@@ -131,26 +83,50 @@ function CalendarEventWithPlay({
 		const newDuration = (event.durationSeconds || 0) + (elapsed || 0)
 		setLocalDuration(newDuration)
 		setSaving(true)
-		await fetch(`http://localhost:3001/api/tasks/${event.id}`, {
-			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
-			credentials: 'include',
-			body: JSON.stringify({ durationSeconds: newDuration }),
-		})
-		setSaving(false)
-		// Déclenche le refresh des tâches pour synchroniser toutes les vues
-		if (typeof event.onFinish === 'function') {
-			event.onFinish(event.id)
+		try {
+			if (isGoogleEvent) {
+				const res = await fetch('http://localhost:3001/api/integrations/google-calendar/event-times', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({ eventId: String(event.id).replace(/^gcal-/, ''), durationSeconds: newDuration }),
+				})
+				if (!res.ok) {
+					const text = await res.text()
+					console.error('Erreur timer Google:', text)
+				}
+			} else {
+				if (String(event.id).startsWith('gcal-')) {
+					console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+					setSaving(false)
+					return
+				}
+				await fetch(`http://localhost:3001/api/tasks/${event.id}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({ durationSeconds: newDuration }),
+				})
+			}
+		} catch (err) {
+			console.error('Erreur lors du stop:', err)
 		}
+		setSaving(false)
+		if (typeof event.onFinish === 'function') event.onFinish(event.id)
 	}
 
 	const handlePlayPause = e => {
 		e.stopPropagation()
+		const eventForTimer = {
+			...event,
+			id: String(event.id),
+			isGoogle: !!event.isGoogle || String(event.id).startsWith('gcal-'),
+		}
 		if (!isRunning) {
 			if (typeof timer.startFrom === 'function') {
-				timer.startFrom(event.durationSeconds || 0, event)
+				timer.startFrom(event.durationSeconds || 0, eventForTimer)
 			} else if (typeof timer.start === 'function') {
-				timer.start(event, event.durationSeconds || 0)
+				timer.start(eventForTimer, event.durationSeconds || 0)
 			}
 		} else if (isPaused) {
 			timer.resume()
@@ -158,6 +134,12 @@ function CalendarEventWithPlay({
 			timer.pause()
 		}
 	}
+
+	// Forcer le refresh du composant sur changement de timer global
+	React.useEffect(() => {
+		setLocalDuration(event.durationSeconds || 0)
+	}, [timer.running, timer.task?.id, event.durationSeconds])
+
 	const handleFinish = async e => {
 		e.stopPropagation()
 		let elapsed = 0

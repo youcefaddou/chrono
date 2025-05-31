@@ -16,6 +16,8 @@ import LoginPageEn from '../app/(auth)/login/page.en'
 import DashboardPage from '../app/dashboard/page'
 import SettingsPage from '../app/dashboard/settings/page'
 import EnglishSettingsPage from '../app/en/dashboard/settings/page' // Fixed import
+import IntegrationsPage from '../app/dashboard/integrations/page'
+import IntegrationsPageEn from '../app/en/dashboard/integrations/page'
 
 // Ajoute d'autres pages si besoin
 
@@ -33,6 +35,7 @@ export default function AppRoutes () {
 			<Route path="/contact" element={<ContactPage />} />
 			<Route path="/dashboard" element={<DashboardPage />} />
 			<Route path="/dashboard/settings" element={<SettingsPage />} />
+			<Route path="/dashboard/integrations" element={<IntegrationsPage />} />
 			
 
 			{/* EN routes */}
@@ -44,6 +47,7 @@ export default function AppRoutes () {
 			<Route path="/en/terms" element={<TermsPageEn />} />
 			<Route path="/en/dashboard" element={<DashboardPage />} />
 			<Route path="/en/dashboard/settings" element={<EnglishSettingsPage />} />
+			<Route path="/en/dashboard/integrations" element={<IntegrationsPageEn />} />
 			{/* Optionally add FAQ/contact in English if you have those pages */}
 			{/* <Route path="/en/faq" element={<FaqPageEn />} /> */}
 			{/* <Route path="/en/contact" element={<ContactPageEn />} /> */}

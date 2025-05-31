@@ -119,4 +119,62 @@ router.post('/google-calendar/sync', auth, async (req, res) => {
 	}
 })
 
+// Récupère les événements Google Calendar de l'utilisateur connecté
+router.get('/google-calendar/events', auth, async (req, res) => {
+	try {
+		const user = await User.findById(req.user.id)
+		if (!user || !user.googleCalendarTokens) {
+			return res.status(400).json({ error: 'Google Calendar non connecté' })
+		}
+
+		oauth2Client.setCredentials(user.googleCalendarTokens)
+		const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
+
+		// Récupère les événements à venir (prochains 30 jours)
+		const now = new Date()
+		const maxDate = new Date()
+		maxDate.setDate(now.getDate() + 30)
+
+		const response = await calendar.events.list({
+			calendarId: 'primary',
+			timeMin: now.toISOString(),
+			timeMax: maxDate.toISOString(),
+			singleEvents: true,
+			orderBy: 'startTime',
+		})
+
+		const events = response.data.items.map(event => ({
+			id: event.id,
+			summary: event.summary,
+			description: event.description,
+			start: event.start?.dateTime || event.start?.date,
+			end: event.end?.dateTime || event.end?.date,
+			location: event.location,
+			status: event.status,
+			creator: event.creator,
+			attendees: event.attendees,
+			htmlLink: event.htmlLink,
+		}))
+
+		res.json(events)
+	} catch (err) {
+		console.error('[Google Calendar][Events] Erreur récupération événements:', err)
+		res.status(500).json({ error: 'Erreur lors de la récupération des événements Google Calendar' })
+	}
+})
+
+// Déconnexion Google Calendar (supprime les tokens)
+router.post('/google-calendar/disconnect', auth, async (req, res) => {
+	try {
+		await User.updateOne(
+			{ _id: req.user.id },
+			{ $unset: { googleCalendarTokens: '' } }
+		)
+		return res.json({ success: true })
+	} catch (err) {
+		console.error('[Google Calendar][Disconnect] Erreur suppression tokens:', err)
+		return res.status(500).json({ error: 'Erreur lors de la déconnexion Google Calendar' })
+	}
+})
+
 export default router

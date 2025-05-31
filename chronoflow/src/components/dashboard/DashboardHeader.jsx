@@ -206,7 +206,7 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 					</span>
 					<button
 						onClick={handleStartPause}
-						className={`p-2 rounded-full border flex items-center ${
+						className={`p-2 rounded-full border flex items-center cursor-pointer ${
 							!timer.running
 								? 'bg-blue-100 hover:bg-blue-200 border-blue-200'
 								: timer.paused
@@ -229,7 +229,7 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 					<button
 						onClick={handleStop}
 						disabled={!timer.running && safeSeconds === 0}
-						className={`p-2 rounded-full border flex items-center ${timer.running || safeSeconds > 0 ? 'bg-rose-100 hover:bg-rose-200 border-rose-200' : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'}`}
+						className={`p-2 rounded-full border flex items-center cursor-pointer ${timer.running || safeSeconds > 0 ? 'bg-rose-100 hover:bg-rose-200 border-rose-200' : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'}`}
 						aria-label='Stop timer'
 					>
 						<svg width='20' height='20' fill='none' viewBox='0 0 20 20'>
@@ -238,7 +238,7 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 					</button>
 					<button
 						onClick={handleZone}
-						className='relative p-2 rounded-full bg-rose-100 hover:bg-rose-200 border border-rose-200 flex items-center group'
+						className='relative p-2 rounded-full bg-rose-100 hover:bg-rose-200 cursor-pointer border border-rose-200 flex items-center group'
 						aria-label='Get in the zone'
 					>
 						<svg width='20' height='20' fill='none' viewBox='0 0 20 20'>

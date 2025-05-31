@@ -61,6 +61,10 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 			timer.stop()
 		}
 		const newDuration = (task.durationSeconds || 0) + elapsed
+		if (String(task.id).startsWith('gcal-')) {
+			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+			return
+		}
 		try {
 			const res = await fetch(`http://localhost:3001/api/tasks/${task.id}`, {
 				method: 'PUT',
@@ -94,25 +98,26 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 	}
 
 	const handleTaskClick = (task, e) => {
-		if (e.target.closest('.task-timer-buttons') || 
-			e.target.closest('button') || 
-			e.target.tagName === 'BUTTON' || 
-			e.target.tagName === 'svg' || 
-			e.target.tagName === 'SVG' ||
-			e.target.tagName === 'path' ||
-			e.target.tagName === 'rect' ||
-			e.target.tagName === 'polygon' ||
-			e.target.closest('svg')
+		const target = e.target
+		if (
+			target?.closest('.task-timer-buttons') ||
+			target?.dataset?.timerButton === 'true' ||
+			target?.parentElement?.dataset?.timerButton === 'true'
 		) {
-			return;
+			return
 		}
-		setEditTask(task);
+		setEditTask(task)
 	}
 
 	const handleEditSave = async (updatedTask) => {
 		const id = editTask?.id || editTask?._id
 		if (!id) {
 			console.error('handleEditSave: missing task id')
+			setEditTask(null)
+			return
+		}
+		if (String(id).startsWith('gcal-')) {
+			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
 			setEditTask(null)
 			return
 		}
@@ -288,7 +293,7 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 								</span>
 								<div className="task-timer-buttons z-10 relative">
 									<CalendarEventTimerButton 
-										event={task} 
+										event={{ ...task, id: String(task.id) }} 
 										timer={timer} 
 										lang={lang}
 										disabled={task.is_finished} 
@@ -299,7 +304,7 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 									<button
 										onClick={e => { e.stopPropagation(); handleFinish(task) }}
 										data-button="finish"
-										disabled={task.is_finished}
+										disabled={task.is_finished || task.isGoogle || task.readOnly}
 										className={`px-2 py-1 rounded text-xl font-medium cursor-pointer disabled:cursor-not-allowed ${
 											task.is_finished
 												? 'bg-green-200 text-green-700'
@@ -336,8 +341,13 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 							onTaskUpdate && onTaskUpdate()
 							return
 						}
+						const id = editTask.id || editTask._id
+						if (String(id).startsWith('gcal-')) {
+							console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+							setEditTask(null)
+							return
+						}
 						try {
-							const id = editTask.id || editTask._id
 							const res = await fetch(`http://localhost:3001/api/tasks/${id}`, {
 								method: 'DELETE',
 								credentials: 'include',

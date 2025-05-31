@@ -61,17 +61,28 @@ export function GlobalTimerProvider ({ children }) {
 			const elapsed = Math.floor((Date.now() - startTimestamp) / 1000)
 			total += elapsed
 		}
-		// Use id || _id for MongoDB compatibility
 		const taskId = task?.id || task?._id
 		if (task && taskId) {
+			const isGoogleEvent = !!task.isGoogle || String(taskId).startsWith('gcal-')
 			try {
-				await fetch(`http://localhost:3001/api/tasks/${taskId}`, {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					credentials: 'include',
-					body: JSON.stringify({ durationSeconds: total }),
-				})
-				if (typeof onSave === 'function') onSave(taskId, total)
+				if (isGoogleEvent) {
+					const eventId = String(taskId).replace(/^gcal-/, '')
+					await fetch('http://localhost:3001/api/integrations/google-calendar/event-times', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						credentials: 'include',
+						body: JSON.stringify({ eventId, durationSeconds: total }),
+					})
+					if (typeof onSave === 'function') onSave(eventId, total)
+				} else {
+					await fetch(`http://localhost:3001/api/tasks/${taskId}`, {
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json' },
+						credentials: 'include',
+						body: JSON.stringify({ durationSeconds: total }),
+					})
+					if (typeof onSave === 'function') onSave(taskId, total)
+				}
 			} catch (err) {
 				console.error('GlobalTimerProvider.stop: Failed to save timer', err)
 			}

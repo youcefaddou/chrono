@@ -13,6 +13,7 @@ import LoginLog from './models/login-log.js'
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 import integrationsRouter from '../server/routes/integrations.js' 
+import googleEventTimeRouter from '../server/routes/google-event-time.js'
 import { auth } from './middlewares/auth.js'
 
 const app = express()
@@ -339,6 +340,7 @@ app.get('/api/auth/google/callback',
 )
 
 app.use('/api/integrations', integrationsRouter)
+app.use('/api/integrations', googleEventTimeRouter)
 
 app.listen(3001, () => {
 	console.log('Server running on http://localhost:3001')

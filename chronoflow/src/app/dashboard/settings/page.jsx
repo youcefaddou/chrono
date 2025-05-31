@@ -5,7 +5,7 @@ import { FaUser, FaCog, FaShieldAlt, FaPlug, FaQuestionCircle, FaTrashAlt } from
 import Sidebar from '../../../components/dashboard/Sidebar'
 import ErrorBoundary from '../../../components/ErrorBoundary'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import ConnectedDevices from '../../../components/ConnectedDevices'
 import LoginHistory from '../../../components/LoginHistory'
 import PasswordChangeFr from '../../passwordchange/password-change-fr.jsx'
@@ -22,6 +22,10 @@ export default function SettingsPage () {
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 	const [showPasswordChange, setShowPasswordChange] = useState(false)
 	const [message, setMessage] = useState('')
+	const [googleStatus, setGoogleStatus] = useState(null)
+	const [isGoogleConnected, setIsGoogleConnected] = useState(false)
+	const location = useLocation()
+	const navigate = useNavigate()
 
 	useEffect(() => {
 		const fetchProfile = async () => {
@@ -42,6 +46,38 @@ export default function SettingsPage () {
 		fetchProfile()
 	}, [])
 
+	useEffect(() => {
+		// Vérifie le paramètre d'URL pour afficher un message après intégration Google
+		const params = new URLSearchParams(window.location.search)
+		const googleParam = params.get('google')
+		if (googleParam === 'success') {
+			setGoogleStatus('success')
+			setMessage('Google Calendar connecté avec succès !')
+		} else if (googleParam === 'error') {
+			setGoogleStatus('error')
+			setMessage('Erreur lors de la connexion à Google Calendar.')
+		}
+	}, [])
+
+	useEffect(() => {
+		// Si on arrive sur /dashboard/integrations?google=success, redirige vers /dashboard/settings
+		if (location.pathname === '/dashboard/integrations') {
+			navigate('/dashboard/settings?google=success', { replace: true })
+		}
+	}, [location, navigate])
+
+	useEffect(() => {
+		async function checkGoogleConnected () {
+			try {
+				const res = await fetch('http://localhost:3001/api/integrations/google-calendar/events', { credentials: 'include' })
+				setIsGoogleConnected(res.ok)
+			} catch {
+				setIsGoogleConnected(false)
+			}
+		}
+		checkGoogleConnected()
+	}, [])
+
 	const handleUsernameChange = (e) => {
 		setProfile((prev) => ({ ...prev, username: e.target.value }))
 	}
@@ -58,6 +94,21 @@ export default function SettingsPage () {
 
 	const handleConnectGoogle = () => {
 		window.location.href = 'http://localhost:3001/api/integrations/google-calendar/auth'
+	}
+
+	const handleDisconnectGoogle = async () => {
+		try {
+			const res = await fetch('http://localhost:3001/api/integrations/google-calendar/disconnect', { method: 'POST', credentials: 'include' })
+			if (res.ok) {
+				setIsGoogleConnected(false)
+				setGoogleStatus(null)
+				setMessage('Google Calendar déconnecté avec succès.')
+			} else {
+				setMessage('Erreur lors de la déconnexion Google Calendar.')
+			}
+		} catch {
+			setMessage('Erreur réseau lors de la déconnexion.')
+		}
 	}
 
 	const sections = [
@@ -158,17 +209,37 @@ export default function SettingsPage () {
 					label: '',
 					content: (
 						<div>
-							<button
-								className='bg-blue-600 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-900 transition-colors'
-								onClick={handleConnectGoogle}
-							>
-								Connecter Google Calendar
-							</button>
+							{googleStatus === 'success' && (
+								<div className='mb-2 text-green-600 font-semibold flex items-center gap-2'>
+									<svg className='w-5 h-5 inline-block' fill='none' stroke='currentColor' strokeWidth='2' viewBox='0 0 24 24'><path strokeLinecap='round' strokeLinejoin='round' d='M5 13l4 4L19 7' /></svg>
+									Google Calendar connecté
+								</div>
+							)}
+							{googleStatus === 'error' && (
+								<div className='mb-2 text-red-600 font-semibold flex items-center gap-2'>
+									<svg className='w-5 h-5 inline-block' fill='none' stroke='currentColor' strokeWidth='2' viewBox='0 0 24 24'><path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' /></svg>
+									Erreur Google Calendar
+								</div>
+							)}
+							{isGoogleConnected ? (
+								<button
+									className='bg-rose-600 text-white px-4 py-2 rounded cursor-pointer hover:bg-rose-700 transition-colors'
+									onClick={handleDisconnectGoogle}
+								>
+									Déconnecter Google Calendar
+								</button>
+							) : (
+								<button
+									className='bg-blue-600 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-900 transition-colors'
+									onClick={handleConnectGoogle}
+								>
+									Connecter Google Calendar
+								</button>
+							)}
 							{message && <div className='text-sm text-gray-700 mt-2'>{message}</div>}
 						</div>
 					),
 				},
-				{ label: 'Gérer les autorisations' },
 			],
 			icon: <FaPlug className='text-purple-500' />,
 		},
