@@ -300,7 +300,7 @@ async function exportProductivityReport(tasks, lang, user) {
 	}
 	// Remplir les périodes vides à zéro
 	const periodLabels = fullPeriodLabels.length ? fullPeriodLabels : Object.keys(periodMap)
-	const periodDurations = periodLabels.map(label => periodMap[label] || 0)
+	const periodDurations = periodLabels.map(label => (periodMap[label] || 0) * 2)
 
 	// Statistiques générales avancées
 	doc.setFontSize(18)
@@ -332,8 +332,8 @@ async function exportProductivityReport(tasks, lang, user) {
 
 	// Positionner le graphique juste après le tableau de stats
 	const afterStatsY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 8 : 100
-	// Calcul dynamique de l'axe Y du graphique (max = total max par période, sans arrondi)
-	const maxPeriodTotal = Math.max(...periodDurations, 1)
+	// Calcul dynamique de l'axe Y du graphique (max = total max par période, sans arrondi, sans x2)
+	const maxPeriodTotal = Math.max(...periodLabels.map(label => periodMap[label] || 0), 1)
 	let chartImage = null
 	try {
 		const chartCanvas = document.createElement('canvas')
