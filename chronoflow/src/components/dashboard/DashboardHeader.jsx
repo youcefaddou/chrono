@@ -59,6 +59,7 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 	}
 	const handleStop = async () => {
 		if ((timer.running || safeSeconds > 0) && timer.task && timer.task.id) {
+			// Cas 1 : Timer associé à une tâche → sauvegarde directe
 			try {
 				await fetch(`http://localhost:3001/api/tasks/${timer.task.id}`, {
 					method: 'PUT',
@@ -71,17 +72,18 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 			} catch (err) {
 				console.error('Erreur lors de la sauvegarde du temps:', err)
 			}
+			timer.stop()
+			setSeconds(0)
+			setRefreshKey(k => k + 1)
+		} else if (timer.running || safeSeconds > 0) {
+			// Cas 2 : Timer SANS tâche → ouvrir la modale de création
 			setElapsedSecondsToSave(safeSeconds)
 			setShowSaveTimer(true)
 		} else {
-			// Sécurise : si pas de tâche associée, on stoppe le timer sans requête
-			if (!timer.task || !timer.task.id) {
-				console.warn('Aucune tâche associée au timer lors du stop. Pas de sauvegarde envoyée.')
-			}
+			// Sécurise : si timer déjà arrêté
 			timer.stop()
 			setSeconds(0)
 		}
-		setRefreshKey(k => k + 1) // force le refresh des tâches dans FullCalendarGrid et TaskListView
 	}
 	const handleSaveTimer = async (taskData) => {
 		if (!user || !user.id) {
