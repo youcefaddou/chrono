@@ -371,9 +371,9 @@ async function exportProductivityReport(tasks, lang, user) {
 						grace: 0,
 						offset: false,
 						ticks: {
-							stepSize: undefined,
+							stepSize: maxPeriodTotal / 4,
 							callback: v => formatDuration(v),
-							count: 2,
+							count: 5,
 							padding: 0,
 						},
 						grid: { drawBorder: true, drawTicks: true, drawOnChartArea: true },
