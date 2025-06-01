@@ -63,19 +63,30 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 		}
 		const newDuration = (task.durationSeconds || 0) + elapsed
 		if (String(task.id).startsWith('gcal-')) {
-			// Mise à jour du temps Google
+			// Mise à jour du temps Google + marquer comme terminé
 			const eventId = String(task.id).replace(/^gcal-/, '')
 			try {
-				await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${eventId}`, {
+				const res = await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${eventId}`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
 					credentials: 'include',
-					body: JSON.stringify({ durationSeconds: newDuration }),
+					body: JSON.stringify({
+						durationSeconds: newDuration,
+						isFinished: true,
+					}),
 				})
+				const contentType = res.headers.get('content-type')
+				if (!res.ok || !contentType || !contentType.includes('application/json')) {
+					const text = await res.text()
+					console.error('Erreur lors de la complétion Google:', text)
+					alert(lang === 'fr' ? 'Erreur lors de la complétion Google' : 'Error finishing Google event')
+					return
+				}
 				onTaskUpdate && onTaskUpdate()
 				return
 			} catch (err) {
-				console.error('Erreur lors de la mise à jour du temps Google:', err)
+				console.error('Erreur lors de la complétion Google:', err)
+				alert(lang === 'fr' ? 'Erreur lors de la complétion Google' : 'Error finishing Google event')
 				return
 			}
 		}

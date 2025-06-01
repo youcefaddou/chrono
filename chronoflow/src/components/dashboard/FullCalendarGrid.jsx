@@ -263,8 +263,9 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 	}
 
 	function mapGoogleEventForCalendar (event) {
+		// Use the already-prefixed id from mergedEvents (should be 'gcal-...')
 		return {
-			id: 'gcal-' + event.id,
+			id: event.id, // already 'gcal-...'
 			title: event.title || event.summary || '(Google event)',
 			start: event.start ? new Date(event.start) : null,
 			end: event.end ? new Date(event.end) : null,
@@ -275,7 +276,7 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 			classNames: ['google-calendar-event'],
 			extendedProps: {
 				...event,
-				id: 'gcal-' + event.id,
+				id: event.id, // keep as is
 				title: event.title || event.summary || '(Google event)',
 				isGoogle: true,
 				durationSeconds: typeof event.durationSeconds === 'number' ? event.durationSeconds : 0,
@@ -347,9 +348,10 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 					eventContent={arg => {
 						const eventProps = arg.event.extendedProps || {}
 						const eventId = String(arg.event.id)
-						// Uniformiser l'objet event pour le bouton chrono (id string, tous les champs utiles)
+						// Find the merged event object by id for timer sync
+						const mergedEventObj = mergedEvents.find(e => String(e.id) === eventId) || eventProps
 						const eventForTimer = {
-							...eventProps,
+							...mergedEventObj,
 							id: eventId,
 							title: arg.event.title,
 							durationSeconds: typeof eventProps.durationSeconds === 'number' ? eventProps.durationSeconds : 0,
