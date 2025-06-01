@@ -142,6 +142,7 @@ function CalendarEventWithPlay({
 		setLocalDuration(event.durationSeconds || 0)
 	}, [timer.running, timer.task?.id, event.durationSeconds])
 
+	// --- handleFinish ---
 	const handleFinish = async e => {
 		e.stopPropagation()
 		let elapsed = 0
@@ -154,13 +155,15 @@ function CalendarEventWithPlay({
 		setSaving(true)
 		try {
 			if (isGoogleEvent) {
-				// Marquer comme terminé côté Google (local DB)
-				const res = await fetch('http://localhost:3001/api/integrations/google-calendar/event-times', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					credentials: 'include',
-					body: JSON.stringify({ eventId: String(event.id).replace(/^gcal-/, ''), durationSeconds: newDuration, isFinished: true }),
-				})
+				// PATCH Google event time (local DB)
+				const res = await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${String(event.id).replace(/^gcal-/, '')}`,
+					{
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json' },
+						credentials: 'include',
+						body: JSON.stringify({ durationSeconds: newDuration, isFinished: true }),
+					}
+				)
 				if (!res.ok) {
 					const text = await res.text()
 					console.error('Erreur lors de la complétion Google:', text)
@@ -168,12 +171,14 @@ function CalendarEventWithPlay({
 					return
 				}
 			} else {
-				await fetch(`http://localhost:3001/api/tasks/${event.id}`, {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					credentials: 'include',
-					body: JSON.stringify({ is_finished: true, duration_seconds: newDuration }),
-				})
+				await fetch(`http://localhost:3001/api/tasks/${event.id}`,
+					{
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json' },
+						credentials: 'include',
+						body: JSON.stringify({ is_finished: true, duration_seconds: newDuration }),
+					}
+				)
 			}
 		} catch (err) {
 			console.error('Erreur lors de la complétion:', err)
@@ -335,7 +340,7 @@ function CalendarEventWithPlay({
 					</div>
 				</div>
 			) : (
-				// Mode CALENDRIER : bouton "Terminer la tâche" SOUS la tâche
+				// Mode CALENDRIER : NE PAS afficher le bouton Terminer ici
 				<>
 					<div className={`flex items-center justify-between w-full ${isSmallTask ? 'mb-1' : 'mb-2'}`}>
 						<span className={`truncate font-semibold ${isSmallTask ? 'text-xs' : 'text-sm'}${isDone ? ' line-through text-gray-400' : ''}`}>
@@ -377,23 +382,7 @@ function CalendarEventWithPlay({
 							</button>
 						</div>
 					</div>
-					<div className='w-full flex flex-col items-stretch'>
-						{isDone ? (
-							<div className='flex items-center justify-center text-xs font-bold text-green-700 bg-green-50 rounded mb-1 py-1'>
-								{t('task.completed')}
-							</div>
-						) : (
-							<button
-								onClick={handleFinish}
-								className={`w-full ${isSmallTask ? 'px-1 py-0.5 text-xs' : 'px-2 py-1 text-xs'} rounded bg-green-100 hover:bg-green-200 font-medium text-green-700 mb-1`}
-								title={t('task.complete')}
-								aria-label={t('task.complete')}
-								disabled={saving /* Désactive seulement si en cours de sauvegarde */}
-							>
-								{saving ? '...' : t('task.complete')}
-							</button>
-						)}
-					</div>
+					{/* NE PAS afficher le bouton Terminer ici */}
 				</>
 			)}
 		</div>

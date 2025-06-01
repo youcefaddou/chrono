@@ -17,7 +17,6 @@ if (!MONGO_URI) {
 
 async function main () {
 	await mongoose.connect(MONGO_URI)
-	console.log('Connected to MongoDB')
 
 	const users = await User.find({ googleCalendarTokens: { $exists: true, $ne: null } })
 	for (const user of users) {
@@ -53,12 +52,10 @@ async function main () {
 					ge.title = newTitle
 					ge.description = newDesc
 					await ge.save()
-					console.log(`Updated eventId=${ge.eventId} for user=${user.email}`)
 				}
 			}
 		}
 	}
-	console.log('Migration complete')
 	process.exit(0)
 }
 

@@ -54,6 +54,7 @@ router.patch('/google-calendar/event-times/:eventId', auth, async (req, res) => 
 		if (end) update.end = end
 		if (typeof title === 'string') update.title = title
 		if (typeof description === 'string') update.description = description
+		if (typeof req.body.isFinished === 'boolean') update.isFinished = req.body.isFinished
 		const updated = await GoogleEventTime.findOneAndUpdate(
 			{ userId, eventId },
 			update,

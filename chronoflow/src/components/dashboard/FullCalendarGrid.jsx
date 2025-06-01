@@ -167,22 +167,51 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 	const handleEditTaskSave = async (task) => {
 		if (!selectedEvent) return
 		if (String(selectedEvent.id).startsWith('gcal-')) {
-			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+			// PATCH Google event time (local DB)
+			const googleId = String(selectedEvent.id).replace(/^gcal-/, '')
+			try {
+				const res = await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${googleId}`,
+					{
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json' },
+						credentials: 'include',
+						body: JSON.stringify({
+							title: task.title,
+							description: task.desc || '',
+							start: task.start,
+							end: task.end,
+						}),
+					}
+				)
+				const contentType = res.headers.get('content-type')
+				if (!res.ok || !contentType || !contentType.includes('application/json')) {
+					const text = await res.text()
+					setErrorMessage('Erreur lors de la modification Google: ' + text.slice(0, 200))
+					return
+				}
+				setShowEditTaskModal(false)
+				setSelectedEvent(null)
+				refetchEvents()
+			} catch (err) {
+				setErrorMessage('Erreur lors de la modification Google')
+			}
 			return
 		}
 		try {
-			const res = await fetch(`http://localhost:3001/api/tasks/${selectedEvent.id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({
-					title: task.title,
-					description: task.desc || '',
-					start: task.start,
-					end: task.end,
-					color: task.color || '#2563eb',
-				}),
-			})
+			const res = await fetch(`http://localhost:3001/api/tasks/${selectedEvent.id}`,
+				{
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({
+						title: task.title,
+						description: task.desc || '',
+						start: task.start,
+						end: task.end,
+						color: task.color || '#2563eb',
+					}),
+				}
+			)
 			const contentType = res.headers.get('content-type')
 			if (!res.ok || !contentType || !contentType.includes('application/json')) {
 				const text = await res.text()
@@ -348,7 +377,6 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 					eventContent={arg => {
 						const eventProps = arg.event.extendedProps || {}
 						const eventId = String(arg.event.id)
-						// Find the merged event object by id for timer sync
 						const mergedEventObj = mergedEvents.find(e => String(e.id) === eventId) || eventProps
 						const eventForTimer = {
 							...mergedEventObj,
@@ -359,6 +387,62 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 							is_finished: !!eventProps.is_finished,
 							isFinished: !!eventProps.isFinished,
 						}
+
+						// Add handleFinish for Google events
+						const handleFinish = async () => {
+							let elapsed = 0
+							if (timer.running && timer.task?.id === eventForTimer.id && timer.getElapsedSeconds) {
+								elapsed = timer.getElapsedSeconds()
+								timer.stop()
+							}
+							const newDuration = (eventForTimer.durationSeconds || 0) + elapsed
+							if (String(eventForTimer.id).startsWith('gcal-')) {
+								const googleId = String(eventForTimer.id).replace(/^gcal-/, '')
+								try {
+									const res = await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${googleId}`, {
+										method: 'PATCH',
+										headers: { 'Content-Type': 'application/json' },
+										credentials: 'include',
+										body: JSON.stringify({
+											durationSeconds: newDuration,
+											isFinished: true,
+										}),
+									})
+									const contentType = res.headers.get('content-type')
+									if (!res.ok || !contentType || !contentType.includes('application/json')) {
+										const text = await res.text()
+										console.error('Erreur lors de la complétion Google (DB locale):', text)
+										return
+									}
+									refetchEvents()
+									return
+								} catch (err) {
+									console.error('Erreur lors de la complétion Google (DB locale):', err)
+									return
+								}
+							}
+							try {
+								const res = await fetch(`http://localhost:3001/api/tasks/${eventForTimer.id}`, {
+									method: 'PUT',
+									headers: { 'Content-Type': 'application/json' },
+									credentials: 'include',
+									body: JSON.stringify({
+										durationSeconds: newDuration,
+										isFinished: true,
+									}),
+								})
+								const contentType = res.headers.get('content-type')
+								if (!res.ok || !contentType || !contentType.includes('application/json')) {
+									const text = await res.text()
+									console.error('Erreur lors de la complétion:', text)
+									return
+								}
+								refetchEvents()
+							} catch (err) {
+								console.error('Erreur lors de la complétion:', err)
+							}
+						}
+
 						return (
 							<div className='flex items-center gap-2'>
 								<span className='truncate'>{arg.event.title}</span>
@@ -371,6 +455,7 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 									lang={lang}
 									disabled={eventForTimer.is_finished}
 									onTaskUpdate={refetchEvents}
+									onFinish={handleFinish}
 								/>
 							</div>
 						)
