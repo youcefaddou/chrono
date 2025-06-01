@@ -313,11 +313,15 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 								role="button"
 								tabIndex={0}
 								style={{ position: 'relative' }}
-							>
+							> 
 								<span className='flex-1 truncate z-10 relative'>{task.title || task.summary || '(Google event)'}</span>
+								{task.isGoogle && (
+									<span className='ml-1 px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs font-semibold'>Google</span>
+								)}
 								<span className='font-mono text-2xl text-blue-700 min-w-[70px] text-center z-10 relative'>
 									{formatDuration(totalSeconds)}
 								</span>
+								
 								<div className="task-timer-buttons z-10 relative">
 									<CalendarEventTimerButton 
 										event={{ ...task, id: String(task.id) }} 
@@ -334,8 +338,8 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 										
 										className={`px-2 py-1 rounded text-xl font-medium cursor-pointer disabled:cursor-not-allowed ${
 											task.is_finished
-												? 'bg-green-200 text-green-700'
-												: 'bg-green-100 hover:bg-green-200 text-green-700'
+												? 'bg-blue-200 text-red-500'
+												: 'bg-blue-100 hover:bg-green-200 text-green-700'
 										}`}
 									>
 										{task.is_finished
