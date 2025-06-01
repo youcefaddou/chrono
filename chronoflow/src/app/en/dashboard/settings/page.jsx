@@ -262,7 +262,6 @@ export default function EnglishSettingsPage () {
 		{
 			title: t('settings.others'),
 			items: [
-				{ label: t('settings.items.reset') },
 				{ label: t('settings.items.exportData') },
 				{ label: t('settings.items.deleteData') },
 			],

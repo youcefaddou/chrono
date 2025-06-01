@@ -255,7 +255,6 @@ export default function SettingsPage () {
 		{
 			title: 'Autres',
 			items: [
-				{ label: 'Réinitialiser' },
 				{ label: 'Exporter les données' },
 				{ label: 'Supprimer les données' },
 			],
