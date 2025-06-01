@@ -54,6 +54,7 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 		return () => clearInterval(interval)
 	}, [timer.running])
 
+	// handleFinish (marquer comme terminé)
 	const handleFinish = async (task) => {
 		let elapsed = 0
 		if (timer.running && timer.task?.id === task.id && timer.getElapsedSeconds) {
@@ -62,8 +63,21 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 		}
 		const newDuration = (task.durationSeconds || 0) + elapsed
 		if (String(task.id).startsWith('gcal-')) {
-			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
-			return
+			// Mise à jour du temps Google
+			const eventId = String(task.id).replace(/^gcal-/, '')
+			try {
+				await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${eventId}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({ durationSeconds: newDuration }),
+				})
+				onTaskUpdate && onTaskUpdate()
+				return
+			} catch (err) {
+				console.error('Erreur lors de la mise à jour du temps Google:', err)
+				return
+			}
 		}
 		try {
 			const res = await fetch(`http://localhost:3001/api/tasks/${task.id}`, {
@@ -78,17 +92,11 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 			const contentType = res.headers.get('content-type')
 			if (!res.ok || !contentType || !contentType.includes('application/json')) {
 				const text = await res.text()
-				console.error('Erreur lors de la mise à jour de la tâche:', text)
-				alert('Erreur lors de la mise à jour de la tâche: ' + text.slice(0, 200))
-				return
+				console.error('Erreur lors de la mise à jour:', text)
 			}
-			setLocalTaskDurations(prev => ({
-				...prev,
-				[task.id]: newDuration,
-			}))
 			onTaskUpdate && onTaskUpdate()
 		} catch (err) {
-			console.error('Erreur lors de la mise à jour de la tâche:', err)
+			console.error('Erreur lors de la mise à jour:', err)
 		}
 	}
 
@@ -117,9 +125,29 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 			return
 		}
 		if (String(id).startsWith('gcal-')) {
-			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
-			setEditTask(null)
-			return
+			// Edition locale Google
+			const eventId = String(id).replace(/^gcal-/, '')
+			try {
+				await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${eventId}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({
+						title: updatedTask.title,
+						description: updatedTask.desc || '',
+						start: updatedTask.start,
+						end: updatedTask.end,
+						color: updatedTask.color || '#2563eb',
+					}),
+				})
+				setEditTask(null)
+				onTaskUpdate && onTaskUpdate()
+				return
+			} catch (err) {
+				console.error('Erreur lors de l’édition Google:', err)
+				setEditTask(null)
+				return
+			}
 		}
 		try {
 			const res = await fetch(`http://localhost:3001/api/tasks/${id}`, {
@@ -134,23 +162,11 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 					color: updatedTask.color || '#2563eb',
 				}),
 			})
-			const contentType = res.headers.get('content-type')
-			if (!res.ok || !contentType || !contentType.includes('application/json')) {
-				const text = await res.text()
-				console.error('Erreur lors de la modification de la tâche:', text)
-				setEditTask(null)
-				onTaskUpdate && onTaskUpdate()
-				return
-			}
-			// Mettre à jour la liste locale pour éviter la disparition de la tâche
-			const updated = await res.json()
-			setTaskList(prev => prev.map(t => (t.id === id || t._id === id) ? { ...t, ...updated } : t))
 			setEditTask(null)
-			onTaskUpdate && onTaskUpdate()
+			if (onTaskUpdate) onTaskUpdate()
 		} catch (err) {
-			console.error('Erreur lors de la modification de la tâche:', err)
+			console.error('Erreur lors de la modification:', err)
 			setEditTask(null)
-			onTaskUpdate && onTaskUpdate()
 		}
 	}
 
@@ -287,7 +303,7 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 								tabIndex={0}
 								style={{ position: 'relative' }}
 							>
-								<span className='flex-1 truncate z-10 relative'>{task.title}</span>
+								<span className='flex-1 truncate z-10 relative'>{task.title || task.summary || '(Google event)'}</span>
 								<span className='font-mono text-2xl text-blue-700 min-w-[70px] text-center z-10 relative'>
 									{formatDuration(totalSeconds)}
 								</span>
@@ -304,7 +320,7 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 									<button
 										onClick={e => { e.stopPropagation(); handleFinish(task) }}
 										data-button="finish"
-										disabled={task.is_finished || task.isGoogle || task.readOnly}
+										
 										className={`px-2 py-1 rounded text-xl font-medium cursor-pointer disabled:cursor-not-allowed ${
 											task.is_finished
 												? 'bg-green-200 text-green-700'
@@ -335,7 +351,6 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 					onClose={handleEditClose}
 					onSave={handleEditSave}
 					onDelete={async () => {
-						// Si l'id est manquant, on ferme la modale et on synchronise, mais sans alert
 						if (!editTask || !(editTask.id || editTask._id)) {
 							setEditTask(null)
 							onTaskUpdate && onTaskUpdate()
@@ -343,9 +358,21 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 						}
 						const id = editTask.id || editTask._id
 						if (String(id).startsWith('gcal-')) {
-							console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
-							setEditTask(null)
-							return
+							// Suppression locale Google
+							const eventId = String(id).replace(/^gcal-/, '')
+							try {
+								await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${eventId}`, {
+									method: 'DELETE',
+									credentials: 'include',
+								})
+								setEditTask(null)
+								onTaskUpdate && onTaskUpdate()
+								return
+							} catch (err) {
+								console.error('Erreur lors de la suppression Google:', err)
+								setEditTask(null)
+								return
+							}
 						}
 						try {
 							const res = await fetch(`http://localhost:3001/api/tasks/${id}`, {
@@ -360,9 +387,7 @@ function TaskListView ({ tasks = [], onTaskUpdate, user, lastSavedTaskId, lastSa
 							console.error('Erreur lors de la suppression:', err)
 						}
 						setEditTask(null)
-						// On synchronise la liste locale immédiatement sans attendre le fetch
-						setTaskList(prev => prev.filter(t => (t.id || t._id) !== (editTask.id || editTask._id)))
-						onTaskUpdate && onTaskUpdate()
+						if (onTaskUpdate) onTaskUpdate()
 					}}
 					lang={lang}
 				/>

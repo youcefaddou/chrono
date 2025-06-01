@@ -15,6 +15,8 @@ function CalendarEventTimerButton ({ event, timer, lang, disabled, onTaskUpdate 
 		e.preventDefault()
 		if (effectiveDisabled) return
 		const eventForTimer = { ...event, id: String(event.id), isGoogle: isGoogleEvent }
+		// Prevent duplicate timer start for the same event
+		if (isRunning) return
 		if (!isRunning) {
 			if (typeof timer.startFrom === 'function') {
 				timer.startFrom(event.durationSeconds || 0, eventForTimer)

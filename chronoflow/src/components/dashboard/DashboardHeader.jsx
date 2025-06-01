@@ -59,30 +59,43 @@ function DashboardHeader ({ user, sidebarCollapsed, setSidebarCollapsed }) {
 	}
 	const handleStop = async () => {
 		if ((timer.running || safeSeconds > 0) && timer.task && timer.task.id) {
-			// Cas 1 : Timer associé à une tâche → sauvegarde directe
+			const isGoogleEvent = !!timer.task.isGoogle || String(timer.task.id).startsWith('gcal-');
+			const taskId = timer.task.id;
 			try {
-				await fetch(`http://localhost:3001/api/tasks/${timer.task.id}`, {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					credentials: 'include',
-					body: JSON.stringify({
-						durationSeconds: safeSeconds, // camelCase pour la DB
-					}),
-				})
+				if (isGoogleEvent) {
+					// For Google events, POST to the Google Calendar event-times endpoint
+					const eventId = String(taskId).replace(/^gcal-/, '');
+					await fetch('http://localhost:3001/api/integrations/google-calendar/event-times', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						credentials: 'include',
+						body: JSON.stringify({ eventId, durationSeconds: safeSeconds }),
+					});
+				} else {
+					// Local task: update via /api/tasks/:id
+					await fetch(`http://localhost:3001/api/tasks/${taskId}`, {
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json' },
+						credentials: 'include',
+						body: JSON.stringify({
+							durationSeconds: safeSeconds, // camelCase for DB
+						}),
+					});
+				}
 			} catch (err) {
-				console.error('Erreur lors de la sauvegarde du temps:', err)
+				console.error('Erreur lors de la sauvegarde du temps:', err);
 			}
-			timer.stop()
-			setSeconds(0)
-			setRefreshKey(k => k + 1)
+			timer.stop();
+			setSeconds(0);
+			setRefreshKey(k => k + 1);
 		} else if (timer.running || safeSeconds > 0) {
 			// Cas 2 : Timer SANS tâche → ouvrir la modale de création
-			setElapsedSecondsToSave(safeSeconds)
-			setShowSaveTimer(true)
+			setElapsedSecondsToSave(safeSeconds);
+			setShowSaveTimer(true);
 		} else {
 			// Sécurise : si timer déjà arrêté
-			timer.stop()
-			setSeconds(0)
+			timer.stop();
+			setSeconds(0);
 		}
 	}
 	const handleSaveTimer = async (taskData) => {

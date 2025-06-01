@@ -2,6 +2,7 @@ import express from 'express'
 import { google } from 'googleapis'
 import User from '../../src/models/user.js'
 import Task from '../../src/models/task.js'
+import GoogleEventTime from '../../src/models/google-event-time.js'
 import { auth } from '../../src/middlewares/auth.js'
 
 const router = express.Router()
@@ -70,7 +71,7 @@ router.get('/google-calendar/callback', auth, async (req, res) => {
 	}
 })
 
-// Synchronise les tâches avec Google Calendar
+// Synchronise les tâches avec Google Calendar ET importe les événements Google dans la base locale
 router.post('/google-calendar/sync', auth, async (req, res) => {
 	try {
 		const user = await User.findById(req.user.id)
@@ -78,41 +79,47 @@ router.post('/google-calendar/sync', auth, async (req, res) => {
 			return res.status(400).json({ error: 'Google Calendar non connecté' })
 		}
 
-		// Instancie un client OAuth avec les tokens de l'utilisateur
 		oauth2Client.setCredentials(user.googleCalendarTokens)
-
 		const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
 
-		// Récupère les tâches à synchroniser (adapte selon ton modèle)
-		const tasks = await Task.find({ userId: user._id })
+		// 1. Récupère les événements Google Calendar (prochains 30 jours)
+		const now = new Date()
+		const maxDate = new Date()
+		maxDate.setDate(now.getDate() + 30)
+		const response = await calendar.events.list({
+			calendarId: 'primary',
+			timeMin: now.toISOString(),
+			timeMax: maxDate.toISOString(),
+			singleEvents: true,
+			orderBy: 'startTime',
+		})
+		const events = response.data.items
 
-		// Pour chaque tâche, crée un événement dans Google Calendar
-		for (const task of tasks) {
-			const event = {
-				summary: task.title,
-				description: task.description || '',
-				start: {
-					dateTime: task.dueDate ? task.dueDate.toISOString() : new Date().toISOString(),
-					timeZone: 'Europe/Paris', // adapte si besoin
+		// 2. Pour chaque événement Google, crée ou met à jour une copie locale
+		for (const event of events) {
+			await GoogleEventTime.findOneAndUpdate(
+				{ userId: user._id, eventId: event.id },
+				{
+					title: event.summary || event.title || '(Google event)',
+					description: event.description || '',
+					start: event.start?.dateTime || event.start?.date,
+					end: event.end?.dateTime || event.end?.date,
+					location: event.location,
+					status: event.status,
+					creator: event.creator,
+					attendees: event.attendees,
+					htmlLink: event.htmlLink,
+					isGoogle: true,
+					updatedAt: new Date(),
 				},
-				end: {
-					dateTime: task.dueDate
-						? new Date(new Date(task.dueDate).getTime() + 60 * 60 * 1000).toISOString()
-						: new Date(new Date().getTime() + 60 * 60 * 1000).toISOString(),
-					timeZone: 'Europe/Paris',
-				},
-			}
-			try {
-				await calendar.events.insert({
-					calendarId: 'primary',
-					resource: event,
-				})
-			} catch (err) {
-				console.error('[Google Calendar][Sync] Erreur création événement:', err)
-			}
+				{ upsert: true, new: true }
+			)
 		}
 
-		res.json({ success: true })
+		// (Optionnel) Synchronise aussi les tâches locales vers Google Calendar (ancienne logique)
+		// ...
+
+		res.json({ success: true, imported: events.length })
 	} catch (err) {
 		console.error('[Google Calendar][Sync] Erreur globale:', err)
 		res.status(500).json({ error: 'Erreur lors de la synchronisation' })
@@ -160,6 +167,69 @@ router.get('/google-calendar/events', auth, async (req, res) => {
 	} catch (err) {
 		console.error('[Google Calendar][Events] Erreur récupération événements:', err)
 		res.status(500).json({ error: 'Erreur lors de la récupération des événements Google Calendar' })
+	}
+})
+
+// GET: Récupère tous les événements Google importés (copiés) en base locale
+router.get('/google-calendar/imported-events', auth, async (req, res) => {
+	try {
+		const userId = req.user.id
+		const events = await GoogleEventTime.find({ userId })
+		res.json(events)
+	} catch (err) {
+		console.error('[GoogleEventTime][GET imported] Erreur:', err)
+		res.status(500).json({ error: 'Erreur lors de la récupération des événements Google importés' })
+	}
+})
+
+// POST: Importe et copie tous les événements Google Calendar dans la base locale
+router.post('/google-calendar/import', auth, async (req, res) => {
+	try {
+		const user = await User.findById(req.user.id)
+		if (!user || !user.googleCalendarTokens) {
+			return res.status(400).json({ error: 'Google Calendar non connecté' })
+		}
+		oauth2Client.setCredentials(user.googleCalendarTokens)
+		const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
+
+		const now = new Date()
+		const maxDate = new Date()
+		maxDate.setDate(now.getDate() + 30)
+
+		const response = await calendar.events.list({
+			calendarId: 'primary',
+			timeMin: now.toISOString(),
+			timeMax: maxDate.toISOString(),
+			singleEvents: true,
+			orderBy: 'startTime',
+		})
+
+		const events = response.data.items
+		let imported = 0
+		for (const event of events) {
+			const doc = {
+				userId: user._id,
+				eventId: event.id,
+				durationSeconds: 0,
+				start: event.start?.dateTime || event.start?.date,
+				end: event.end?.dateTime || event.end?.date,
+				title: event.summary || event.title || '(Google event)',
+				description: event.description || '',
+				location: event.location || '',
+				isFinished: false,
+				updatedAt: new Date(),
+			}
+			await GoogleEventTime.findOneAndUpdate(
+				{ userId: user._id, eventId: event.id },
+				doc,
+				{ upsert: true, new: true }
+			)
+			imported++
+		}
+		res.json({ success: true, imported })
+	} catch (err) {
+		console.error('[Google Calendar][Import] Erreur:', err)
+		res.status(500).json({ error: 'Erreur lors de l\'import des événements Google Calendar' })
 	}
 })
 

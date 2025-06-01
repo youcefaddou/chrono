@@ -72,7 +72,22 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 	const handleEventDrop = useCallback(async (changeInfo) => {
 		const { event } = changeInfo
 		if (String(event.id).startsWith('gcal-')) {
-			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+			// Déplacement local d'un événement Google
+			const eventId = String(event.id).replace(/^gcal-/, '')
+			try {
+				await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${eventId}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({
+						start: event.start,
+						end: event.end,
+					}),
+				})
+				refetchEvents()
+			} catch (err) {
+				setErrorMessage('Erreur lors du déplacement local de l’événement Google')
+			}
 			return
 		}
 		try {
@@ -94,7 +109,17 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 	// Handle event remove
 	const handleEventRemove = useCallback(async (eventId) => {
 		if (String(eventId).startsWith('gcal-')) {
-			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+			// Suppression locale d'un événement Google
+			const pureId = String(eventId).replace(/^gcal-/, '')
+			try {
+				await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${pureId}`, {
+					method: 'DELETE',
+					credentials: 'include',
+				})
+				refetchEvents()
+			} catch (err) {
+				setErrorMessage('Erreur lors de la suppression locale de l’événement Google')
+			}
 			return
 		}
 		try {
@@ -175,7 +200,19 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 	const handleEditTaskDelete = async () => {
 		if (!selectedEvent) return
 		if (String(selectedEvent.id).startsWith('gcal-')) {
-			console.error('Tentative d’appel de la route locale avec un id Google, opération annulée')
+			// Suppression locale d'un événement Google depuis la modale
+			const pureId = String(selectedEvent.id).replace(/^gcal-/, '')
+			try {
+				await fetch(`http://localhost:3001/api/integrations/google-calendar/event-times/${pureId}`, {
+					method: 'DELETE',
+					credentials: 'include',
+				})
+				setShowEditTaskModal(false)
+				setSelectedEvent(null)
+				refetchEvents()
+			} catch (error) {
+				setErrorMessage('Erreur lors de la suppression locale de l’événement Google')
+			}
 			return
 		}
 		try {
@@ -228,24 +265,40 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 	function mapGoogleEventForCalendar (event) {
 		return {
 			id: 'gcal-' + event.id,
-			title: event.summary || event.title || '(Google event)',
+			title: event.title || event.summary || '(Google event)',
 			start: event.start ? new Date(event.start) : null,
 			end: event.end ? new Date(event.end) : null,
 			backgroundColor: '#34a853',
 			borderColor: '#34a853',
 			allDay: false,
-			editable: false,
+			editable: true, // rendre éditable
 			classNames: ['google-calendar-event'],
 			extendedProps: {
 				...event,
 				id: 'gcal-' + event.id,
-				title: event.summary || event.title || '(Google event)',
+				title: event.title || event.summary || '(Google event)',
 				isGoogle: true,
-				readOnly: true,
 				durationSeconds: typeof event.durationSeconds === 'number' ? event.durationSeconds : 0,
 				is_finished: !!event.is_finished,
 				isFinished: !!event.isFinished,
 			},
+		}
+	}
+
+	const handleImportGoogleEvents = async () => {
+		try {
+			const res = await fetch('http://localhost:3001/api/integrations/google-calendar/import', {
+				method: 'POST',
+				credentials: 'include',
+			})
+			if (!res.ok) {
+				const data = await res.json()
+				setErrorMessage(data.error || 'Erreur lors de l\'import Google')
+				return
+			}
+			refetchEvents()
+		} catch (err) {
+			setErrorMessage('Erreur lors de l\'import Google')
 		}
 	}
 
@@ -263,6 +316,12 @@ function FullCalendarGrid ({ user, refreshKey, lastSavedTaskId, lastSavedDuratio
 					onClick={() => setViewMode('list')}
 				>
 					{lang === 'fr' ? 'Liste' : 'List'}
+				</button>
+				<button
+					className='px-3 py-1 rounded bg-green-600 text-white cursor-pointer'
+					onClick={handleImportGoogleEvents}
+				>
+					{lang === 'fr' ? 'Importer Google' : 'Import Google'}
 				</button>
 			</div>
 			{viewMode === 'calendar' ? (

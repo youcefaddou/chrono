@@ -122,6 +122,8 @@ function CalendarEventWithPlay({
 			id: String(event.id),
 			isGoogle: !!event.isGoogle || String(event.id).startsWith('gcal-'),
 		}
+		// Prevent duplicate timer start for the same event
+		if (isRunning) return
 		if (!isRunning) {
 			if (typeof timer.startFrom === 'function') {
 				timer.startFrom(event.durationSeconds || 0, eventForTimer)
@@ -150,12 +152,34 @@ function CalendarEventWithPlay({
 		const newDuration = localDuration + (elapsed || 0)
 		setLocalDuration(newDuration)
 		setSaving(true)
-		await fetch(`http://localhost:3001/api/tasks/${event.id}`, {
-			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
-			credentials: 'include',
-			body: JSON.stringify({ is_finished: true, duration_seconds: newDuration }),
-		})
+		try {
+			if (isGoogleEvent) {
+				// Marquer comme terminé côté Google (local DB)
+				const res = await fetch('http://localhost:3001/api/integrations/google-calendar/event-times', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({ eventId: String(event.id).replace(/^gcal-/, ''), durationSeconds: newDuration, isFinished: true }),
+				})
+				if (!res.ok) {
+					const text = await res.text()
+					console.error('Erreur lors de la complétion Google:', text)
+					setSaving(false)
+					return
+				}
+			} else {
+				await fetch(`http://localhost:3001/api/tasks/${event.id}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({ is_finished: true, duration_seconds: newDuration }),
+				})
+			}
+		} catch (err) {
+			console.error('Erreur lors de la complétion:', err)
+			setSaving(false)
+			return
+		}
 		setSaving(false)
 		if (typeof event.onFinish === 'function') {
 			event.onFinish(event.id)
@@ -251,7 +275,7 @@ function CalendarEventWithPlay({
 						className={`truncate font-semibold text-sm${isDone ? ' line-through text-gray-400' : ''}`}
 						style={{ flex: 1, minWidth: 0 }}
 					>
-						{event.title}
+						{event.title || event.summary || '(Google event)'}
 					</span>
 					<button
 						onClick={handlePlayPause}
@@ -299,7 +323,7 @@ function CalendarEventWithPlay({
 							className='px-2 py-1 rounded bg-green-100 hover:bg-green-200 text-xs font-medium text-green-700 ml-1'
 							title={t('task.complete')}
 							aria-label={t('task.complete')}
-							disabled={isDone || saving}
+							disabled={isDone || saving /* Désactive seulement si terminé ou en cours de sauvegarde */}
 						>
 							{saving ? '...' : t('task.complete')}
 						</button>
@@ -315,7 +339,7 @@ function CalendarEventWithPlay({
 				<>
 					<div className={`flex items-center justify-between w-full ${isSmallTask ? 'mb-1' : 'mb-2'}`}>
 						<span className={`truncate font-semibold ${isSmallTask ? 'text-xs' : 'text-sm'}${isDone ? ' line-through text-gray-400' : ''}`}>
-							{event.title}
+							{event.title || event.summary || '(Google event)'}
 						</span>
 						<div className='flex items-center gap-1'>
 							<button
@@ -364,7 +388,7 @@ function CalendarEventWithPlay({
 								className={`w-full ${isSmallTask ? 'px-1 py-0.5 text-xs' : 'px-2 py-1 text-xs'} rounded bg-green-100 hover:bg-green-200 font-medium text-green-700 mb-1`}
 								title={t('task.complete')}
 								aria-label={t('task.complete')}
-								disabled={isDone || saving}
+								disabled={saving /* Désactive seulement si en cours de sauvegarde */}
 							>
 								{saving ? '...' : t('task.complete')}
 							</button>

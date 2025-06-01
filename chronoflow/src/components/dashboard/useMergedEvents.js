@@ -13,21 +13,12 @@ function useMergedEvents () {
 		setLoading(true)
 		setError(null)
 		try {
-			const [tasksRes, googleRes, timesRes] = await Promise.all([
+			const [tasksRes, googleRes] = await Promise.all([
 				fetch('http://localhost:3001/api/tasks', { credentials: 'include' }),
-				fetch('http://localhost:3001/api/integrations/google-calendar/events', { credentials: 'include' }),
-				fetch('http://localhost:3001/api/integrations/google-calendar/event-times', { credentials: 'include' }),
+				fetch('http://localhost:3001/api/integrations/google-calendar/imported-events', { credentials: 'include' }),
 			])
 
 			let merged = []
-			let googleEventTimes = []
-			if (timesRes.ok) {
-				googleEventTimes = await timesRes.json()
-			}
-			const timesByEventId = {}
-			googleEventTimes.forEach(t => {
-				timesByEventId[t.eventId] = t.durationSeconds
-			})
 
 			if (tasksRes.ok) {
 				const data = await tasksRes.json()
@@ -36,20 +27,18 @@ function useMergedEvents () {
 
 			if (googleRes.ok) {
 				const googleEvents = await googleRes.json()
-				const mappedGoogle = googleEvents.map(event => {
-					const eventId = String(event.id)
-					return {
-						...event,
-						isGoogle: true,
-						readOnly: true,
-						id: 'gcal-' + eventId, // id unique string pour React
-						eventId: eventId, // id Google pur pour la DB/API
-						title: event.summary || event.title || '(Google event)',
-						start: event.start,
-						end: event.end,
-						durationSeconds: typeof timesByEventId[eventId] === 'number' ? timesByEventId[eventId] : 0,
-					}
-				})
+				const mappedGoogle = googleEvents.map(event => ({
+					...event,
+					isGoogle: true,
+					id: 'gcal-' + event.eventId, // id unique string pour React
+					eventId: event.eventId, // id Google pur pour la DB/API
+					title: event.title || event.summary || '(Google event)',
+					start: event.start,
+					end: event.end,
+					durationSeconds: event.durationSeconds || 0,
+					is_finished: !!event.isFinished,
+					isFinished: !!event.isFinished,
+				}))
 				merged = [...merged, ...mappedGoogle]
 			}
 
