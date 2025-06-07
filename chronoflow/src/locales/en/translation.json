@@ -26,5 +26,39 @@
 			"exportData": "Export Data",
 			"deleteData": "Delete Data"
 		}
+	},
+	"home": {
+		"faq": {
+			"title": "Frequently Asked Questions",
+			"subtitle": "Find answers to the most common questions about ChronoFlow",
+			"question1": "Is ChronoFlow available in English?",
+			"answer1": "Yes, you can click on the flag and enjoy the features in English. The interface automatically adapts to your preferred language.",
+			"question2": "Is my data secure?",
+			"answer2": "Your data is stored in Europe and protected according to GDPR standards. We use end-to-end encryption and secure servers to ensure the confidentiality of your information.",
+			"question3": "Can I connect my Google Calendar?",
+			"answer3": "Yes, Google Calendar integration is available to synchronize your events. You can import your appointments and automatically sync your schedule.",
+			"moreQuestions": "Have more questions?",
+			"contactUs": "Contact us"
+		},
+		"testimonials": {
+			"title": "They use ChronoFlow",
+			"testimonial1": {
+				"text": "ChronoFlow helps me stay focused and better manage my days.",
+				"name": "Alice, Freelancer"
+			},
+			"testimonial2": {
+				"text": "The interface is super intuitive, I recommend it 100%.",
+				"name": "Karim, Student"
+			},
+			"testimonial3": {
+				"text": "The statistics are great for tracking my progress.",
+				"name": "Sophie, Manager"
+			}
+		},
+		"cta": {
+			"title": "Ready to boost your productivity?",
+			"subtitle": "Try ChronoFlow for free today.",
+			"button": "Create an account"
+		}
 	}
 }

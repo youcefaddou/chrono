@@ -1,24 +1,26 @@
 import { useRef, useEffect } from 'react'
 import { animate } from 'animejs'
-
-const testimonials = [
-	{
-		text: '"ChronoFlow m\'aide à rester concentré et à mieux gérer mes journées."',
-		name: 'Alice, Freelance',
-	},
-	{
-		text: '"L\'interface est super intuitive, je recommande à 100%."',
-		name: 'Karim, Étudiant',
-	},
-	{
-		text: '"Les statistiques sont top pour suivre mes progrès."',
-		name: 'Sophie, Manager',
-	},
-]
+import { useTranslation } from '../../hooks/useTranslation'
 
 function TestimonialsSection() {
+	const { t } = useTranslation()
 	const sectionRef = useRef(null)
 	const containerRefs = useRef([])
+
+	const testimonials = [
+		{
+			text: t('home.testimonials.testimonial1.text'),
+			name: t('home.testimonials.testimonial1.name'),
+		},
+		{
+			text: t('home.testimonials.testimonial2.text'),
+			name: t('home.testimonials.testimonial2.name'),
+		},
+		{
+			text: t('home.testimonials.testimonial3.text'),
+			name: t('home.testimonials.testimonial3.name'),
+		},
+	]
 
 	useEffect(() => {
 		let hasAnimated = false
@@ -72,9 +74,8 @@ function TestimonialsSection() {
 
 	return (
 		<section ref={sectionRef} className="py-16 bg-gray-50">
-			<div className="container mx-auto px-4">
-				<h2 className="text-4xl font-bold text-center text-gray-800 mb-12">
-					Ils utilisent ChronoFlow
+			<div className="container mx-auto px-4">				<h2 className="text-4xl font-bold text-center text-gray-800 mb-12">
+					{t('home.testimonials.title')}
 				</h2>
 				
 				<div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">

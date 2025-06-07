@@ -3,8 +3,8 @@ import { useTranslation } from '../../hooks/useTranslation'
 
 const previews = [
 	{
-		img: '/assets/images/screenchrono1.png',
-		video: '/assets/videos/screenvid2.mp4', 
+		img: '/assets/images/time.png',
+		video: '/assets/videos/timetracker.mp4', 
 		title: { fr: 'Gestion du temps', en: 'Time Management' },
 		desc: {
 			fr: "Visualisez et contrôlez votre temps de travail grâce à l'interface intuitive du timer.",
@@ -13,8 +13,8 @@ const previews = [
 		alt: { fr: 'Aperçu ChronoFlow 1', en: 'ChronoFlow Preview 1' },
 	},
 	{
-		img: '/assets/images/screenchrono3.png',
-		video: '/assets/videos/demo3.mp4',
+		img: '/assets/images/analytics.png',
+		video: '/assets/videos/analytics.mp4',
 		title: { fr: 'Vue analytique', en: 'Analytics View' },
 		desc: {
 			fr: "Analysez vos statistiques et suivez vos progrès avec des graphiques clairs et dynamiques.",
@@ -23,8 +23,8 @@ const previews = [
 		alt: { fr: 'Aperçu ChronoFlow 3', en: 'ChronoFlow Preview 3' },
 	},
 	{
-		img: '/assets/images/screenchrono2.png',
-		video: '/assets/videos/screenvid1.mp4', 
+		img: '/assets/images/tasks.png',
+		video: '/assets/videos/chronotasks.mp4', 
 		title: { fr: 'Organisation des tâches', en: 'Task Organization' },
 		desc: {
 			fr: "Organisez vos tâches et priorisez vos journées pour une productivité optimale.",
@@ -272,25 +272,23 @@ function VisualPreviewSection () {
 						</div>
 					</>
 				)}
-			</div>
-			{/* Modal/Panel */}
+			</div>			{/* Modal/Panel */}
 			{selected !== null && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-					<div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-8 relative animate-fade-in modal-panel-responsive">
+					<div className="bg-white rounded-xl shadow-xl max-w-5xl w-full p-8 relative animate-fade-in modal-panel-responsive">
 						<button
 							className="absolute top-2 right-2 text-gray-500 hover:text-rose-600 text-2xl font-bold"
 							onClick={() => setSelected(null)}
 							aria-label={lang === 'en' ? 'Close' : 'Fermer'}
 						>
 							&times;
-						</button>
-						<div className="mb-4">
+						</button>						<div className="mb-4">
 							<video
 								ref={videoRef}
 								src={previews[selected].video}
 								autoPlay
 								loop
-								className="w-full h-64 sm:h-80 object-cover rounded-lg modal-video-responsive"
+								className="w-full h-80 sm:h-96 object-cover rounded-lg modal-video-responsive"
 							/>
 						</div>
 						<h3 className="text-xl font-bold mb-2 text-rose-700 text-center">{previews[selected].title[lang]}</h3>
@@ -312,16 +310,15 @@ function VisualPreviewSection () {
 						width: 100% !important;
 						margin-bottom: 1.5rem;
 					}
-				}
-				@media (max-width: 768px) {
+				}				@media (max-width: 768px) {
 					.modal-panel-responsive {
 						max-width: 95vw !important;
 						width: 95vw !important;
 						padding: 1.25rem !important;
 					}
 					.modal-video-responsive {
-						height: 180px !important;
-						max-height: 40vw !important;
+						height: 220px !important;
+						max-height: 50vw !important;
 					}
 				}
 				@keyframes fade-in { from { opacity: 0; transform: scale(0.95);} to { opacity: 1; transform: scale(1);} }

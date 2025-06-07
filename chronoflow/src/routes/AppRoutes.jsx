@@ -7,6 +7,7 @@ import LegalNoticePageEn from '../app/legal-notice/page.en'
 import TermsPage from '../app/terms/page'
 import TermsPageEn from '../app/terms/page.en'
 import FaqPage from '../app/faq/page'
+import FaqPageEn from '../app/en/faq/page'
 import ContactPage from '../app/contact/page'
 import HomePage from '../app/home/page'
 import SignupPage from '../app/(auth)/signup/page'
@@ -43,13 +44,11 @@ export default function AppRoutes () {
 			<Route path="/en/signup" element={<SignupPageEn />} />
 			<Route path="/en/login" element={<LoginPageEn />} />
 			<Route path="/en/privacy-policy" element={<PrivacyPolicyPageEn />} />
-			<Route path="/en/legal-notice" element={<LegalNoticePageEn />} />
-			<Route path="/en/terms" element={<TermsPageEn />} />
+			<Route path="/en/legal-notice" element={<LegalNoticePageEn />} />			<Route path="/en/terms" element={<TermsPageEn />} />
+			<Route path="/en/faq" element={<FaqPageEn />} />
 			<Route path="/en/dashboard" element={<DashboardPage />} />
 			<Route path="/en/dashboard/settings" element={<EnglishSettingsPage />} />
 			<Route path="/en/dashboard/integrations" element={<IntegrationsPageEn />} />
-			{/* Optionally add FAQ/contact in English if you have those pages */}
-			{/* <Route path="/en/faq" element={<FaqPageEn />} /> */}
 			{/* <Route path="/en/contact" element={<ContactPageEn />} /> */}
 		</Routes>
 	)

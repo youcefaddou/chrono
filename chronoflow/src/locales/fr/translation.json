@@ -26,5 +26,39 @@
 			"exportData": "Exporter les données",
 			"deleteData": "Supprimer les données"
 		}
+	},
+	"home": {
+		"faq": {
+			"title": "Questions Fréquentes",
+			"subtitle": "Découvrez les réponses aux questions les plus courantes sur ChronoFlow",
+			"question1": "ChronoFlow est-il disponible en anglais ?",
+			"answer1": "Oui, vous pouvez cliquer sur le drapeau et profiter des fonctionnalités en anglais. L'interface s'adapte automatiquement à votre langue préférée.",
+			"question2": "Mes données sont-elles sécurisées ?",
+			"answer2": "Vos données sont stockées en Europe et protégées selon les normes RGPD. Nous utilisons un chiffrement de bout en bout et des serveurs sécurisés pour garantir la confidentialité de vos informations.",
+			"question3": "Puis-je connecter mon Google Calendar ?",
+			"answer3": "Oui, l'intégration Google Calendar est disponible pour synchroniser vos événements. Vous pouvez importer vos rendez-vous et synchroniser automatiquement votre planning.",
+			"moreQuestions": "Vous avez d'autres questions ?",
+			"contactUs": "Nous contacter"
+		},
+		"testimonials": {
+			"title": "Ils utilisent ChronoFlow",
+			"testimonial1": {
+				"text": "ChronoFlow m'aide à rester concentré et à mieux gérer mes journées.",
+				"name": "Alice, Freelance"
+			},
+			"testimonial2": {
+				"text": "L'interface est super intuitive, je recommande à 100%.",
+				"name": "Karim, Étudiant"
+			},
+			"testimonial3": {
+				"text": "Les statistiques sont top pour suivre mes progrès.",
+				"name": "Sophie, Manager"
+			}
+		},
+		"cta": {
+			"title": "Prêt à booster votre productivité ?",
+			"subtitle": "Essayez ChronoFlow gratuitement dès aujourd'hui.",
+			"button": "Créer un compte"
+		}
 	}
 }
