@@ -2,8 +2,8 @@ import React from 'react'
 
 function FAQSection () {
 	return (
-		<section className="py-12 bg-gradient-to-b from-blue-50 via-white to-blue-200">
-			<h2 className="text-2xl font-bold text-center mb-8">FAQ rapide</h2>
+		<section className="py-12 bg-white">
+			<h2 className="text-4xl font-bold text-center mb-15">FAQ rapide</h2>
 			<div className="max-w-3xl mx-auto space-y-6">
 				<div>
 					<h3 className="font-semibold">ChronoFlow est-il gratuit ?</h3>

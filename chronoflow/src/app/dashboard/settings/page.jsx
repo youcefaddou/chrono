@@ -258,7 +258,7 @@ export default function SettingsPage () {
 				{ label: 'Exporter les données' },
 				{ label: 'Supprimer les données' },
 			],
-			icon: <FaTrashAlt className='text-black' />,
+			icon: <FaTrashAlt className='text-neutral-900' />,
 		},
 	]
 

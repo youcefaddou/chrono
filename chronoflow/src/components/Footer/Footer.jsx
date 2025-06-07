@@ -12,7 +12,7 @@ export default function Footer() {
 			<div className="max-w-7xl mx-auto px-4 py-10 flex flex-col gap-10">
 				<div className="flex flex-col sm:flex-row sm:gap-10 md:gap-0">
 					<div className="flex flex-col gap-2 sm:w-1/2 md:w-1/3 mb-8 sm:mb-0 items-center sm:items-start text-center sm:text-left">
-						<span className="font-bold text-2xl text-black tracking-tight">ChronoFlow</span>
+						<span className="font-bold text-2xl text-neutral-900 tracking-tight">ChronoFlow</span>
 						<span className="text-neutral-500 text-sm mt-2">
 							© {year} {t('footer.rights')}
 						</span>

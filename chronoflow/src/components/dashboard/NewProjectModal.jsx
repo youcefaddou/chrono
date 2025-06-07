@@ -41,7 +41,7 @@ function MiniCalendar({ value, onChange, lang = 'fr' }) {
           }}
           className='px-2 py-1 text-gray-500 hover:text-blue-700'
         >{'<'}</button>
-        <span className='font-semibold text-sm text-black'>
+        <span className='font-semibold text-sm text-neutral-900'>
           {new Date(year, month).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' })} {year}
         </span>
         <button
