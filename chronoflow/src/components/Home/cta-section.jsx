@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 
 function CTASection () {
 	return (
-		<section className="py-12 text-center bg-gradient-to-b from-rose-50 via-white to-rose-100">
-			<h2 className="text-2xl font-bold mb-4">Prêt à booster votre productivité ?</h2>
+		<section className="py-12 text-center bg-white">
+			<h2 className="text-4xl font-bold text-center mb-15">Prêt à booster votre productivité ?</h2>
 			<p className="mb-6 text-gray-600">Essayez ChronoFlow gratuitement dès aujourd’hui.</p>
 			<Link
 				to="/signup"

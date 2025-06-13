@@ -1,0 +1,202 @@
+/* Task container base styles */
+.task-event-container {
+	position: relative;
+	border-radius: 6px;
+	border: 1px solid rgba(0,0,0,0.1);
+	box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	background: transparent;
+}
+
+.task-event-container:hover {
+	box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* Size-specific styles */
+.very-small-task { min-height: 20px; padding: 2px !important; }
+.small-task { min-height: 40px; padding: 4px !important; }
+.medium-task { min-height: 80px; padding: 6px !important; }
+.large-task { min-height: 120px; padding: 8px !important; }
+
+/* Collision/overlap styles */
+.overlapped-task {
+	border: 2px solid rgba(59,130,246,0.5);
+	box-shadow: 0 0 0 1px rgba(59,130,246,0.3), 0 2px 6px rgba(0,0,0,0.15);
+	animation: slideIn 0.3s ease-out;
+}
+.overlapped-task:hover {
+	border-color: rgba(59,130,246,0.8);
+	box-shadow: 0 0 0 2px rgba(59,130,246,0.4), 0 4px 12px rgba(0,0,0,0.2);
+	z-index: 10;
+}
+
+/* Completed task styles */
+.task-event-container[data-completed="true"] {
+	background: repeating-linear-gradient(45deg,#d1fae5 0 8px,rgba(255,255,255,0.8) 8px 16px) !important;
+}
+.task-event-container[data-completed="true"]::after { display: none; }
+
+/* Ensure buttons remain clickable */
+.task-event-container button { position: relative; z-index: 20; pointer-events: auto; }
+.task-event-container button:hover { transform: scale(1.05); }
+
+/* Tooltip styles */
+.task-tooltip {
+	position: absolute;
+	z-index: 50;
+	bottom: 100%;
+	left: 0;
+	margin-bottom: 8px;
+	padding: 12px;
+	background: rgba(17,24,39,0.95);
+	color: #fff;
+	font-size: 0.875rem;
+	border-radius: 8px;
+	box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+	min-width: 200px;
+	backdrop-filter: blur(8px);
+}
+.task-tooltip::after {
+	content: '';
+	position: absolute;
+	top: 100%;
+	left: 16px;
+	border: 4px solid transparent;
+	border-top-color: rgba(17,24,39,0.95);
+}
+
+/* Animation for collision detection */
+@keyframes slideIn {
+	from { opacity: 0; transform: translateX(-10px); }
+	to { opacity: 1; transform: translateX(0); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.task-event-container { padding: 4px !important; }
+	.overlapped-task { border-width: 1px; }
+}
+
+@media (min-width: 769px) {
+	.overlapped-task { animation: none !important; }
+	.task-event-container,
+	.task-event-container *,
+	.timer-display,
+	.task-event-container button {
+		transition: none !important;
+		animation: none !important;
+	}
+	.task-event-container button:hover {
+		transform: none !important;
+	}
+	.collision-positioned-event,
+	.collision-positioned-event *,
+	.collision-positioned-event .task-event-container,
+	.collision-positioned-event .task-event-container * {
+		transition: none !important;
+		animation: none !important;
+	}
+}
+
+.collision-positioned-event {
+	contain: layout style paint;
+}
+
+/* Renforce la stabilité du layout pour le timer */
+.timer-display {
+	display: inline-block;
+	min-width: 80px;
+	max-width: 100px;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.2px;
+	transition: none !important;
+}
+
+/* ... Ajouts pour le positionnement du bouton ... */
+.task-event-container .w-full { width: 100%; margin-top: 0 !important; }
+.task-event-container button, .task-event-container .flex { position: static !important; z-index: auto !important; }
+.task-event-container .absolute { position: absolute !important; }
+.task-event-container .task-tooltip { z-index: 20; }
+.task-event-container [data-completed='true'] { pointer-events: none; }
+
+/* Corrige un éventuel overflow caché par react-big-calendar */
+.rbc-event, .rbc-day-slot .rbc-event {
+	overflow: visible !important;
+	align-items: stretch !important;
+	justify-content: flex-start !important;
+	flex-direction: column !important;
+	contain: layout;
+}
+
+/* S'assure que le contenu custom occupe toute la hauteur de l'event */
+.rbc-event-content, .rbc-day-slot .rbc-event-content {
+	display: block !important;
+	height: 100% !important;
+	width: 100% !important;
+	padding: 0 !important;
+	background: transparent !important;
+}
+
+/* Garantit une taille stable pour l'affichage du temps */
+[id^="timer-display-"] {
+	min-width: 70px;
+	text-align: center;
+	display: inline-block;
+	position: relative;
+	transform: translateZ(0);
+	backface-visibility: hidden;
+}
+
+/* Évite les changements de layout pendant l'animation */
+.collision-positioned-event { contain: layout size; }
+
+/* Stabilisation du chronomètre pour éliminer l'effet pulse */
+.timer-display {
+	display: inline-block;
+	padding: 0 3px;
+	width: auto;
+	min-width: 80px;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.2px;
+}
+
+.timer-container {
+	min-height: 22px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	padding: 0 !important;
+}
+
+/* Isolation complète des éléments interactifs pour éviter les problèmes de rendu */
+.task-event-container button, .task-event-container .timer-display {
+	isolation: isolate;
+}
+
+/* Suppression des transitions qui peuvent causer des pulsations */
+.task-event-container, .task-event-container * {
+	transition: none !important;
+}
+
+/* Évite les redimensionnements dynamiques qui causent des pulsations */
+.task-event-container {
+	contain: layout style paint;
+}
+
+/* Fix spécifique pour react-big-calendar */
+.rbc-day-slot .rbc-events-container { margin-right: 0 !important; }
+
+/* === OVERRIDE MAXIMAL pour désactiver le pulse react-big-calendar === */
+.rbc-event-content,
+.rbc-event-content *,
+.collision-positioned-event,
+.collision-positioned-event *,
+.collision-positioned-event.overlapped,
+.collision-positioned-event.overlapped:hover {
+	transition: none !important;
+	animation: none !important;
+}

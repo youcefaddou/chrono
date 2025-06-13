@@ -1,4 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useTranslation } from '../../hooks/useTranslation'
+
+const COLORS = [
+	'#2563eb', // blue
+	'#16a34a', // green
+	'#eab308', // yellow
+	'#f59e42', // orange
+	'#e11d48', // red
+	'#7c3aed', // purple
+]
 
 function getWeekNumber(date) {
 	const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -6,6 +16,18 @@ function getWeekNumber(date) {
 	d.setUTCDate(d.getUTCDate() + 4 - dayNum)
 	const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
 	return Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
+}
+
+// Helper to format date as local ISO string for datetime-local input
+function toLocalISOString(date) {
+	if (!date) return '';
+	const pad = n => n.toString().padStart(2, '0');
+	const yyyy = date.getFullYear();
+	const mm = pad(date.getMonth() + 1);
+	const dd = pad(date.getDate());
+	const hh = pad(date.getHours());
+	const min = pad(date.getMinutes());
+	return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 }
 
 function MiniCalendar ({ value, onChange }) {
@@ -91,125 +113,140 @@ function MiniCalendar ({ value, onChange }) {
 	)
 }
 
-function AddTaskModal ({
-	dayIdx,
-	startHour,
-	endHour,
-	selectedDate,
-	onDateChange,
-	onClose,
-	onAddTask,
-}) {
-	const [desc, setDesc] = useState('')
-	const [project, setProject] = useState('')
-	const [startTime, setStartTime] = useState(`${String(startHour).padStart(2, '0')}:00`)
-	const [endTime, setEndTime] = useState(`${String(endHour).padStart(2, '0')}:00`)
-	const [startTimer, setStartTimer] = useState(false)
-	const [error, setError] = useState('')
+function AddTaskModal({ open, initialStart, initialEnd, initialTitle = '', initialDesc = '', initialColor = COLORS[0], showDelete = false, onClose, onSave, onDelete, onStartTimer, lang: langProp }) {
+	const { t, i18n } = useTranslation()
+	const lang = langProp || (i18n?.language?.startsWith('en') ? 'en' : 'fr')
+	const [title, setTitle] = useState(initialTitle)
+	const [desc, setDesc] = useState(initialDesc)
+	const [start, setStart] = useState(initialStart || new Date())
+	const [end, setEnd] = useState(initialEnd || new Date())
+	const [color, setColor] = useState(initialColor)
 
-	const isValidTime = time => /^([01]\d|2[0-3]):([0-5]\d)$/.test(time)
+	useEffect(() => {
+		setTitle(initialTitle)
+		setDesc(initialDesc)
+		setStart(initialStart || new Date())
+		setEnd(initialEnd || new Date())
+		setColor(initialColor)
+	}, [initialTitle, initialDesc, initialStart, initialEnd, initialColor])
 
-	const handleAdd = () => {
-		if (!desc.trim()) {
-			setError('Description is required')
-			return
-		}
-		if (!isValidTime(startTime) || !isValidTime(endTime)) {
-			setError('Time must be in HH:mm format')
-			return
-		}
-		const [startH, startM] = startTime.split(':').map(Number)
-		const [endH, endM] = endTime.split(':').map(Number)
-		const startTotal = startH * 60 + startM
-		const endTotal = endH * 60 + endM
-		if (endTotal <= startTotal) {
-			setError('End time must be after start time')
-			return
-		}
-		setError('')
-		onAddTask({
-			dayIdx,
-			startHour: startH,
-			endHour: endH,
-			startMinute: startM,
-			endMinute: endM,
-			desc,
-			project,
-			selectedDate,
-			startTimer,
-		})
-	}
+	// Ajout d'un gestionnaire de soumission explicite
+	const handleSubmit = (e) => {
+		e.preventDefault();
+		
+		// Validation
+		if (!title.trim()) return;
+		if (!start || !end) return;
+		
+		// Créer l'objet tâche
+		const task = {
+			title: title.trim(),
+			desc: desc.trim(),
+			start,
+			end,
+			color
+		};
+		
+		// Appeler onSave avec les données de la tâche
+		onSave && onSave(task);
+		
+		// Réinitialiser le formulaire (optionnel si vous fermez la modale)
+		setTitle('');
+		setDesc('');
+		setStart(new Date());
+		setEnd(new Date());
+		setColor(COLORS[0]);
+		
+		// Fermer la modale
+		onClose && onClose();
+	};
+
+	if (!open) return null
 
 	return (
-		<div className='fixed inset-0 z-50 flex items-center justify-center'
-			style={{ background: 'rgba(30,41,59,0.7)' }}
-		>
-			<div className='bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative'>
+		<div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'>
+			<div className='bg-white rounded-xl shadow-xl max-w-md w-full p-6 relative animate-fade-in'>
 				<button
+					className='absolute top-2 right-2 text-gray-500 hover:text-rose-600 text-2xl font-bold'
 					onClick={onClose}
-					className='absolute top-2 right-2 text-gray-400 hover:text-rose-500 text-xl'
-					aria-label='Close'
+					aria-label={lang === 'fr' ? 'Fermer' : 'Close'}
 				>
 					&times;
 				</button>
-				<h3 className='text-lg font-bold mb-4'>Add a task/project</h3>
-				{error && (
-					<div className='mb-2 text-red-600 text-xs'>{error}</div>
-				)}
-				<input
-					type='text'
-					placeholder='Description'
-					value={desc}
-					onChange={e => setDesc(e.target.value)}
-					className='w-full mb-2 px-2 py-1 border rounded'
-					maxLength={100}
-				/>
-				<input
-					type='text'
-					placeholder='Project (optional)'
-					value={project}
-					onChange={e => setProject(e.target.value)}
-					className='w-full mb-2 px-2 py-1 border rounded'
-					maxLength={50}
-				/>
-				<div className='flex gap-2 mb-2'>
-					<input
-						type='text'
-						value={startTime}
-						onChange={e => setStartTime(e.target.value)}
-						className='border rounded px-2 py-1 w-20'
-						placeholder='HH:mm'
-						pattern='[0-2][0-9]:[0-5][0-9]'
-						maxLength={5}
-						aria-label='Start time'
-					/>
-					<span className='self-center'>→</span>
-					<input
-						type='text'
-						value={endTime}
-						onChange={e => setEndTime(e.target.value)}
-						className='border rounded px-2 py-1 w-20'
-						placeholder='HH:mm'
-						pattern='[0-2][0-9]:[0-5][0-9]'
-						maxLength={5}
-						aria-label='End time'
-					/>
-				</div>
-				<MiniCalendar value={selectedDate} onChange={onDateChange} />
-				<label className='flex items-center gap-2 mb-4 mt-2'>
-					<input
-						type='checkbox'
-						checked={startTimer}
-						onChange={e => setStartTimer(e.target.checked)}
-					/>
-					Start timer now
-				</label>
-				<button
-					onClick={handleAdd}
-					className='w-full bg-blue-600 text-white rounded py-2 font-semibold hover:bg-blue-700'
-				>
-					Add
-				</button>
+				<h2 className='text-xl font-bold mb-4'>
+					{lang === 'fr' ? (showDelete ? 'Modifier la tâche' : 'Créer une tâche') : (showDelete ? 'Edit Task' : 'Create Task')}
+				</h2>
+				<form onSubmit={handleSubmit} className='flex flex-col gap-3'>
+					<div className='flex flex-col gap-3'>
+						<input
+							type='text'
+							placeholder={lang === 'fr' ? 'Titre' : 'Title'}
+							className='border rounded px-3 py-2'
+							value={title}
+							onChange={e => setTitle(e.target.value)}
+							required
+						/>
+						<textarea
+							placeholder={lang === 'fr' ? 'Description' : 'Description'}
+							className='border rounded px-3 py-2'
+							value={desc}
+							onChange={e => setDesc(e.target.value)}
+						/>
+						<div className='flex gap-2'>
+							<input
+								type='datetime-local'
+								className='border rounded px-2 py-1 flex-1'
+								value={toLocalISOString(start)}
+								onChange={e => setStart(new Date(e.target.value))}
+								required
+							/>
+							<input
+								type='datetime-local'
+								className='border rounded px-2 py-1 flex-1'
+								value={toLocalISOString(end)}
+								onChange={e => setEnd(new Date(e.target.value))}
+								required
+							/>
+						</div>
+						<div className='flex gap-2 items-center'>
+							<span className='text-sm'>{lang === 'fr' ? 'Couleur' : 'Color'}:</span>
+							{COLORS.map(c => (
+								<button
+									key={c}
+									type='button'
+									className={`w-6 h-6 rounded-full border-2 ${color === c ? 'border-blue-600' : 'border-gray-200'}`}
+									style={{ background: c }}
+									onClick={() => setColor(c)}
+									aria-label={lang === 'fr' ? 'Choisir la couleur' : 'Choose color'}
+								/>
+							))}
+						</div>
+					</div>
+					<div className='flex gap-2 justify-end mt-4'>
+						{showDelete && (
+							<button
+								type='button'
+								className='px-4 py-2 rounded bg-rose-700 text-white font-semibold'
+								onClick={onDelete}
+							>
+								{lang === 'fr' ? 'Supprimer' : 'Delete'}
+							</button>
+						)}
+						<button
+							type='button'
+							className='px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold'
+							onClick={onClose}
+						>
+							{lang === 'fr' ? 'Annuler' : 'Cancel'}
+						</button>
+						<button
+							type='submit'
+							className='px-4 py-2 rounded bg-blue-700 text-white font-semibold'
+						>
+							{lang === 'fr' ? 'Enregistrer' : 'Save'}
+						</button>
+					</div>
+				</form>
 			</div>
 		</div>
 	)

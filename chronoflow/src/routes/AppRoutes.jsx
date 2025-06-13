@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import PrivacyPolicyPage from '../app/privacy-policy/page'
 import PrivacyPolicyPageEn from '../app/privacy-policy/page.en'
 import LegalNoticePage from '../app/legal-notice/page'
@@ -13,6 +14,11 @@ import SignupPageEn from '../app/(auth)/signup/page.en'
 import LoginPage from '../app/(auth)/login/page'
 import LoginPageEn from '../app/(auth)/login/page.en'
 import DashboardPage from '../app/dashboard/page'
+import SettingsPage from '../app/dashboard/settings/page'
+import EnglishSettingsPage from '../app/en/dashboard/settings/page' // Fixed import
+import IntegrationsPage from '../app/dashboard/integrations/page'
+import IntegrationsPageEn from '../app/en/dashboard/integrations/page'
+
 // Ajoute d'autres pages si besoin
 
 export default function AppRoutes () {
@@ -28,6 +34,9 @@ export default function AppRoutes () {
 			<Route path="/faq" element={<FaqPage />} />
 			<Route path="/contact" element={<ContactPage />} />
 			<Route path="/dashboard" element={<DashboardPage />} />
+			<Route path="/dashboard/settings" element={<SettingsPage />} />
+			<Route path="/dashboard/integrations" element={<IntegrationsPage />} />
+			
 
 			{/* EN routes */}
 			<Route path="/en" element={<HomePage />} />
@@ -36,6 +45,9 @@ export default function AppRoutes () {
 			<Route path="/en/privacy-policy" element={<PrivacyPolicyPageEn />} />
 			<Route path="/en/legal-notice" element={<LegalNoticePageEn />} />
 			<Route path="/en/terms" element={<TermsPageEn />} />
+			<Route path="/en/dashboard" element={<DashboardPage />} />
+			<Route path="/en/dashboard/settings" element={<EnglishSettingsPage />} />
+			<Route path="/en/dashboard/integrations" element={<IntegrationsPageEn />} />
 			{/* Optionally add FAQ/contact in English if you have those pages */}
 			{/* <Route path="/en/faq" element={<FaqPageEn />} /> */}
 			{/* <Route path="/en/contact" element={<ContactPageEn />} /> */}

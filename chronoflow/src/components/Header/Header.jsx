@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "../../hooks/useTranslation";
-import { supabase } from "../../lib/supabase";
 import logo from "../../assets/logo.png";
 import flagFr from "../../assets/france.png";
 import flagEn from "../../assets/eng.png";
 import "./Header.css";
+import { api } from "../../lib/api"; // <-- Ajout import API
 
 const navLinks = [
   { to: "/product", label: "header.product" },
@@ -13,15 +13,24 @@ const navLinks = [
   { to: "/ressources", label: "header.resources" },
 ];
 
+function parseJwt(token) {
+  try {
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch {
+    return null;
+  }
+}
+
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   const navRef = useRef();
+  const isDashboard = location.pathname === "/dashboard" || location.pathname === "/en/dashboard";
 
-  // Affiche le drapeau de la langue OPPOSÉE à la langue courante
   const showFlag = i18n.language.startsWith("fr") ? flagEn : flagFr;
   const nextLang = i18n.language.startsWith("fr") ? "en" : "fr";
 
@@ -29,23 +38,27 @@ export default function Header() {
     handleLang(nextLang);
   };
 
+  // Remplace l'effet localStorage par un appel API
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data?.session?.user ?? null);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => {
-      listener?.subscription.unsubscribe();
-    };
-  }, []);
+    let isMounted = true;
+    setIsLoadingUser(true);
+    api.getMe()
+      .then(data => {
+        if (isMounted) setUser(data);
+      })
+      .catch(() => {
+        if (isMounted) setUser(null);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingUser(false);
+      });
+    return () => { isMounted = false; };
+  }, [location.pathname]);
 
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
 
-  // Ferme le menu si on clique en dehors du header/nav
   useEffect(() => {
     if (!menuOpen) return;
     const handleClick = (e) => {
@@ -61,31 +74,48 @@ export default function Header() {
     const path = location.pathname;
     if (lng === "en") {
       if (!path.startsWith("/en")) {
-        navigate("/en" + (path === "/" ? "" : path));
+        // Redirige dashboard vers /en/dashboard
+        if (path === "/dashboard") {
+          navigate("/en/dashboard");
+        } else {
+          navigate("/en" + (path === "/" ? "" : path));
+        }
       }
     } else {
       if (path.startsWith("/en")) {
-        navigate(path.replace(/^\/en/, "") || "/");
+        // Redirige /en/dashboard vers /dashboard
+        if (path === "/en/dashboard") {
+          navigate("/dashboard");
+        } else {
+          navigate(path.replace(/^\/en/, "") || "/");
+        }
       }
     }
     i18n.changeLanguage(lng);
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await api.logout();
+    } catch (err) {
+      // ignore error
+    }
+    setUser(null);
+    setIsLoadingUser(true);
+    // Revérifie l'état utilisateur après logout
+    api.getMe()
+      .then(data => setUser(data))
+      .catch(() => setUser(null))
+      .finally(() => setIsLoadingUser(false));
     navigate("/");
   };
 
-  const handleLogin = async (provider) => {
-    if (provider === "email") {
-      window.location.href = "/login";
-    } else {
-      await supabase.auth.signInWithOAuth({ provider });
-    }
+  const handleLogin = () => {
+    navigate("/login");
   };
 
   return (
-    <header className="header-sticky" aria-label="Barre de navigation principale">
+    <header className={`header-sticky${isDashboard ? " dashboard-header" : ""}`} aria-label="Barre de navigation principale">
       <nav className="header-nav" ref={navRef}>
         <div className="header-logo-title">
           <Link to="/">
@@ -116,7 +146,7 @@ export default function Header() {
                 </Link>
               </li>
             ))}
-            {user && (
+            {!isLoadingUser && user && (
               <li>
                 <Link
                   to="/dashboard"
@@ -126,17 +156,17 @@ export default function Header() {
                 </Link>
               </li>
             )}
-            {!user && (
+            {!isLoadingUser && !user && (
               <li className="header-login-row">
                 <button
-                  onClick={() => handleLogin("email")}
+                  onClick={handleLogin}
                   className="header-btn header-btn-main"
                 >
                   {t("header.login")}
                 </button>
               </li>
             )}
-            {user && (
+            {!isLoadingUser && user && (
               <li>
                 <button
                   onClick={handleLogout}
@@ -147,7 +177,6 @@ export default function Header() {
               </li>
             )}
           </ul>
-          {/* Bouton flag TOUJOURS à droite */}
           <button
             onClick={handleLangSwitch}
             className="header-lang-btn"
