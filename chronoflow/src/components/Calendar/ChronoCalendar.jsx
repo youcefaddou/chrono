@@ -1,52 +1,15 @@
-import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
-import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
-import { fr, enUS } from 'date-fns/locale'
 import { useTranslation } from '../../hooks/useTranslation'
-import 'react-big-calendar/lib/css/react-big-calendar.css'
-import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import timeGridPlugin from '@fullcalendar/timegrid'
+import interactionPlugin from '@fullcalendar/interaction'
 import { useMemo, useState } from 'react'
-import { format, parse, startOfWeek, getDay } from 'date-fns'
 
-const locales = {
-  fr: fr,
-  en: enUS,
-}
 
-const DragAndDropCalendar = withDragAndDrop(Calendar)
-
-const messages = {
-  fr: {
-    week: 'Semaine',
-    work_week: 'Semaine ouvrée',
-    day: 'Jour',
-    month: 'Mois',
-    previous: 'Précédent',
-    next: 'Suivant',
-    today: "Aujourd'hui",
-    agenda: 'Agenda',
-    date: 'Date',
-    time: 'Heure',
-    event: 'Événement',
-    allDay: 'Toute la journée',
-    noEventsInRange: 'Aucun événement',
-    showMore: total => `+ ${total} de plus`
-  },
-  en: {} // anglais par défaut
-}
 
 export default function ChronoCalendar({ events: initialEvents, onSelectEvent, onSelectSlot }) {
   const { i18n } = useTranslation()
   const lang = i18n.language.startsWith('fr') ? 'fr' : 'en'
-
-  const localizer = useMemo(() =>
-    dateFnsLocalizer({
-      format,
-      parse,
-      startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 1 }),
-      getDay,
-      locales,
-    }), []
-  )
 
   const [events, setEvents] = useState(initialEvents || [])
   const [editingId, setEditingId] = useState(null)
@@ -133,26 +96,45 @@ export default function ChronoCalendar({ events: initialEvents, onSelectEvent, o
 
   return (
     <div style={{ background: '#f8fafc', borderRadius: 16, padding: 8 }}>
-      <DragAndDropCalendar
-        localizer={localizer}
+      <FullCalendar
+        plugins={[ dayGridPlugin, timeGridPlugin, interactionPlugin ]}
+        initialView="dayGridMonth"
         events={events}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: 600, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #f43f5e11' }}
-        views={['month', 'week', 'day']}
-        selectable
-        messages={messages[lang]}
-        culture={lang}
-        onSelectEvent={onSelectEvent}
-        onSelectSlot={onSelectSlot}
-        onEventDrop={moveEvent}
-        onEventResize={resizeEvent}
-        resizable
-        components={{
-          event: EventComponent
+        eventColor="#f43f5e"
+        editable={true}
+        selectable={true}
+        eventClassNames={event => event.className}
+        headerToolbar={{
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
-        onDoubleClickEvent={handleDoubleClickEvent}
-        eventPropGetter={eventPropGetter}
+        locale={lang}
+        dayMaxEvents={true}
+        slotDuration="00:15:00"
+        eventDrop={moveEvent}
+        eventResize={resizeEvent}
+        select={onSelectSlot}
+        eventClick={onSelectEvent}
+        customButtons={{
+          addEvent: {
+            text: 'Ajouter un événement',
+            click: () => alert('Ajouter un événement')
+          }
+        }}
+        footerToolbar={{
+          center: 'addEvent'
+        }}
+        eventContent={EventComponent}
+        eventDidMount={info => {
+          info.el.style.backgroundColor = info.event.color || '#f43f5e'
+          info.el.style.borderRadius = '6px'
+          info.el.style.color = '#fff'
+          info.el.style.border = 'none'
+          info.el.style.fontWeight = 500
+          info.el.style.fontSize = '13px'
+          info.el.style.boxShadow = '0 2px 8px #f43f5e22'
+        }}
       />
     </div>
   )

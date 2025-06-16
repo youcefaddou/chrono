@@ -1,19 +1,17 @@
 @import 'tailwindcss';
 
-/* Réparation pour les événements dans react-big-calendar */
-.rbc-event, 
-.rbc-day-slot .rbc-event {
-  overflow: visible !important;
-  contain: layout !important;
-  transform: none !important;
+/* Global styles */
+body {
+	margin: 0;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+		'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+		sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 }
 
-.rbc-day-slot .rbc-events-container {
-  margin-right: 0 !important;
-}
-
-.rbc-event-content {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+code {
+	font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+		monospace;
 }
 

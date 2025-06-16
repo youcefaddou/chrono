@@ -16,6 +16,22 @@ import integrationsRouter from '../server/routes/integrations.js'
 import googleEventTimeRouter from '../server/routes/google-event-time.js'
 import { auth } from './middlewares/auth.js'
 
+// Vérification des variables d'environnement requises
+const requiredEnvVars = [
+	'GOOGLE_CLIENT_ID',
+	'GOOGLE_CLIENT_SECRET',
+	'JWT_SECRET'
+]
+
+for (const envVar of requiredEnvVars) {
+	if (!process.env[envVar]) {
+		console.error(`❌ Variable d'environnement manquante: ${envVar}`)
+		process.exit(1)
+	}
+}
+
+console.log('✅ Variables d\'environnement chargées correctement')
+
 const app = express()
 app.use(cookieParser())
 app.use(cors({
@@ -282,7 +298,7 @@ app.post('/api/change-password', async (req, res) => {
 passport.use(new GoogleStrategy({
 	clientID: process.env.GOOGLE_CLIENT_ID,
 	clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-	callbackURL: '/api/auth/google/callback',
+	callbackURL: process.env.GOOGLE_REDIRECT_URI || '/api/auth/google/callback',
 }, async (accessToken, refreshToken, profile, done) => {
 	try {
 		let user = await User.findOne({ provider: 'google', providerId: profile.id })
